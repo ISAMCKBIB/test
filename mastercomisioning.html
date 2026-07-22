@@ -1,0 +1,882 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISAM CK BIB — Master Unit</title>
+<style>
+  :root{
+    --navy-950:#0b1f45;
+    --navy-900:#0f2a5c;
+    --navy-800:#15366f;
+    --blue-600:#2563eb;
+    --blue-500:#3b82f6;
+    --blue-50:#eef4ff;
+    --bg:#eef1f8;
+    --card:#ffffff;
+    --ink-900:#101828;
+    --ink-600:#475467;
+    --ink-400:#98a2b3;
+    --line:#e6e9f2;
+    --green:#16a34a;
+    --green-bg:#e9f9ee;
+    --orange:#f59e0b;
+    --orange-bg:#fff6e6;
+    --red:#e0362e;
+    --red-bg:#fdeceb;
+    --sky:#2f6fed;
+    --sky-bg:#eaf1ff;
+    --purple:#7c5cff;
+    --purple-bg:#f1edff;
+    --radius:16px;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.10);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family: "Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;}
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 250px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    background:linear-gradient(180deg,var(--navy-900) 0%, var(--navy-950) 100%);
+    color:#dce4f5;
+    padding:22px 16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    padding:4px 8px 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    margin-bottom:14px;
+  }
+  .brand-badge{
+    width:38px;height:38px;border-radius:10px;
+    background:radial-gradient(circle at 30% 30%, #ffb144, #e0362e);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#fff;font-size:13px;flex-shrink:0;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+  }
+  .brand-text b{display:block;font-size:14.5px;color:#fff;letter-spacing:.2px;}
+  .brand-text span{display:block;font-size:11.5px;color:#9fb0d6;margin-top:1px;}
+
+  .nav-label{
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    color:#7488b6;text-transform:uppercase;
+    margin:14px 10px 6px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 12px;border-radius:10px;
+    font-size:13.6px;color:#c6d2ee;font-weight:500;
+    cursor:pointer;transition:background .15s ease, color .15s ease;
+  }
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.9;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{
+    background:var(--blue-600);
+    color:#fff;
+    box-shadow: 0 4px 14px -4px rgba(37,99,235,.7);
+  }
+  .sidebar-foot{margin-top:auto;padding-top:14px;}
+  .back-btn{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:10px;
+    background:rgba(255,255,255,.06);
+    color:#c6d2ee;font-size:13px;font-weight:600;
+  }
+  .back-btn:hover{background:rgba(255,255,255,.1);}
+
+  /* ---------- topbar ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .topbar{
+    background:#fff;border-bottom:1px solid var(--line);
+    padding:12px 24px;
+    display:flex;align-items:center;gap:14px;
+    position:sticky;top:0;z-index:20;
+    flex-wrap:wrap;
+  }
+  .hamburger{
+    display:none;background:none;border:none;cursor:pointer;
+    width:36px;height:36px;border-radius:8px;align-items:center;justify-content:center;
+    color:var(--ink-900);
+  }
+  .hamburger:hover{background:var(--blue-50);}
+  .topbar-title b{font-size:16.5px;display:block;color:var(--ink-900);}
+  .topbar-title span{font-size:12px;color:var(--ink-600);}
+
+  .topbar-spacer{flex:1;}
+  .field{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:10px;
+    padding:8px 12px;font-size:12.8px;color:var(--ink-900);
+    background:#fbfcfe;font-weight:600;white-space:nowrap;
+    position:relative;cursor:pointer;
+  }
+  .field svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;}
+  .field .chev-mini{width:12px;height:12px;color:var(--ink-400);margin-left:2px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    background:#fff;cursor:pointer;color:var(--ink-600);flex-shrink:0;
+  }
+  .icon-btn:hover{background:var(--blue-50);}
+  .icon-btn svg{width:17px;height:17px;}
+  .badge-dot{
+    position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;
+    font-size:9.5px;font-weight:700;border-radius:20px;padding:1px 5px;
+    border:2px solid #fff;
+  }
+  .user-chip{display:flex;align-items:center;gap:9px;padding-left:8px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--blue-600);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .user-chip b{font-size:13px;display:block;}
+  .user-chip span{font-size:11.3px;color:var(--ink-600);}
+  .user-chip .chev-mini{width:14px;height:14px;color:var(--ink-400);}
+
+  /* ---------- breadcrumb ---------- */
+  .breadcrumb{
+    padding:14px 24px 0;font-size:13px;color:var(--ink-600);
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  }
+  .breadcrumb b{color:var(--ink-900);font-weight:600;}
+  .breadcrumb .chev{opacity:.5;}
+
+  .content{padding:16px 24px 40px;display:flex;flex-direction:column;gap:16px;}
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--card);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 20px 18px;
+    border:1px solid var(--line);
+    min-width:0;
+  }
+
+  /* ---------- stat cards ---------- */
+  .stats-row{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  }
+  .stat-card{display:flex;gap:14px;align-items:flex-start;padding:18px 18px 16px;}
+  .stat-card .stat-icon{
+    width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .stat-card .stat-icon svg{width:23px;height:23px;}
+  .stat-card .stat-body{min-width:0;}
+  .stat-label{
+    font-size:12px;font-weight:700;letter-spacing:.03em;
+    color:var(--ink-600);text-transform:uppercase;
+  }
+  .stat-main{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+  .stat-main b{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+  .stat-main span.unit{font-size:12.5px;color:var(--ink-600);font-weight:600;}
+  .stat-sub{margin-top:7px;font-size:12px;color:var(--ink-600);}
+  .stat-sub b{font-weight:700;}
+
+  .tag-green{color:var(--green);} .bg-green{background:var(--green-bg);}
+  .tag-orange{color:var(--orange);} .bg-orange{background:var(--orange-bg);}
+  .tag-red{color:var(--red);} .bg-red{background:var(--red-bg);}
+  .tag-sky{color:var(--sky);} .bg-sky{background:var(--sky-bg);}
+  .tag-navy{color:var(--navy-800);} .bg-navy{background:#eef1fb;}
+  .tag-purple{color:var(--purple);} .bg-purple{background:var(--purple-bg);}
+
+  /* ---------- filter bar ---------- */
+  .filter-card{
+    display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+    padding:16px 20px;
+  }
+  .filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;}
+  .filter-group.search{flex:2;min-width:220px;}
+  .filter-group label{font-size:11px;font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.03em;}
+  .search-input{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
+  }
+  .search-input svg{width:16px;height:16px;color:var(--ink-400);flex-shrink:0;}
+  .search-input input{border:none;background:transparent;outline:none;font-size:13px;color:var(--ink-900);width:100%;font-family:inherit;}
+  .search-input input::placeholder{color:var(--ink-400);}
+  .select-input{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
+    font-size:13px;font-weight:600;color:var(--ink-900);cursor:pointer;
+  }
+  .select-input svg{width:14px;height:14px;color:var(--ink-400);flex-shrink:0;}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;
+    cursor:pointer;border:1px solid transparent;white-space:nowrap;
+  }
+  .btn svg{width:15px;height:15px;flex-shrink:0;}
+  .btn-primary{background:var(--blue-600);color:#fff;box-shadow:0 4px 14px -4px rgba(37,99,235,.6);}
+  .btn-primary:hover{background:#1d4ed8;}
+  .btn-ghost{background:#fff;color:var(--ink-600);border-color:var(--line);}
+  .btn-ghost:hover{background:var(--blue-50);color:var(--blue-600);}
+  .btn-add{margin-left:auto;}
+
+  /* ---------- row: table + detail panel ---------- */
+  .row-main{display:grid;grid-template-columns:1.75fr 1fr;gap:16px;align-items:start;}
+
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .card-head h3{margin:0;font-size:14.5px;font-weight:800;color:var(--navy-900);letter-spacing:.01em;}
+
+  /* table */
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.8px;min-width:760px;}
+  thead th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--ink-600);font-weight:700;padding:9px 10px;border-bottom:2px solid var(--line);
+    white-space:nowrap;
+  }
+  thead th.center{text-align:center;}
+  tbody td{padding:10px;border-bottom:1px solid var(--line);color:var(--ink-900);font-weight:600;white-space:nowrap;}
+  tbody tr{cursor:pointer;transition:background .12s ease;}
+  tbody tr:hover{background:#f7f9fd;}
+  tbody tr.row-selected{background:var(--blue-50);}
+  td.num, td.center{text-align:center;font-variant-numeric:tabular-nums;}
+  td.unit-id{color:var(--blue-600);font-weight:800;}
+  .status-pill{
+    display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+    font-size:11px;font-weight:700;
+  }
+  .status-active{background:var(--green-bg);color:var(--green);}
+  .status-nonaktif{background:var(--orange-bg);color:var(--orange);}
+  .action-icons{display:flex;gap:6px;}
+  .mini-ico{
+    width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);background:#fff;cursor:pointer;flex-shrink:0;
+  }
+  .mini-ico svg{width:14px;height:14px;}
+  .mini-ico.view{color:var(--ink-600);}
+  .mini-ico.edit{color:var(--blue-600);}
+  .mini-ico.del{color:var(--red);}
+  .mini-ico:hover{background:var(--blue-50);}
+
+  .table-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:10px;}
+  .table-foot .info{font-size:12.5px;color:var(--ink-600);}
+  .pager{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .page-size{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;
+    padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--ink-900);background:#fbfcfe;cursor:pointer;
+  }
+  .page-size svg{width:13px;height:13px;color:var(--ink-400);}
+  .page-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--ink-600);cursor:pointer;
+  }
+  .page-btn:hover{background:var(--blue-50);}
+  .page-btn.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600);}
+  .page-btn.nav svg{width:14px;height:14px;}
+  .page-dots{color:var(--ink-400);font-size:13px;padding:0 2px;}
+
+  /* ---------- detail panel ---------- */
+  .detail-card{position:sticky;top:78px;}
+  .detail-close{
+    width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-400);cursor:pointer;flex-shrink:0;
+  }
+  .detail-close:hover{background:var(--blue-50);color:var(--ink-600);}
+  .detail-hero{display:flex;gap:14px;align-items:center;padding:6px 4px 16px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+  .detail-hero .thumb{
+    width:76px;height:64px;border-radius:12px;background:var(--blue-50);
+    display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;
+    border:1px solid #dbe7ff;
+  }
+  .detail-list{display:flex;flex-direction:column;gap:9px;}
+  .detail-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;font-size:12.8px;}
+  .detail-row .k{color:var(--ink-600);font-weight:600;flex-shrink:0;}
+  .detail-row .v{color:var(--ink-900);font-weight:700;text-align:right;}
+
+  .sub-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:18px;margin-bottom:10px;
+  }
+  .sub-head h4{margin:0;font-size:13px;font-weight:800;color:var(--navy-900);}
+  .btn-tiny{
+    display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    color:var(--blue-600);background:var(--blue-50);border:1px solid #dbe7ff;
+    padding:6px 10px;border-radius:8px;cursor:pointer;
+  }
+  .btn-tiny svg{width:12px;height:12px;}
+  .btn-tiny:hover{background:#e2ecff;}
+
+  .site-block{
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fbfcfe;
+  }
+  .site-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .site-block-head b{font-size:13.5px;color:var(--ink-900);}
+  .site-block-row{display:flex;justify-content:space-between;font-size:12.3px;padding:3px 0;color:var(--ink-600);}
+  .site-block-row b{color:var(--ink-900);font-weight:700;}
+  .site-block-actions{display:flex;gap:6px;position:absolute;margin-top:-40px;margin-left:calc(100% - 30px);}
+
+  .info-note{
+    margin-top:14px;display:flex;gap:9px;align-items:flex-start;
+    background:var(--blue-50);border:1px solid #dbe7ff;border-radius:10px;padding:10px 12px;
+    font-size:11.8px;color:var(--navy-800);line-height:1.45;
+  }
+  .info-note svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;margin-top:1px;}
+
+  /* ---------- overlay for mobile drawer ---------- */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(11,31,69,.45);z-index:29;
+  }
+
+  /* ================= RESPONSIVE ================= */
+  @media (max-width: 1180px){
+    .row-main{grid-template-columns:1fr;}
+    .detail-card{position:static;}
+  }
+
+  @media (max-width: 1000px){
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+  }
+
+  @media (max-width: 860px){
+    .shell{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;left:0;top:0;bottom:0;z-index:30;width:250px;
+      transform:translateX(-100%);transition:transform .25s ease;
+    }
+    .sidebar.open{transform:translateX(0);}
+    .hamburger{display:flex;}
+    .overlay.show{display:block;}
+    .topbar{gap:10px;}
+    .field.date-field, .field.time-field{display:none;}
+  }
+
+  @media (max-width: 720px){
+    .stats-row{grid-template-columns:1fr;}
+    .content{padding:14px 14px 32px;}
+    .breadcrumb{padding:12px 14px 0;}
+    .topbar{padding:10px 14px;}
+    .field{display:none;}
+    .user-chip span{display:none;}
+    .filter-card{flex-direction:column;align-items:stretch;}
+    .btn-add{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-badge">CK</div>
+      <div class="brand-text">
+        <b>ISAM CK BIB</b>
+        <span>Inspeksi K3 System</span>
+      </div>
+    </div>
+
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      Dashboard
+    </a>
+
+    <div class="nav-label">Data Master</div>
+    <a class="nav-item active">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Master Unit
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+      Jenis Unit
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+      Area
+    </a>
+
+    <div class="nav-label">Commissioning</div>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      Commissioning
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      Waiting Sticker
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      Expired / Near Expired
+    </a>
+
+    <div class="nav-label">Report</div>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/></svg>
+      Laporan
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      Export Data
+    </a>
+
+    <div class="nav-label">Settings</div>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      User Management
+    </a>
+    <a class="nav-item">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1z"/></svg>
+      Pengaturan
+    </a>
+
+    <div class="sidebar-foot">
+      <a class="back-btn">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6 6m-6-6 6-6"/></svg>
+        Kembali ke Fitur
+      </a>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+
+    <!-- topbar -->
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="topbar-title">
+        <b>Master Unit</b>
+        <span>Data Master &gt; Master Unit</span>
+      </div>
+      <div class="topbar-spacer"></div>
+
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+        <span id="siteFieldLabel">ALL SITE</span>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+        <span id="areaFieldLabel">ALL AREA</span>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="field date-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+        <span id="dateField">—</span>
+      </div>
+      <div class="field time-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span id="timeField">—</span>
+      </div>
+      <button class="icon-btn" id="refreshBtn" title="Refresh data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      </button>
+      <button class="icon-btn" title="Notifikasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        <span class="badge-dot" id="notifCount">4</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <b id="userName">Abdul Azis</b>
+          <span id="userRole">Administrator</span>
+        </div>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- breadcrumb -->
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="chev">›</span>
+      <span>Data Master</span><span class="chev">›</span>
+      <b>Master Unit</b>
+    </div>
+
+    <!-- content -->
+    <div class="content">
+
+      <!-- stat cards -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- filter bar -->
+      <div class="card filter-card">
+        <div class="filter-group search">
+          <label>Cari Unit</label>
+          <div class="search-input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input id="searchInput" type="text" placeholder="Cari Unit ID, Model, atau SN...">
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Jenis Unit</label>
+          <div class="select-input" data-select="jenis">
+            <span data-label>Semua</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Status Unit</label>
+          <div class="select-input" data-select="status">
+            <span data-label>Semua</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Site</label>
+          <div class="select-input" data-select="site">
+            <span data-label>Semua Site</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="filterBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>
+          Filter
+        </button>
+        <button class="btn btn-ghost" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+          Reset
+        </button>
+        <button class="btn btn-primary btn-add" id="addUnitBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tambah Unit
+        </button>
+      </div>
+
+      <!-- row: table + detail -->
+      <div class="row-main">
+
+        <div class="card">
+          <div class="card-head"><h3>DAFTAR MASTER UNIT</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Unit ID</th>
+                  <th>Model</th>
+                  <th>Jenis Unit</th>
+                  <th>Serial Number</th>
+                  <th>Tahun</th>
+                  <th>Status Unit</th>
+                  <th class="center">BIB</th>
+                  <th class="center">TIA</th>
+                  <th class="center">Total</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="unitTableBody"></tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <div class="info" id="pageInfo">Menampilkan 1 - 10 dari 127 data</div>
+            <div class="pager">
+              <div class="page-size">
+                <span id="pageSizeLabel">10 / halaman</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <div class="page-btn nav" id="prevPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></div>
+              <div id="pageNumbers" style="display:flex;gap:6px;"></div>
+              <div class="page-btn nav" id="nextPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card detail-card" id="detailCard"></div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   DATA SUMBER — GANTI BAGIAN INI DENGAN DATA ASLI (dari API / database)
+   ========================================================================= */
+const MASTER_DATA = {
+  meta:{
+    user:{ name:"Abdul Azis", role:"Administrator" },
+    site:"ALL SITE", area:"ALL AREA"
+  },
+  stats:[
+    { label:"Total Unit", value:127, unit:"Unit", sub:"100% dari total unit", subColor:"navy", tone:"navy",
+      icon:'<path d="M3 17V7a2 2 0 0 1 2-2h7v12H3z"/><path d="M12 9h5l3 4v4h-8z"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>' },
+    { label:"Unit Aktif", value:125, unit:"Unit", sub:"98.4% dari total unit", subColor:"green", tone:"green",
+      icon:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>' },
+    { label:"Unit Non Aktif", value:2, unit:"Unit", sub:"1.6% dari total unit", subColor:"orange", tone:"orange",
+      icon:'<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' },
+    { label:"Total Komisioning (BIB + TIA)", value:248, unit:"Data", sub:"Rata-rata tersisa: 212 Hari", subColor:"navy", tone:"purple",
+      icon:'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/>' },
+  ],
+  filters:{
+    jenis:["Semua","Heavy Dump Truck","Excavator","Dozer","Grader","Water Truck","Fuel Truck","Light Vehicle","Compactor","Service Truck","Pompa"],
+    status:["Semua","Active","Non Aktif"],
+    site:["Semua Site","BIB","TIA"]
+  },
+  units:[
+    { id:"CO4536", model:"HD 4536 / HD785", jenis:"Heavy Dump Truck", sn:"CAT00HD7854536", tahun:2011, status:"Active", bib:1, tia:1, emoji:"🚚" },
+    { id:"EX1021", model:"EX 1021 / CAT 336GC", jenis:"Excavator", sn:"CAT0336GCL1021", tahun:2021, status:"Active", bib:1, tia:1, emoji:"🏗️" },
+    { id:"WT0213", model:"WT 0213 / HINO 500", jenis:"Water Truck", sn:"HINO500WT0213", tahun:2019, status:"Active", bib:1, tia:1, emoji:"🚰" },
+    { id:"DT045",  model:"DT 045 / CAT D8T", jenis:"Dozer", sn:"CATD8TDT045", tahun:2018, status:"Active", bib:1, tia:1, emoji:"🚜" },
+    { id:"GD060",  model:"GD 060 / CAT 140K", jenis:"Grader", sn:"CAT140KGD060", tahun:2016, status:"Active", bib:1, tia:1, emoji:"🚛" },
+    { id:"FV100",  model:"FV 100 / HINO 500", jenis:"Fuel Truck", sn:"HINO500FV100", tahun:2020, status:"Active", bib:1, tia:1, emoji:"🛢️" },
+    { id:"LT090",  model:"LT 090 / TOYOTA HILUX", jenis:"Light Vehicle", sn:"MROEX3CDXLT090", tahun:2020, status:"Active", bib:1, tia:1, emoji:"🚗" },
+    { id:"CM080",  model:"CM 080 / CAT CS563E", jenis:"Compactor", sn:"CATCS563ECM080", tahun:2017, status:"Active", bib:1, tia:1, emoji:"🚧" },
+    { id:"PM120",  model:"PM 120 / PUMP", jenis:"Pompa", sn:"PUMP120PM120", tahun:2021, status:"Active", bib:1, tia:1, emoji:"💧" },
+    { id:"SC200",  model:"SC 200 / VOLVO", jenis:"Service Truck", sn:"VOLVOSC200", tahun:2019, status:"Non Aktif", bib:1, tia:0, emoji:"🚐" },
+  ],
+  totalUnits:127,
+  pageSize:10,
+  totalPages:13,
+
+  detail:{
+    unitId:"CO4536",
+    model:"HD 4536 / HD785",
+    jenis:"Heavy Dump Truck",
+    sn:"CAT00HD7854536",
+    tahun:2011,
+    status:"Active",
+    emoji:"🚚",
+    sites:[
+      { site:"BIB", status:"Active", statusTone:"green", regNo:"BIB/CKT/2026/VII/120931", area:"GRB", masaBerlaku:"28-Aug-2026", sisaHari:"37 Hari", sisaTone:"green" },
+      { site:"TIA", status:"Near Expired", statusTone:"orange", regNo:"TIA/CKT/2026/VII/009872", area:"GRB", masaBerlaku:"06-Sep-2026", sisaHari:"46 Hari", sisaTone:"orange" },
+    ],
+    note:"Unit yang sama dapat memiliki komisioning berbeda di setiap site. Pastikan komisioning di semua site selalu diperbarui tepat waktu."
+  }
+};
+/* ========================================================================= */
+
+const toneColor = { green:"var(--green)", orange:"var(--orange)", red:"var(--red)", sky:"var(--sky)", navy:"var(--navy-800)", purple:"var(--purple)" };
+const toneBg = { green:"var(--green-bg)", orange:"var(--orange-bg)", red:"var(--red-bg)", sky:"var(--sky-bg)", navy:"#eef1fb", purple:"var(--purple-bg)" };
+
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+
+/* ---- header meta ---- */
+document.getElementById("siteFieldLabel").textContent = MASTER_DATA.meta.site;
+document.getElementById("areaFieldLabel").textContent = MASTER_DATA.meta.area;
+document.getElementById("userName").textContent = MASTER_DATA.meta.user.name;
+document.getElementById("userRole").textContent = MASTER_DATA.meta.user.role;
+document.getElementById("userAvatar").textContent = MASTER_DATA.meta.user.name.charAt(0);
+
+function updateClock(){
+  const now = new Date();
+  const days = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
+  const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  document.getElementById("dateField").textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById("timeField").textContent = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) + " WIB";
+}
+updateClock(); setInterval(updateClock, 30000);
+
+document.getElementById("refreshBtn").addEventListener("click", ()=>{
+  const btn = document.getElementById("refreshBtn");
+  btn.style.transform = "rotate(360deg)"; btn.style.transition="transform .5s";
+  setTimeout(()=>{ btn.style.transform=""; }, 500);
+  renderAll();
+});
+
+/* ---- stat cards ---- */
+function renderStats(){
+  const row = document.getElementById("statsRow");
+  row.innerHTML = "";
+  MASTER_DATA.stats.forEach(s=>{
+    row.appendChild(el(`
+      <div class="card stat-card">
+        <div class="stat-icon" style="background:${toneBg[s.tone]};color:${toneColor[s.tone]}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.icon}</svg>
+        </div>
+        <div class="stat-body">
+          <div class="stat-label" style="color:${toneColor[s.tone]}">${s.label}</div>
+          <div class="stat-main"><b>${s.value}</b><span class="unit">${s.unit}</span></div>
+          <div class="stat-sub"><b style="color:${toneColor[s.subColor]}">${s.sub}</b></div>
+        </div>
+      </div>
+    `));
+  });
+}
+
+/* ---- filter selects (static, decorative but wired to labels) ---- */
+function renderFilters(){
+  document.querySelectorAll(".select-input").forEach(box=>{
+    const key = box.getAttribute("data-select");
+    const opts = MASTER_DATA.filters[key];
+    let idx = 0;
+    box.addEventListener("click", ()=>{
+      idx = (idx+1) % opts.length;
+      box.querySelector("[data-label]").textContent = opts[idx];
+    });
+  });
+  document.getElementById("resetBtn").addEventListener("click", ()=>{
+    document.querySelectorAll(".select-input").forEach(box=>{
+      const key = box.getAttribute("data-select");
+      box.querySelector("[data-label]").textContent = MASTER_DATA.filters[key][0];
+    });
+    document.getElementById("searchInput").value = "";
+  });
+}
+
+/* ---- unit table ---- */
+let selectedRow = 0;
+function renderTable(){
+  const body = document.getElementById("unitTableBody");
+  body.innerHTML = "";
+  MASTER_DATA.units.forEach((u,i)=>{
+    const total = u.bib + u.tia;
+    const statusClass = u.status === "Active" ? "status-active" : "status-nonaktif";
+    const row = el(`
+      <tr class="${i===selectedRow?'row-selected':''}" data-idx="${i}">
+        <td>${i+1}</td>
+        <td class="unit-id">${u.id}</td>
+        <td>${u.model}</td>
+        <td>${u.jenis}</td>
+        <td>${u.sn}</td>
+        <td>${u.tahun}</td>
+        <td><span class="status-pill ${statusClass}">${u.status}</span></td>
+        <td class="num">${u.bib}</td>
+        <td class="num">${u.tia}</td>
+        <td class="num">${total}</td>
+        <td>
+          <div class="action-icons">
+            <div class="mini-ico view" title="Lihat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+            <div class="mini-ico edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+            <div class="mini-ico del" title="Hapus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></div>
+          </div>
+        </td>
+      </tr>
+    `);
+    row.addEventListener("click", (e)=>{
+      if(e.target.closest(".mini-ico")) return;
+      selectedRow = i;
+      renderTable();
+      renderDetail(u);
+    });
+    body.appendChild(row);
+  });
+}
+
+/* ---- detail panel ---- */
+function renderDetail(unit){
+  const d = MASTER_DATA.detail;
+  const card = document.getElementById("detailCard");
+  const statusClass = unit.status === "Active" ? "status-active" : "status-nonaktif";
+
+  let sitesHtml = "";
+  d.sites.forEach(s=>{
+    sitesHtml += `
+      <div class="site-block" style="position:relative;">
+        <div class="site-block-head">
+          <b>${s.site}</b>
+          <span class="status-pill" style="background:${toneBg[s.statusTone]};color:${toneColor[s.statusTone]}">${s.status}</span>
+        </div>
+        <div class="site-block-row"><span>Registration No.</span><b>${s.regNo}</b></div>
+        <div class="site-block-row"><span>Area</span><b>${s.area}</b></div>
+        <div class="site-block-row"><span>Masa Berlaku</span><b>${s.masaBerlaku}</b></div>
+        <div class="site-block-row"><span>Sisa Hari</span><b style="color:${toneColor[s.sisaTone]}">${s.sisaHari}</b></div>
+      </div>
+    `;
+  });
+
+  card.innerHTML = `
+    <div class="card-head">
+      <h3>DETAIL UNIT</h3>
+      <div class="detail-close" id="closeDetail">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="detail-hero">
+      <div class="thumb">${unit.emoji}</div>
+      <div>
+        <div style="font-weight:800;font-size:15px;">${unit.id}</div>
+        <div style="font-size:12.3px;color:var(--ink-600);margin-top:2px;">${unit.model}</div>
+      </div>
+    </div>
+    <div class="detail-list">
+      <div class="detail-row"><span class="k">Unit ID</span><span class="v">${unit.id}</span></div>
+      <div class="detail-row"><span class="k">Model / Tipe</span><span class="v">${unit.model}</span></div>
+      <div class="detail-row"><span class="k">Jenis Unit</span><span class="v">${unit.jenis}</span></div>
+      <div class="detail-row"><span class="k">Serial Number</span><span class="v">${unit.sn}</span></div>
+      <div class="detail-row"><span class="k">Tahun</span><span class="v">${unit.tahun}</span></div>
+      <div class="detail-row"><span class="k">Status Unit</span><span class="v"><span class="status-pill ${statusClass}">${unit.status}</span></span></div>
+    </div>
+
+    <div class="sub-head">
+      <h4>KOMISIONING UNIT (PER SITE)</h4>
+      <div class="btn-tiny" id="addKomisioning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Tambah
+      </div>
+    </div>
+    ${sitesHtml}
+
+    <div class="info-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span>${d.note}</span>
+    </div>
+  `;
+
+  document.getElementById("closeDetail").addEventListener("click", ()=>{
+    card.innerHTML = `<div class="card-head"><h3>DETAIL UNIT</h3></div><div style="padding:30px 6px;text-align:center;color:var(--ink-400);font-size:13px;">Pilih unit pada tabel untuk melihat detail.</div>`;
+  });
+}
+
+/* ---- pagination ---- */
+let currentPage = 1;
+function renderPagination(){
+  document.getElementById("pageInfo").textContent =
+    `Menampilkan ${(currentPage-1)*MASTER_DATA.pageSize + 1} - ${Math.min(currentPage*MASTER_DATA.pageSize, MASTER_DATA.totalUnits)} dari ${MASTER_DATA.totalUnits} data`;
+
+  const wrap = document.getElementById("pageNumbers");
+  wrap.innerHTML = "";
+  const total = MASTER_DATA.totalPages;
+  const pagesToShow = [1,2,3,4,5];
+  pagesToShow.forEach(p=>{
+    if(p>total) return;
+    const btn = el(`<div class="page-btn ${p===currentPage?'active':''}">${p}</div>`);
+    btn.addEventListener("click", ()=>{ currentPage = p; renderPagination(); });
+    wrap.appendChild(btn);
+  });
+  wrap.appendChild(el(`<div class="page-dots">…</div>`));
+  const lastBtn = el(`<div class="page-btn ${currentPage===total?'active':''}">${total}</div>`);
+  lastBtn.addEventListener("click", ()=>{ currentPage = total; renderPagination(); });
+  wrap.appendChild(lastBtn);
+}
+document.getElementById("prevPage").addEventListener("click", ()=>{ if(currentPage>1){ currentPage--; renderPagination(); } });
+document.getElementById("nextPage").addEventListener("click", ()=>{ if(currentPage<MASTER_DATA.totalPages){ currentPage++; renderPagination(); } });
+
+function renderAll(){
+  renderStats();
+  renderFilters();
+  renderTable();
+  renderDetail({ ...MASTER_DATA.units[selectedRow], ...{} });
+  renderPagination();
+}
+renderAll();
+
+/* ---- mobile sidebar drawer ---- */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+document.getElementById("hamburgerBtn").addEventListener("click", ()=>{
+  sidebar.classList.add("open"); overlay.classList.add("show");
+});
+overlay.addEventListener("click", ()=>{
+  sidebar.classList.remove("open"); overlay.classList.remove("show");
+});
+</script>
+</body>
+</html>
