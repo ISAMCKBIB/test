@@ -1,0 +1,541 @@
+import React, { useMemo, useState } from "react";
+import {
+  Home, LayoutGrid, Boxes, Tags, MapPin, ClipboardCheck, Bell as BellIcon,
+  Timer, ShieldCheck, FileBarChart2, Download, ChevronDown, Search, Filter,
+  RotateCcw, Eye, Printer, Pencil, ChevronLeft, ChevronRight, Info, XCircle,
+  AlertTriangle, Clock, CheckCircle2, Users, Settings, LogOut, Calendar, ClockIcon
+} from "lucide-react";
+import { PieChart, Pie, Cell } from "recharts";
+
+// ---------------------------------------------------------------------------
+// DUMMY DATA — swap this block out for real API data later.
+// Shape of one row is documented right above ROWS.
+// ---------------------------------------------------------------------------
+
+const SITES = ["BIB", "TIA"];
+const AREAS = ["GRB", "KGB", "FUEL", "STK"];
+const MODELS = [
+  ["HD 4536", "CAT"], ["HD 785", "CAT"], ["HINO 500", "HINO"], ["EX 1021", "CAT"],
+  ["PUMP", "PUMP"], ["CAT D8T", "CAT"], ["CAT 140K", "CAT"], ["TRAILER", "TRL"],
+  ["EX 1200", "CAT"], ["HD 465", "CAT"],
+];
+
+function pad(n, w) { return String(n).padStart(w, "0"); }
+
+function makeRow(i) {
+  const site = SITES[i % SITES.length];
+  const area = AREAS[i % AREAS.length];
+  const [type, brand] = MODELS[i % MODELS.length];
+  const unitId = `${brand === "CAT" ? "C" : brand === "HINO" ? "W" : brand === "PUMP" ? "PM" : brand === "TRL" ? "TR" : "E"}${pad(1000 + i * 37 + (i % 7) * 91, 5)}`;
+  const serial = `${brand}${pad(i * 11 + 100, 4)}T${unitId.slice(-4)}`;
+  const idBibTia = unitId.replace(/^[A-Z]+/, "").padStart(2, "0");
+  const idCode = `${brand.slice(0, 2).toUpperCase()}${idBibTia}`;
+
+  // spread sisaHari across expired / near expired / aman buckets
+  const bucket = i % 30;
+  let sisaHari;
+  if (bucket < 6) sisaHari = -(bucket * 4 + 1); // expired
+  else if (bucket < 18) sisaHari = (bucket - 5) * 2; // near expired <=30
+  else if (bucket < 24) sisaHari = 31 + (bucket - 18) * 5; // near expired 31-60
+  else sisaHari = 61 + (bucket - 24) * 20; // aman
+
+  const status = sisaHari < 0 ? "Expired" : sisaHari <= 30 ? "Near Expired" : sisaHari <= 60 ? "Near Expired" : "Aman";
+  const prioritas = sisaHari < 0 ? "Tinggi" : sisaHari <= 15 ? "Tinggi" : sisaHari <= 45 ? "Sedang" : "Rendah";
+
+  const base = new Date(2026, 6, 22); // 22 Jul 2026, "today" in the header
+  const due = new Date(base.getTime() + sisaHari * 86400000);
+  const months = ["Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des"];
+  const masaBerlaku = `${pad(due.getDate(), 2)} ${months[due.getMonth()]} ${due.getFullYear()}`;
+
+  return {
+    no: i + 1,
+    unitId,
+    model: type,
+    serial,
+    site,
+    area,
+    idCode,
+    masaBerlaku,
+    sisaHari,
+    status,
+    prioritas,
+  };
+}
+
+const ROWS = Array.from({ length: 75 }, (_, i) => makeRow(i));
+
+// Overwrite the first 10 rows with the exact values from the reference screenshot
+const FIRST_TEN = [
+  { no: 1, unitId: "C04536", model: "HD 4536", serial: "CAT00HD7854536", site: "BIB", area: "GRB", idCode: "HD4556", masaBerlaku: "28 Agu 2026", sisaHari: -10, status: "Expired", prioritas: "Tinggi" },
+  { no: 2, unitId: "C02314", model: "HD 785", serial: "CAT00HD7852314", site: "TIA", area: "GRB", idCode: "HD2314", masaBerlaku: "06 Sep 2026", sisaHari: -1, status: "Expired", prioritas: "Tinggi" },
+  { no: 3, unitId: "WT0213", model: "HINO 500", serial: "HINO500WT0213", site: "BIB", area: "KGB", idCode: "WT0213", masaBerlaku: "22 Jul 2026", sisaHari: 0, status: "Expired", prioritas: "Sedang" },
+  { no: 4, unitId: "EX1021", model: "EX 1021", serial: "CAT0336GCL1021", site: "BIB", area: "KGB", idCode: "EX1021", masaBerlaku: "09 Jun 2026", sisaHari: 13, status: "Near Expired", prioritas: "Sedang" },
+  { no: 5, unitId: "FV100", model: "HINO 500", serial: "HINO500FV100", site: "TIA", area: "GRB", idCode: "FV100", masaBerlaku: "01 Jul 2026", sisaHari: 21, status: "Near Expired", prioritas: "Sedang" },
+  { no: 6, unitId: "PM120", model: "PUMP", serial: "PUMP120PM120", site: "BIB", area: "FUEL", idCode: "PM120", masaBerlaku: "17 Jul 2026", sisaHari: 27, status: "Near Expired", prioritas: "Rendah" },
+  { no: 7, unitId: "DT045", model: "CAT D8T", serial: "CATD8TDT045", site: "TIA", area: "STK", idCode: "DT045", masaBerlaku: "11 Jul 2026", sisaHari: 33, status: "Near Expired", prioritas: "Rendah" },
+  { no: 8, unitId: "GD060", model: "CAT 140K", serial: "CAT140KGD060", site: "BIB", area: "KGB", idCode: "GD060", masaBerlaku: "04 Jun 2026", sisaHari: 44, status: "Near Expired", prioritas: "Rendah" },
+  { no: 9, unitId: "HD7857", model: "HD 785", serial: "CAT00HD7857X57", site: "BIB", area: "KGB", idCode: "HD7857", masaBerlaku: "30 Jun 2026", sisaHari: 48, status: "Near Expired", prioritas: "Rendah" },
+  { no: 10, unitId: "TR100", model: "TRAILER", serial: "TRL000TR100", site: "TIA", area: "GRB", idCode: "TR100", masaBerlaku: "14 Jul 2026", sisaHari: 60, status: "Near Expired", prioritas: "Rendah" },
+];
+FIRST_TEN.forEach((row, idx) => (ROWS[idx] = row));
+
+const TOP5_EXPIRED = [
+  { unitId: "C04536", model: "HD 4536", sisaHari: -10 },
+  { unitId: "C02314", model: "HD 785", sisaHari: -1 },
+  { unitId: "WT0213", model: "HINO 500", sisaHari: 0 },
+  { unitId: "HD8765", model: "HD 785", sisaHari: -2 },
+  { unitId: "EX8890", model: "EX 1200", sisaHari: -3 },
+];
+
+const STATUS_SUMMARY = [
+  { key: "expired", label: "Expired", count: 15, pct: "1.8%", color: "#E4362B" },
+  { key: "near30", label: "Near Expired (≤ 30 Hari)", count: 32, pct: "3.9%", color: "#F5A623" },
+  { key: "near60", label: "Near Expired (31 - 60 Hari)", count: 28, pct: "3.4%", color: "#F7C948" },
+  { key: "aman", label: "Aman (> 60 Hari)", count: 793, pct: "90.9%", color: "#2FAE60" },
+];
+
+const TOTAL_UNITS = STATUS_SUMMARY.reduce((s, x) => s + x.count, 0);
+
+// ---------------------------------------------------------------------------
+
+const NAVY = "#0A1A4A";
+const NAVY_DARK = "#081340";
+const BLUE = "#1D4ED8";
+const PAGE_BG = "#EEF1F8";
+
+function StatCard({ icon: Icon, iconBg, iconColor, label, labelColor, value, pctText, pctColor }) {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm px-6 py-5 flex items-start gap-4 flex-1 min-w-[220px]">
+      <div
+        className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+        style={{ backgroundColor: iconBg }}
+      >
+        <Icon size={22} color={iconColor} strokeWidth={2.2} />
+      </div>
+      <div>
+        <div className="text-[11px] font-bold tracking-wide" style={{ color: labelColor }}>{label}</div>
+        <div className="text-3xl font-extrabold mt-1" style={{ color: NAVY }}>{value}</div>
+        <div className="text-xs text-gray-400 -mt-0.5">Unit</div>
+        <div className="text-xs font-semibold mt-1" style={{ color: pctColor }}>{pctText}</div>
+      </div>
+    </div>
+  );
+}
+
+function Dropdown({ label, icon: Icon, value }) {
+  return (
+    <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 bg-white hover:bg-gray-50 w-full justify-between">
+      <span className="flex items-center gap-2 truncate">
+        {Icon && <Icon size={15} className="text-gray-400 shrink-0" />}
+        <span className="truncate">{value}</span>
+      </span>
+      <ChevronDown size={15} className="text-gray-400 shrink-0" />
+    </button>
+  );
+}
+
+function StatusBadge({ status }) {
+  const styles = {
+    Expired: { bg: "#FDE8E7", color: "#E4362B" },
+    "Near Expired": { bg: "#FEF3D6", color: "#C97F0A" },
+    Aman: { bg: "#E5F6EC", color: "#2FAE60" },
+  }[status];
+  return (
+    <span
+      className="px-3 py-1 rounded-md text-xs font-semibold inline-block"
+      style={{ backgroundColor: styles.bg, color: styles.color }}
+    >
+      {status}
+    </span>
+  );
+}
+
+function PriorityBadge({ level }) {
+  const styles = {
+    Tinggi: { bg: "#FDE8E7", color: "#E4362B" },
+    Sedang: { bg: "#FEF3D6", color: "#C97F0A" },
+    Rendah: { bg: "#F1F2F6", color: "#6B7280" },
+  }[level];
+  return (
+    <span
+      className="px-3 py-1 rounded-md text-xs font-semibold inline-block"
+      style={{ backgroundColor: styles.bg, color: styles.color }}
+    >
+      {level}
+    </span>
+  );
+}
+
+const NAV_ITEMS = [
+  { icon: Home, label: "Dashboard" },
+];
+const DATA_MASTER = [
+  { icon: LayoutGrid, label: "Master Unit" },
+  { icon: Tags, label: "Jenis Unit" },
+  { icon: MapPin, label: "Area" },
+];
+const COMMISSIONING = [
+  { icon: ClipboardCheck, label: "Commissioning" },
+  { icon: BellIcon, label: "Waiting Sticker" },
+  { icon: Timer, label: "Expired / Near Expired", active: true },
+];
+const REPORT = [
+  { icon: FileBarChart2, label: "Laporan" },
+  { icon: Download, label: "Export Data" },
+];
+
+function SectionLabel({ children }) {
+  return <div className="text-[11px] tracking-wider text-blue-200/60 font-semibold px-3 mt-6 mb-2">{children}</div>;
+}
+
+function NavRow({ icon: Icon, label, active }) {
+  return (
+    <button
+      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-1 transition-colors"
+      style={{
+        backgroundColor: active ? "#1547C4" : "transparent",
+        color: active ? "#FFFFFF" : "#C7D2E8",
+      }}
+    >
+      <Icon size={17} strokeWidth={2} />
+      <span className="font-medium">{label}</span>
+    </button>
+  );
+}
+
+export default function ExpiredNearExpiredDashboard() {
+  const [page, setPage] = useState(1);
+  const perPage = 10;
+  const totalPages = Math.ceil(ROWS.length / perPage);
+  const pageRows = useMemo(
+    () => ROWS.slice((page - 1) * perPage, (page - 1) * perPage + perPage),
+    [page]
+  );
+
+  const pieData = STATUS_SUMMARY.map((s) => ({ name: s.label, value: s.count, color: s.color }));
+
+  return (
+    <div className="w-full min-h-screen flex" style={{ backgroundColor: PAGE_BG, fontFamily: "Inter, system-ui, sans-serif" }}>
+      {/* ---------------- SIDEBAR ---------------- */}
+      <aside className="w-[230px] shrink-0 flex flex-col" style={{ backgroundColor: NAVY }}>
+        <div className="flex items-center gap-3 px-5 py-6">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: "#F5C518" }}>
+            <ShieldCheck size={22} color={NAVY} />
+          </div>
+          <div>
+            <div className="text-white font-bold text-sm leading-tight">ISAM CK BIB</div>
+            <div className="text-blue-200/60 text-[11px]">Inspection System</div>
+          </div>
+        </div>
+
+        <nav className="px-3 flex-1 overflow-y-auto pb-4">
+          {NAV_ITEMS.map((item) => (
+            <NavRow key={item.label} {...item} />
+          ))}
+
+          <SectionLabel>DATA MASTER</SectionLabel>
+          {DATA_MASTER.map((item) => (
+            <NavRow key={item.label} {...item} />
+          ))}
+
+          <SectionLabel>COMMISSIONING</SectionLabel>
+          {COMMISSIONING.map((item) => (
+            <div
+              key={item.label}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm mb-1"
+              style={{
+                backgroundColor: item.active ? "#1547C4" : "transparent",
+                color: item.active ? "#FFFFFF" : "#C7D2E8",
+              }}
+            >
+              <item.icon size={17} strokeWidth={2} />
+              <span className="font-medium">{item.label}</span>
+            </div>
+          ))}
+
+          <SectionLabel>REPORT</SectionLabel>
+          {REPORT.map((item) => (
+            <NavRow key={item.label} {...item} />
+          ))}
+
+          <SectionLabel>SETTINGS</SectionLabel>
+          <NavRow icon={Users} label="User Management" />
+          <NavRow icon={Settings} label="Pengaturan" />
+        </nav>
+
+        <div className="p-4">
+          <button className="w-full flex items-center justify-center gap-2 text-blue-100 text-sm py-2.5 rounded-lg border border-blue-400/20 hover:bg-white/5">
+            <LogOut size={15} />
+            Kembali ke Fitur
+          </button>
+        </div>
+      </aside>
+
+      {/* ---------------- MAIN ---------------- */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* Header */}
+        <header className="flex items-center justify-between px-8 py-5 bg-white border-b border-gray-100">
+          <div>
+            <h1 className="text-xl font-bold" style={{ color: NAVY }}>Expired / Near Expired</h1>
+            <div className="text-xs text-gray-400 mt-0.5">Commissioning &gt; Expired / Near Expired</div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="text-[10px] text-gray-400 mr-1">
+              <div className="mb-1">SITE</div>
+              <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+                <MapPin size={14} className="text-gray-400" /> ALL SITE <ChevronDown size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <div className="text-[10px] text-gray-400 mr-1">
+              <div className="mb-1">AREA</div>
+              <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+                <MapPin size={14} className="text-gray-400" /> ALL AREA <ChevronDown size={14} className="text-gray-400" />
+              </button>
+            </div>
+            <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+              <Calendar size={14} className="text-gray-400" /> 22 Jul 2026
+            </button>
+            <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-1.5 text-sm text-gray-700 bg-white">
+              <ClockIcon size={14} className="text-gray-400" /> 08:30 WIB
+            </button>
+            <button className="relative w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center bg-white">
+              <BellIcon size={16} className="text-gray-500" />
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center">0</span>
+            </button>
+            <div className="flex items-center gap-2 pl-2">
+              <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold" style={{ backgroundColor: BLUE }}>A</div>
+              <div className="text-sm">
+                <div className="font-semibold text-gray-700 leading-tight">Abdul Azis</div>
+                <div className="text-[11px] text-gray-400 leading-tight">Administrator</div>
+              </div>
+              <ChevronDown size={14} className="text-gray-400" />
+            </div>
+          </div>
+        </header>
+
+        {/* Content */}
+        <main className="flex-1 p-6 overflow-y-auto">
+          {/* Stat cards */}
+          <div className="flex flex-wrap gap-4 mb-6">
+            <StatCard icon={XCircle} iconBg="#FDE8E7" iconColor="#E4362B" label="EXPIRED" labelColor="#E4362B"
+              value={STATUS_SUMMARY[0].count} pctText={`${STATUS_SUMMARY[0].pct} dari total unit`} pctColor="#E4362B" />
+            <StatCard icon={AlertTriangle} iconBg="#FEF3D6" iconColor="#E8A317" label="NEAR EXPIRED (≤ 30 HARI)" labelColor="#D68A0B"
+              value={STATUS_SUMMARY[1].count} pctText={`${STATUS_SUMMARY[1].pct} dari total unit`} pctColor="#D68A0B" />
+            <StatCard icon={Clock} iconBg="#FEF3D6" iconColor="#E8A317" label="NEAR EXPIRED (31 - 60 HARI)" labelColor="#D68A0B"
+              value={STATUS_SUMMARY[2].count} pctText={`${STATUS_SUMMARY[2].pct} dari total unit`} pctColor="#D68A0B" />
+            <StatCard icon={CheckCircle2} iconBg="#E5F6EC" iconColor="#2FAE60" label="AMAN (> 60 HARI)" labelColor="#2FAE60"
+              value={STATUS_SUMMARY[3].count} pctText={`${STATUS_SUMMARY[3].pct} dari total unit`} pctColor="#2FAE60" />
+          </div>
+
+          {/* Filter bar */}
+          <div className="bg-white rounded-2xl shadow-sm p-4 mb-6">
+            <div className="grid gap-3" style={{ gridTemplateColumns: "1.6fr 1fr 1fr 1fr 1fr 1.3fr auto auto auto" }}>
+              <div className="flex items-center border border-gray-200 rounded-lg px-3 bg-white">
+                <Search size={15} className="text-gray-400 mr-2" />
+                <input
+                  className="w-full py-2 text-sm outline-none placeholder:text-gray-400"
+                  placeholder="Cari Unit ID, Model / Tipe, atau Serial Number..."
+                />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1">Site</div>
+                <Dropdown value="Semua Site" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1">Area</div>
+                <Dropdown value="Semua Area" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1">Status</div>
+                <Dropdown value="Semua Status" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1">Prioritas</div>
+                <Dropdown value="Semua Prioritas" />
+              </div>
+              <div>
+                <div className="text-[11px] text-gray-500 mb-1">Jatuh Tempo</div>
+                <button className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-400 bg-white w-full">
+                  <Calendar size={14} className="text-gray-400" />
+                  dd/mm/yyyy - dd/mm/yyyy
+                </button>
+              </div>
+              <button className="self-end flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white" style={{ backgroundColor: BLUE }}>
+                <Filter size={14} /> Filter
+              </button>
+              <button className="self-end flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-200 bg-white">
+                <RotateCcw size={14} /> Reset
+              </button>
+              <button className="self-end flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-gray-600 border border-gray-200 bg-white">
+                <Download size={14} /> Export
+              </button>
+            </div>
+          </div>
+
+          {/* Table + side panel */}
+          <div className="grid gap-6" style={{ gridTemplateColumns: "1fr 320px" }}>
+            {/* Table */}
+            <div className="bg-white rounded-2xl shadow-sm p-5">
+              <div className="text-sm font-bold mb-4" style={{ color: NAVY }}>DAFTAR EXPIRED / NEAR EXPIRED</div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-400 text-xs border-b border-gray-100">
+                      <th className="py-3 pr-2 font-semibold">No</th>
+                      <th className="py-3 pr-2 font-semibold">Unit ID</th>
+                      <th className="py-3 pr-2 font-semibold">Model / Tipe</th>
+                      <th className="py-3 pr-2 font-semibold">Serial Number</th>
+                      <th className="py-3 pr-2 font-semibold">Site</th>
+                      <th className="py-3 pr-2 font-semibold">Area</th>
+                      <th className="py-3 pr-2 font-semibold">ID BIB / TIA</th>
+                      <th className="py-3 pr-2 font-semibold">Masa Berlaku Selesai</th>
+                      <th className="py-3 pr-2 font-semibold">Sisa Hari</th>
+                      <th className="py-3 pr-2 font-semibold">Status</th>
+                      <th className="py-3 pr-2 font-semibold">Prioritas</th>
+                      <th className="py-3 pr-2 font-semibold">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageRows.map((r) => (
+                      <tr key={r.no} className="border-b border-gray-50 hover:bg-gray-50/60">
+                        <td className="py-3 pr-2 text-gray-500">{r.no}</td>
+                        <td className="py-3 pr-2 font-semibold" style={{ color: NAVY }}>{r.unitId}</td>
+                        <td className="py-3 pr-2 text-gray-600">{r.model}</td>
+                        <td className="py-3 pr-2 text-gray-500">{r.serial}</td>
+                        <td className="py-3 pr-2">
+                          <span className="px-2 py-0.5 rounded text-xs font-semibold" style={{ backgroundColor: "#E7EDFB", color: BLUE }}>{r.site}</span>
+                        </td>
+                        <td className="py-3 pr-2 text-gray-500">{r.area}</td>
+                        <td className="py-3 pr-2 text-gray-500">{r.idCode}</td>
+                        <td className="py-3 pr-2 text-gray-500 whitespace-nowrap">{r.masaBerlaku}</td>
+                        <td className="py-3 pr-2 font-semibold whitespace-nowrap" style={{ color: r.sisaHari < 0 ? "#E4362B" : "#374151" }}>
+                          {r.sisaHari < 0 ? `${r.sisaHari} Hari` : `${r.sisaHari} Hari`}
+                        </td>
+                        <td className="py-3 pr-2"><StatusBadge status={r.status} /></td>
+                        <td className="py-3 pr-2"><PriorityBadge level={r.prioritas} /></td>
+                        <td className="py-3 pr-2">
+                          <div className="flex items-center gap-2 text-gray-400">
+                            <Eye size={15} className="cursor-pointer hover:text-blue-600" />
+                            <Printer size={15} className="cursor-pointer hover:text-blue-600" />
+                            <Pencil size={15} className="cursor-pointer hover:text-blue-600" />
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <div className="flex items-center justify-between mt-4 pt-2">
+                <div className="text-xs text-gray-400">
+                  Menampilkan {(page - 1) * perPage + 1} - {Math.min(page * perPage, ROWS.length)} dari {ROWS.length} data
+                </div>
+                <div className="flex items-center gap-3">
+                  <select className="border border-gray-200 rounded-lg text-xs px-2 py-1.5 text-gray-600">
+                    <option>10 / halaman</option>
+                  </select>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-400"
+                    >
+                      <ChevronLeft size={14} />
+                    </button>
+                    {Array.from({ length: Math.min(3, totalPages) }, (_, i) => i + 1).map((n) => (
+                      <button
+                        key={n}
+                        onClick={() => setPage(n)}
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold"
+                        style={{ backgroundColor: page === n ? BLUE : "transparent", color: page === n ? "#fff" : "#6B7280" }}
+                      >
+                        {n}
+                      </button>
+                    ))}
+                    <span className="text-gray-300 text-xs px-1">...</span>
+                    <button
+                      onClick={() => setPage(totalPages)}
+                      className="w-7 h-7 rounded-md flex items-center justify-center text-xs font-semibold"
+                      style={{ backgroundColor: page === totalPages ? BLUE : "transparent", color: page === totalPages ? "#fff" : "#6B7280" }}
+                    >
+                      {totalPages}
+                    </button>
+                    <button
+                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                      className="w-7 h-7 rounded-md border border-gray-200 flex items-center justify-center text-gray-400"
+                    >
+                      <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Side panel */}
+            <div className="flex flex-col gap-6">
+              {/* Donut summary */}
+              <div className="bg-white rounded-2xl shadow-sm p-5">
+                <div className="text-sm font-bold mb-4" style={{ color: NAVY }}>RINGKASAN BERDASARKAN STATUS</div>
+                <div className="flex items-center gap-4">
+                  <PieChart width={110} height={110}>
+                    <Pie data={pieData} dataKey="value" innerRadius={32} outerRadius={52} paddingAngle={2}>
+                      {pieData.map((d, i) => <Cell key={i} fill={d.color} stroke="none" />)}
+                    </Pie>
+                  </PieChart>
+                  <div className="flex-1 space-y-2">
+                    {STATUS_SUMMARY.map((s) => (
+                      <div key={s.key} className="flex items-center justify-between text-xs">
+                        <span className="flex items-center gap-2 text-gray-500">
+                          <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: s.color }} />
+                          {s.label}
+                        </span>
+                        <span className="font-semibold text-gray-700 whitespace-nowrap ml-2">{s.count} ({s.pct})</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Top 5 */}
+              <div className="bg-white rounded-2xl shadow-sm p-5">
+                <div className="text-sm font-bold mb-4" style={{ color: NAVY }}>TOP 5 UNIT EXPIRED</div>
+                <div className="space-y-3">
+                  {TOP5_EXPIRED.map((u, i) => (
+                    <div key={u.unitId} className="flex items-center gap-3">
+                      <div
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold text-white shrink-0"
+                        style={{ backgroundColor: "#E4362B" }}
+                      >
+                        {i + 1}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-semibold truncate" style={{ color: NAVY }}>
+                          {u.unitId} <span className="text-gray-400 font-normal">{u.model}</span>
+                        </div>
+                      </div>
+                      <div className="text-xs font-semibold text-right whitespace-nowrap" style={{ color: "#E4362B" }}>
+                        {u.sisaHari} <span className="block text-[10px] text-gray-400 font-normal">hari yang lalu</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info box */}
+              <div className="rounded-2xl p-5" style={{ backgroundColor: "#E7EDFB" }}>
+                <div className="flex items-center gap-2 mb-2">
+                  <Info size={16} style={{ color: BLUE }} />
+                  <div className="text-sm font-bold" style={{ color: BLUE }}>Informasi</div>
+                </div>
+                <p className="text-xs text-gray-600 leading-relaxed">
+                  Segera lakukan perpanjangan commissioning pada unit yang statusnya Expired atau Near Expired untuk menghindari downtime operasional dan denda.
+                </p>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
