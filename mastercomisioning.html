@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ISAM CK BIB — Master Unit</title>
+<title>ISAM CK BIB — Commissioning</title>
 <style>
   :root{
-    --navy-950:#0b1f45;
-    --navy-900:#0f2a5c;
-    --navy-800:#15366f;
-    --blue-600:#2563eb;
-    --blue-500:#3b82f6;
-    --blue-50:#eef4ff;
+    --navy-950:#0e3aa3;
+    --navy-900:#1247c2;
+    --navy-800:#1656d6;
+    --blue-600:#1656d6;
+    --blue-500:#3b74ea;
+    --blue-50:#eaf1ff;
     --bg:#eef1f8;
     --card:#ffffff;
     --ink-900:#101828;
@@ -26,8 +26,6 @@
     --red-bg:#fdeceb;
     --sky:#2f6fed;
     --sky-bg:#eaf1ff;
-    --purple:#7c5cff;
-    --purple-bg:#f1edff;
     --radius:16px;
     --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.10);
   }
@@ -130,10 +128,9 @@
     border:1px solid var(--line);border-radius:10px;
     padding:8px 12px;font-size:12.8px;color:var(--ink-900);
     background:#fbfcfe;font-weight:600;white-space:nowrap;
-    position:relative;cursor:pointer;
   }
+  .field small{display:block;font-weight:600;color:var(--ink-400);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:1px;}
   .field svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;}
-  .field .chev-mini{width:12px;height:12px;color:var(--ink-400);margin-left:2px;}
   .icon-btn{
     width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
     display:flex;align-items:center;justify-content:center;position:relative;
@@ -151,7 +148,6 @@
     color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
   .user-chip b{font-size:13px;display:block;}
   .user-chip span{font-size:11.3px;color:var(--ink-600);}
-  .user-chip .chev-mini{width:14px;height:14px;color:var(--ink-400);}
 
   /* ---------- breadcrumb ---------- */
   .breadcrumb{
@@ -162,179 +158,251 @@
   .breadcrumb .chev{opacity:.5;}
 
   .content{padding:16px 24px 40px;display:flex;flex-direction:column;gap:16px;}
-
-  /* ---------- cards ---------- */
-  .card{
-    background:var(--card);border-radius:var(--radius);
-    box-shadow:var(--shadow);padding:20px 20px 18px;
-    border:1px solid var(--line);
-    min-width:0;
-  }
+  .page-view{display:flex;flex-direction:column;gap:16px;}
 
   /* ---------- stat cards ---------- */
   .stats-row{
-    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+    display:grid;grid-template-columns:repeat(6,1fr);gap:14px;
   }
-  .stat-card{display:flex;gap:14px;align-items:flex-start;padding:18px 18px 16px;}
-  .stat-card .stat-icon{
-    width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  .card{
+    background:var(--card);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:16px 16px 14px;
+    border:1px solid var(--line);
+    min-width:0;
   }
-  .stat-card .stat-icon svg{width:23px;height:23px;}
-  .stat-card .stat-body{min-width:0;}
-  .stat-label{
-    font-size:12px;font-weight:700;letter-spacing:.03em;
+  .stat-card .stat-label{
+    font-size:11.5px;font-weight:700;letter-spacing:.03em;
     color:var(--ink-600);text-transform:uppercase;
+    display:flex;align-items:center;justify-content:space-between;
   }
-  .stat-main{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
-  .stat-main b{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1;}
-  .stat-main span.unit{font-size:12.5px;color:var(--ink-600);font-weight:600;}
-  .stat-sub{margin-top:7px;font-size:12px;color:var(--ink-600);}
-  .stat-sub b{font-weight:700;}
+  .stat-card .stat-label .dot-tag{
+    font-size:10px;padding:2px 7px;border-radius:20px;font-weight:700;
+  }
+  .stat-value{display:flex;align-items:baseline;justify-content:space-between;margin-top:10px;}
+  .stat-value b{font-size:30px;font-weight:800;letter-spacing:-.02em;}
+  .stat-value .stat-icon{
+    width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .stat-value .stat-icon svg{width:20px;height:20px;}
+  .stat-sub{margin-top:8px;font-size:12px;color:var(--ink-600);}
+  .stat-sub b{color:inherit;}
 
   .tag-green{color:var(--green);} .bg-green{background:var(--green-bg);}
   .tag-orange{color:var(--orange);} .bg-orange{background:var(--orange-bg);}
   .tag-red{color:var(--red);} .bg-red{background:var(--red-bg);}
   .tag-sky{color:var(--sky);} .bg-sky{background:var(--sky-bg);}
   .tag-navy{color:var(--navy-800);} .bg-navy{background:#eef1fb;}
-  .tag-purple{color:var(--purple);} .bg-purple{background:var(--purple-bg);}
 
-  /* ---------- filter bar ---------- */
-  .filter-card{
-    display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
-    padding:16px 20px;
-  }
-  .filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;}
-  .filter-group.search{flex:2;min-width:220px;}
-  .filter-group label{font-size:11px;font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.03em;}
-  .search-input{
-    display:flex;align-items:center;gap:8px;
-    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
-  }
-  .search-input svg{width:16px;height:16px;color:var(--ink-400);flex-shrink:0;}
-  .search-input input{border:none;background:transparent;outline:none;font-size:13px;color:var(--ink-900);width:100%;font-family:inherit;}
-  .search-input input::placeholder{color:var(--ink-400);}
-  .select-input{
-    display:flex;align-items:center;justify-content:space-between;gap:8px;
-    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
-    font-size:13px;font-weight:600;color:var(--ink-900);cursor:pointer;
-  }
-  .select-input svg{width:14px;height:14px;color:var(--ink-400);flex-shrink:0;}
-  .btn{
-    display:flex;align-items:center;justify-content:center;gap:7px;
-    border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;
-    cursor:pointer;border:1px solid transparent;white-space:nowrap;
-  }
-  .btn svg{width:15px;height:15px;flex-shrink:0;}
-  .btn-primary{background:var(--blue-600);color:#fff;box-shadow:0 4px 14px -4px rgba(37,99,235,.6);}
-  .btn-primary:hover{background:#1d4ed8;}
-  .btn-ghost{background:#fff;color:var(--ink-600);border-color:var(--line);}
-  .btn-ghost:hover{background:var(--blue-50);color:var(--blue-600);}
-  .btn-add{margin-left:auto;}
+  /* health index card */
+  .health-card{display:flex;flex-direction:column;align-items:center;text-align:center;}
+  .health-card .stat-label{width:100%;}
+  .gauge-wrap{position:relative;width:150px;height:86px;margin-top:6px;}
+  .gauge-value{position:absolute;bottom:2px;left:0;right:0;text-align:center;}
+  .gauge-value b{font-size:24px;font-weight:800;display:block;color:var(--green);}
+  .gauge-value span{font-size:10.5px;font-weight:700;color:var(--green);letter-spacing:.06em;}
+  .gauge-scale{display:flex;justify-content:space-between;width:100%;font-size:10px;color:var(--ink-400);margin-top:2px;font-weight:600;}
+  .health-foot{font-size:11.5px;color:var(--ink-600);margin-top:4px;}
+  .health-foot b{color:var(--ink-900);}
 
-  /* ---------- row: table + detail panel ---------- */
-  .row-main{display:grid;grid-template-columns:1.75fr 1fr;gap:16px;align-items:start;}
-
+  /* ---------- section headers ---------- */
   .card-head{
     display:flex;align-items:center;justify-content:space-between;
     margin-bottom:14px;
   }
   .card-head h3{margin:0;font-size:14.5px;font-weight:800;color:var(--navy-900);letter-spacing:.01em;}
+  .link-more{font-size:12.5px;font-weight:700;color:var(--blue-600);display:flex;align-items:center;gap:4px;cursor:pointer;}
+
+  /* ---------- grid layout rows ---------- */
+  .row-2{display:grid;grid-template-columns:1.15fr 1fr .78fr;gap:16px;align-items:start;}
+  .row-3{display:grid;grid-template-columns:1fr 1.35fr;gap:16px;align-items:start;}
+
+  /* equipment grid */
+  .equip-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;}
+  .equip-item{
+    border:1px solid var(--line);border-radius:12px;padding:10px 10px 9px;
+    display:flex;flex-direction:column;gap:6px;background:#fbfcfe;
+  }
+  .equip-item .emoji{font-size:19px;line-height:1;}
+  .equip-item .name{font-size:11.3px;font-weight:700;color:var(--ink-900);min-height:28px;line-height:1.25;}
+  .equip-item .val{font-size:15px;font-weight:800;color:var(--navy-900);}
+  .equip-item .pct{font-size:10.5px;color:var(--ink-600);font-weight:600;}
+  .equip-item.wide{grid-column:span 2;}
+  .show-all-btn{
+    margin-top:14px;width:100%;text-align:center;padding:10px;border-radius:10px;
+    background:var(--blue-50);color:var(--blue-600);font-weight:700;font-size:13px;
+    border:1px solid #dbe7ff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;
+  }
+  .show-all-btn:hover{background:#e2ecff;}
+
+  /* forecast chart */
+  .chart-wrap{height:230px;display:flex;align-items:flex-end;gap:8px;padding:6px 2px 0;}
+  .bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:6px;}
+  .bar-num{font-size:11px;font-weight:800;color:var(--red);}
+  .bar{
+    width:60%;border-radius:6px 6px 3px 3px;
+    background:linear-gradient(180deg,#ff8a73,#e0362e);
+    min-height:4px;
+  }
+  .bar-label{font-size:10.5px;color:var(--ink-600);font-weight:600;margin-top:2px;}
+  .chart-note{
+    margin-top:14px;display:flex;gap:10px;align-items:flex-start;
+    background:var(--blue-50);border:1px solid #dbe7ff;border-radius:10px;padding:10px 12px;
+    font-size:12px;color:var(--navy-800);
+  }
+  .chart-note svg{width:16px;height:16px;color:var(--blue-600);flex-shrink:0;margin-top:1px;}
+
+  /* alert center */
+  .alert-item{
+    display:flex;align-items:center;gap:12px;padding:11px 4px;
+    border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .alert-item:last-child{border-bottom:none;}
+  .alert-item:hover{background:#fafbff;border-radius:8px;}
+  .alert-ico{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .alert-ico svg{width:17px;height:17px;}
+  .alert-text b{display:block;font-size:14px;color:var(--ink-900);}
+  .alert-text span{font-size:12px;color:var(--ink-600);}
+  .alert-chev{margin-left:auto;color:var(--ink-400);}
+  .alert-updated{font-size:11px;color:var(--ink-400);display:flex;align-items:center;gap:5px;margin-top:6px;}
+
+  /* donut */
+  .donut-wrap{display:flex;align-items:center;gap:18px;flex-wrap:wrap;}
+  .donut{
+    position:relative;width:150px;height:150px;border-radius:50%;flex-shrink:0;
+  }
+  .donut::after{
+    content:"";position:absolute;inset:16px;background:#fff;border-radius:50%;
+  }
+  .donut-center{
+    position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:2;
+  }
+  .donut-center b{font-size:24px;font-weight:800;color:var(--ink-900);}
+  .donut-center span{font-size:10.5px;color:var(--ink-600);font-weight:700;letter-spacing:.03em;}
+  .legend{display:flex;flex-direction:column;gap:9px;flex:1;min-width:160px;}
+  .legend-item{display:flex;align-items:center;gap:9px;font-size:12.8px;}
+  .legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0;}
+  .legend-item b{margin-left:auto;font-weight:700;color:var(--ink-900);}
 
   /* table */
   .table-scroll{overflow-x:auto;}
-  table{width:100%;border-collapse:collapse;font-size:12.8px;min-width:760px;}
+  table{width:100%;border-collapse:collapse;font-size:13px;min-width:520px;}
   thead th{
-    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;
-    color:var(--ink-600);font-weight:700;padding:9px 10px;border-bottom:2px solid var(--line);
-    white-space:nowrap;
+    text-align:left;font-size:10.8px;text-transform:uppercase;letter-spacing:.04em;
+    color:var(--ink-600);font-weight:700;padding:8px 10px;border-bottom:2px solid var(--line);
   }
-  thead th.center{text-align:center;}
-  tbody td{padding:10px;border-bottom:1px solid var(--line);color:var(--ink-900);font-weight:600;white-space:nowrap;}
-  tbody tr{cursor:pointer;transition:background .12s ease;}
-  tbody tr:hover{background:#f7f9fd;}
-  tbody tr.row-selected{background:var(--blue-50);}
-  td.num, td.center{text-align:center;font-variant-numeric:tabular-nums;}
-  td.unit-id{color:var(--blue-600);font-weight:800;}
-  .status-pill{
-    display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
-    font-size:11px;font-weight:700;
-  }
-  .status-active{background:var(--green-bg);color:var(--green);}
-  .status-nonaktif{background:var(--orange-bg);color:var(--orange);}
-  .action-icons{display:flex;gap:6px;}
-  .mini-ico{
-    width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--line);background:#fff;cursor:pointer;flex-shrink:0;
-  }
-  .mini-ico svg{width:14px;height:14px;}
-  .mini-ico.view{color:var(--ink-600);}
-  .mini-ico.edit{color:var(--blue-600);}
-  .mini-ico.del{color:var(--red);}
-  .mini-ico:hover{background:var(--blue-50);}
+  tbody td{padding:9px 10px;border-bottom:1px solid var(--line);color:var(--ink-900);font-weight:600;}
+  tbody tr.subtotal td{background:#f7f9fd;font-weight:800;}
+  tbody tr.grandtotal td{background:var(--navy-900);color:#fff;font-weight:800;border-bottom:none;}
+  td.num{font-variant-numeric:tabular-nums;}
+  .cell-active{color:var(--green);}
+  .cell-near{color:var(--orange);}
+  .cell-expired{color:var(--red);}
+  .cell-waiting{color:var(--sky);}
 
-  .table-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:10px;}
-  .table-foot .info{font-size:12.5px;color:var(--ink-600);}
-  .pager{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
-  .page-size{
-    display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;
-    padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--ink-900);background:#fbfcfe;cursor:pointer;
+  /* recent activity */
+  .activity-item{display:flex;gap:12px;padding:11px 2px;border-bottom:1px solid var(--line);}
+  .activity-item:last-child{border-bottom:none;}
+  .activity-ico{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+  .activity-ico svg{width:15px;height:15px;}
+  .activity-text{flex:1;min-width:0;}
+  .activity-text b{font-size:13.3px;display:block;color:var(--ink-900);}
+  .activity-text span.desc{font-size:12px;color:var(--ink-600);}
+  .activity-time{font-size:11px;color:var(--ink-400);white-space:nowrap;font-weight:600;text-align:right;flex-shrink:0;}
+
+  .footer-link{
+    margin-top:12px;width:100%;text-align:center;padding:10px;border-radius:10px;
+    background:var(--blue-50);color:var(--blue-600);font-weight:700;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:6px;border:1px solid #dbe7ff;
   }
-  .page-size svg{width:13px;height:13px;color:var(--ink-400);}
-  .page-btn{
+  .footer-link:hover{background:#e2ecff;}
+
+  /* ---------- Jenis Unit: stat cards gaya 2 (icon kiri) ---------- */
+  .stats-row-4{grid-template-columns:repeat(4,1fr);}
+  .stat-card2{display:flex;align-items:flex-start;gap:14px;}
+  .stat-card2 .stat2-icon{
+    width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .stat-card2 .stat2-icon svg{width:24px;height:24px;}
+  .stat-card2 .stat2-body{min-width:0;}
+  .stat-card2 .stat2-label{font-size:12px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:var(--ink-600);}
+  .stat-card2 .stat2-value{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+  .stat-card2 .stat2-value b{font-size:26px;font-weight:800;color:var(--ink-900);letter-spacing:-.01em;}
+  .stat-card2 .stat2-value span{font-size:13px;color:var(--ink-600);font-weight:600;}
+  .stat-card2 .stat2-sub{font-size:12px;margin-top:6px;color:var(--ink-600);font-weight:600;}
+
+  /* ---------- filter bar ---------- */
+  .filter-bar{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;}
+  .search-box{
+    flex:1;min-width:200px;display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:10px;padding:9px 14px;background:#fbfcfe;color:var(--ink-400);
+  }
+  .search-box svg{width:16px;height:16px;flex-shrink:0;}
+  .search-box input{border:none;outline:none;background:transparent;font-size:13.5px;color:var(--ink-900);width:100%;font-family:inherit;}
+  .filter-field{display:flex;flex-direction:column;gap:5px;min-width:170px;}
+  .filter-field label{font-size:11.5px;font-weight:700;color:var(--ink-600);}
+  .filter-field select{
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;font-size:13px;
+    background:#fbfcfe;color:var(--ink-900);font-weight:600;font-family:inherit;outline:none;
+  }
+  .filter-spacer{flex:1;min-width:0;}
+  .btn{
+    display:flex;align-items:center;gap:7px;padding:10px 16px;border-radius:10px;
+    font-size:13.3px;font-weight:700;cursor:pointer;border:1px solid transparent;white-space:nowrap;font-family:inherit;
+  }
+  .btn-solid{background:var(--blue-600);color:#fff;}
+  .btn-solid:hover{background:var(--navy-950);}
+  .btn-outline{background:var(--blue-600);color:#fff;}
+  .btn-outline:hover{background:var(--navy-950);}
+  .btn-white{background:#fff;color:var(--ink-900);border-color:var(--line);}
+  .btn-white:hover{background:var(--blue-50);}
+
+  /* ---------- jenis unit table ---------- */
+  .jenis-table td, .jenis-table th{white-space:nowrap;}
+  .jenis-table td:nth-child(6){white-space:normal;min-width:220px;color:var(--ink-600);font-weight:500;}
+  .row-icon{font-size:18px;}
+  .status-badge{
+    display:inline-block;padding:4px 12px;border-radius:20px;font-size:11.5px;font-weight:700;
+  }
+  .status-badge.aktif{background:var(--green-bg);color:var(--green);}
+  .status-badge.nonaktif{background:var(--orange-bg);color:var(--orange);}
+  .site-badge{display:inline-block;padding:3px 11px;border-radius:20px;font-size:11.5px;font-weight:700;}
+  .site-badge.bib{background:var(--sky-bg);color:var(--sky);}
+  .site-badge.tia{background:#fff2df;color:#b45309;}
+  .area-code{color:var(--blue-600);font-weight:800;}
+  .action-icons{display:flex;gap:10px;align-items:center;}
+  .action-icons svg{width:16px;height:16px;cursor:pointer;}
+  .action-icons .ic-view{color:var(--blue-600);}
+  .action-icons .ic-edit{color:var(--blue-600);}
+  .action-icons .ic-del{color:var(--red);}
+  .action-icons svg:hover{opacity:.65;}
+
+  /* ---------- pagination ---------- */
+  .pagination-bar{
+    display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    margin-top:14px;font-size:12.8px;color:var(--ink-600);font-weight:600;
+  }
+  .pagination-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .pagination-controls select{
+    border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:12.5px;
+    background:#fff;color:var(--ink-900);font-weight:600;font-family:inherit;outline:none;
+  }
+  .page-nav-btn{
     width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
-    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--ink-600);cursor:pointer;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-600);
   }
-  .page-btn:hover{background:var(--blue-50);}
-  .page-btn.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600);}
-  .page-btn.nav svg{width:14px;height:14px;}
-  .page-dots{color:var(--ink-400);font-size:13px;padding:0 2px;}
+  .page-nav-btn:hover{background:var(--blue-50);}
+  .page-num-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink-900);font-weight:700;font-size:12.5px;
+  }
+  .page-num-btn.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600);}
+  .page-num-btn:hover:not(.active){background:var(--blue-50);}
 
-  /* ---------- detail panel ---------- */
-  .detail-card{position:sticky;top:78px;}
-  .detail-close{
-    width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
-    color:var(--ink-400);cursor:pointer;flex-shrink:0;
-  }
-  .detail-close:hover{background:var(--blue-50);color:var(--ink-600);}
-  .detail-hero{display:flex;gap:14px;align-items:center;padding:6px 4px 16px;border-bottom:1px solid var(--line);margin-bottom:14px;}
-  .detail-hero .thumb{
-    width:76px;height:64px;border-radius:12px;background:var(--blue-50);
-    display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;
-    border:1px solid #dbe7ff;
-  }
-  .detail-list{display:flex;flex-direction:column;gap:9px;}
-  .detail-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;font-size:12.8px;}
-  .detail-row .k{color:var(--ink-600);font-weight:600;flex-shrink:0;}
-  .detail-row .v{color:var(--ink-900);font-weight:700;text-align:right;}
-
-  .sub-head{
-    display:flex;align-items:center;justify-content:space-between;
-    margin-top:18px;margin-bottom:10px;
-  }
-  .sub-head h4{margin:0;font-size:13px;font-weight:800;color:var(--navy-900);}
-  .btn-tiny{
-    display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
-    color:var(--blue-600);background:var(--blue-50);border:1px solid #dbe7ff;
-    padding:6px 10px;border-radius:8px;cursor:pointer;
-  }
-  .btn-tiny svg{width:12px;height:12px;}
-  .btn-tiny:hover{background:#e2ecff;}
-
-  .site-block{
-    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fbfcfe;
-  }
-  .site-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
-  .site-block-head b{font-size:13.5px;color:var(--ink-900);}
-  .site-block-row{display:flex;justify-content:space-between;font-size:12.3px;padding:3px 0;color:var(--ink-600);}
-  .site-block-row b{color:var(--ink-900);font-weight:700;}
-  .site-block-actions{display:flex;gap:6px;position:absolute;margin-top:-40px;margin-left:calc(100% - 30px);}
-
-  .info-note{
-    margin-top:14px;display:flex;gap:9px;align-items:flex-start;
-    background:var(--blue-50);border:1px solid #dbe7ff;border-radius:10px;padding:10px 12px;
-    font-size:11.8px;color:var(--navy-800);line-height:1.45;
-  }
-  .info-note svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;margin-top:1px;}
+  /* ---------- placeholder page ---------- */
+  .placeholder-card{text-align:center;padding:60px 24px;}
+  .placeholder-icon{font-size:44px;margin-bottom:10px;}
+  .placeholder-card h2{margin:0 0 8px;font-size:19px;color:var(--navy-900);}
+  .placeholder-card p{margin:0 auto;max-width:420px;color:var(--ink-600);font-size:13.5px;line-height:1.6;}
 
   /* ---------- overlay for mobile drawer ---------- */
   .overlay{
@@ -343,12 +411,15 @@
 
   /* ================= RESPONSIVE ================= */
   @media (max-width: 1180px){
-    .row-main{grid-template-columns:1fr;}
-    .detail-card{position:static;}
+    .row-2{grid-template-columns:1fr 1fr;}
+    .row-2 > *:nth-child(3){grid-column:span 2;}
+    .equip-grid{grid-template-columns:repeat(4,1fr);}
   }
 
   @media (max-width: 1000px){
-    .stats-row{grid-template-columns:repeat(2,1fr);}
+    .stats-row{grid-template-columns:repeat(3,1fr);}
+    .row-3{grid-template-columns:1fr;}
+    .stats-row-4{grid-template-columns:repeat(2,1fr);}
   }
 
   @media (max-width: 860px){
@@ -356,23 +427,124 @@
     .sidebar{
       position:fixed;left:0;top:0;bottom:0;z-index:30;width:250px;
       transform:translateX(-100%);transition:transform .25s ease;
+      box-shadow:0 0 0 100vmax rgba(0,0,0,0);
     }
     .sidebar.open{transform:translateX(0);}
     .hamburger{display:flex;}
     .overlay.show{display:block;}
+    .row-2{grid-template-columns:1fr;}
+    .row-2 > *:nth-child(3){grid-column:auto;}
+    .equip-grid{grid-template-columns:repeat(3,1fr);}
     .topbar{gap:10px;}
     .field.date-field, .field.time-field{display:none;}
   }
 
   @media (max-width: 720px){
-    .stats-row{grid-template-columns:1fr;}
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+    .stats-row-4{grid-template-columns:1fr;}
+    .equip-grid{grid-template-columns:repeat(2,1fr);}
     .content{padding:14px 14px 32px;}
     .breadcrumb{padding:12px 14px 0;}
     .topbar{padding:10px 14px;}
     .field{display:none;}
     .user-chip span{display:none;}
-    .filter-card{flex-direction:column;align-items:stretch;}
-    .btn-add{margin-left:0;}
+    .donut-wrap{justify-content:center;}
+    .filter-bar{flex-direction:column;align-items:stretch;}
+    .filter-field, .search-box{min-width:0;width:100%;}
+    .btn{justify-content:center;width:100%;}
+    .pagination-bar{flex-direction:column;align-items:flex-start;}
+  }
+
+  @media (max-width: 480px){
+    .stats-row{grid-template-columns:1fr 1fr;}
+    .stat-value b{font-size:24px;}
+    .equip-grid{grid-template-columns:repeat(2,1fr);}
+    .topbar-title span{display:none;}
+    .card{padding:14px 12px 12px;}
+    .stat-card2{flex-direction:column;align-items:flex-start;}
+  }
+
+  /* ---------- layout 2 kolom: tabel + panel detail ---------- */
+  .commissioning-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+  .left-col{display:flex;flex-direction:column;gap:16px;min-width:0;}
+
+  /* ---------- filter bar tambahan ---------- */
+  .filter-field.wide{min-width:190px;}
+
+  /* ---------- tabel commissioning (header 2 baris) ---------- */
+  .comm-table{min-width:1050px;}
+  .comm-table th, .comm-table td{white-space:nowrap;padding:10px 12px;}
+  .comm-table thead th{background:#fbfcfe;}
+  .comm-table thead tr.sub-head th{
+    font-size:10.3px;padding:6px 12px;border-bottom:2px solid var(--line);text-transform:none;
+  }
+  .comm-table th.group-th{text-align:center;border-left:1px solid var(--line);border-right:1px solid var(--line);}
+  .unit-id-link{color:var(--blue-600);font-weight:800;cursor:pointer;}
+  .unit-id-link:hover{text-decoration:underline;}
+  .comm-table tbody tr{cursor:pointer;transition:background .12s ease;}
+  .comm-table tbody tr:hover{background:#f7f9ff;}
+  .comm-table tbody tr.row-selected{background:var(--blue-50);}
+
+  /* ---------- detail panel ---------- */
+  .detail-panel{position:sticky;top:76px;}
+  .detail-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px;}
+  .detail-head h3{margin:0;font-size:13.5px;font-weight:800;color:var(--navy-900);letter-spacing:.02em;}
+  .detail-close{cursor:pointer;color:var(--ink-400);width:20px;height:20px;flex-shrink:0;}
+  .detail-close:hover{color:var(--ink-900);}
+
+  .detail-unit-row{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    margin-top:14px;padding-bottom:14px;border-bottom:1px solid var(--line);
+  }
+  .detail-unit-id .lbl{font-size:11px;color:var(--ink-600);font-weight:700;}
+  .detail-unit-id .val{font-size:19px;font-weight:800;color:var(--navy-900);margin-top:1px;}
+  .detail-unit-thumb{
+    width:60px;height:60px;border-radius:12px;background:var(--blue-50);
+    display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;
+  }
+
+  .detail-fields{display:flex;flex-direction:column;gap:9px;padding:14px 0;border-bottom:1px solid var(--line);}
+  .detail-fields .df-row{display:flex;font-size:12.6px;}
+  .detail-fields .df-row .df-label{width:110px;flex-shrink:0;color:var(--ink-600);font-weight:600;}
+  .detail-fields .df-row .df-value{font-weight:700;color:var(--ink-900);}
+
+  .site-instance{
+    border-radius:12px;padding:12px 14px 13px;margin-top:14px;border:1px solid var(--line);
+  }
+  .site-instance.tone-green{background:var(--green-bg);border-color:#c9ecd4;}
+  .site-instance.tone-orange{background:var(--orange-bg);border-color:#f7dfae;}
+  .site-instance-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .site-instance-head b{font-size:14px;font-weight:800;color:var(--navy-900);}
+  .si-badge{font-size:10.7px;font-weight:700;padding:3px 10px;border-radius:20px;}
+  .si-badge.green{background:#c9ecd4;color:var(--green);}
+  .si-badge.orange{background:#f7dfae;color:#b45309;}
+  .site-instance .si-row{display:flex;font-size:12.3px;margin-top:6px;}
+  .site-instance .si-row .si-label{width:105px;flex-shrink:0;color:var(--ink-600);font-weight:600;}
+  .site-instance .si-row .si-value{font-weight:700;color:var(--ink-900);}
+  .site-instance .si-row .si-value.green{color:var(--green);}
+  .site-instance .si-row .si-value.orange{color:#b45309;}
+
+  .detail-history-btn{
+    margin-top:16px;width:100%;padding:11px;border-radius:10px;border:1.5px solid var(--blue-600);
+    background:#fff;color:var(--blue-600);font-weight:700;font-size:13px;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;gap:8px;
+  }
+  .detail-history-btn:hover{background:var(--blue-50);}
+
+  .detail-empty{
+    display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;
+    padding:50px 16px;color:var(--ink-400);gap:8px;
+  }
+  .detail-empty svg{width:40px;height:40px;opacity:.5;}
+  .detail-empty span{font-size:13px;font-weight:600;max-width:200px;}
+
+  /* ---------- responsive: commissioning ---------- */
+  @media (max-width: 1180px){
+    .commissioning-layout{grid-template-columns:1fr;}
+    .detail-panel{position:static;}
+  }
+  @media (max-width: 720px){
+    .filter-field.wide{min-width:0;width:100%;}
   }
 </style>
 </head>
@@ -392,13 +564,13 @@
       </div>
     </div>
 
-    <a class="nav-item" href="comissioning.html">
+    <a class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
       Dashboard
     </a>
 
     <div class="nav-label">Data Master</div>
-    <a class="nav-item active" href="mastercomissioning.html">
+    <a class="nav-item">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
       Master Unit
     </a>
@@ -412,7 +584,7 @@
     </a>
 
     <div class="nav-label">Commissioning</div>
-    <a class="nav-item">
+    <a class="nav-item active">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
       Commissioning
     </a>
@@ -462,20 +634,18 @@
         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
       </button>
       <div class="topbar-title">
-        <b>Master Unit</b>
-        <span>Data Master &gt; Master Unit</span>
+        <b>Commissioning</b>
+        <span>Commissioning  ›  Daftar Commissioning</span>
       </div>
       <div class="topbar-spacer"></div>
 
       <div class="field">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
         <span id="siteFieldLabel">ALL SITE</span>
-        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
       <div class="field">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
         <span id="areaFieldLabel">ALL AREA</span>
-        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
       <div class="field date-field">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
@@ -485,120 +655,130 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
         <span id="timeField">—</span>
       </div>
-      <button class="icon-btn" id="refreshBtn" title="Refresh data">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
-      </button>
       <button class="icon-btn" title="Notifikasi">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
-        <span class="badge-dot" id="notifCount">4</span>
+        <span class="badge-dot">4</span>
       </button>
       <div class="user-chip">
-        <div class="avatar" id="userAvatar">A</div>
+        <div class="avatar">A</div>
         <div>
-          <b id="userName">Abdul Azis</b>
-          <span id="userRole">Administrator</span>
+          <b>Abdul Azis</b>
+          <span>Administrator</span>
         </div>
-        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
       </div>
-    </div>
-
-    <!-- breadcrumb -->
-    <div class="breadcrumb">
-      <span>Dashboard</span><span class="chev">›</span>
-      <span>Data Master</span><span class="chev">›</span>
-      <b>Master Unit</b>
     </div>
 
     <!-- content -->
     <div class="content">
 
       <!-- stat cards -->
-      <div class="stats-row" id="statsRow"></div>
+      <div class="stats-row stats-row-4" id="commStatsRow"></div>
 
-      <!-- filter bar -->
-      <div class="card filter-card">
-        <div class="filter-group search">
-          <label>Cari Unit</label>
-          <div class="search-input">
+      <!-- filter -->
+      <div class="card">
+        <div class="filter-bar">
+          <div class="search-box">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-            <input id="searchInput" type="text" placeholder="Cari Unit ID, Model, atau SN...">
+            <input type="text" id="commSearchInput" placeholder="Cari Unit ID, SN, atau Registration No...">
           </div>
-        </div>
-        <div class="filter-group">
-          <label>Jenis Unit</label>
-          <div class="select-input" data-select="jenis">
-            <span data-label>Semua</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          <div class="filter-field">
+            <label>Site</label>
+            <select id="commSiteSelect">
+              <option value="">Semua Site</option>
+            </select>
           </div>
-        </div>
-        <div class="filter-group">
-          <label>Status Unit</label>
-          <div class="select-input" data-select="status">
-            <span data-label>Semua</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          <div class="filter-field">
+            <label>Area</label>
+            <select id="commAreaSelect">
+              <option value="">Semua Area</option>
+            </select>
           </div>
-        </div>
-        <div class="filter-group">
-          <label>Site</label>
-          <div class="select-input" data-select="site">
-            <span data-label>Semua Site</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          <div class="filter-field">
+            <label>Status</label>
+            <select id="commStatusSelect">
+              <option value="">Semua Status</option>
+              <option value="Aktif">Aktif</option>
+              <option value="Near Expired">Near Expired</option>
+              <option value="Expired">Expired</option>
+            </select>
           </div>
+          <div class="filter-field wide">
+            <label>Masa Berlaku</label>
+            <select id="commMasaSelect">
+              <option value="">Semua</option>
+              <option value="lt30">&lt; 30 Hari Lagi</option>
+              <option value="30to60">30 - 60 Hari Lagi</option>
+              <option value="gt60">&gt; 60 Hari Lagi</option>
+              <option value="expired">Sudah Expired</option>
+            </select>
+          </div>
+          <div class="filter-spacer"></div>
+          <button class="btn btn-outline" id="commFilterBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+            Filter
+          </button>
+          <button class="btn btn-white" id="commResetBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+            Reset
+          </button>
+          <button class="btn btn-solid" id="commAddBtn">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M12 5v14M5 12h14"/></svg>
+            Tambah Komisioning
+          </button>
         </div>
-        <button class="btn btn-primary" id="filterBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>
-          Filter
-        </button>
-        <button class="btn btn-ghost" id="resetBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
-          Reset
-        </button>
-        <button class="btn btn-primary btn-add" id="addUnitBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-          Tambah Unit
-        </button>
       </div>
 
-      <!-- row: table + detail -->
-      <div class="row-main">
+      <!-- layout: tabel + detail -->
+      <div class="commissioning-layout">
 
-        <div class="card">
-          <div class="card-head"><h3>DAFTAR MASTER UNIT</h3></div>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>No</th>
-                  <th>Unit ID</th>
-                  <th>Model</th>
-                  <th>Jenis Unit</th>
-                  <th>Serial Number</th>
-                  <th>Tahun</th>
-                  <th>Status Unit</th>
-                  <th class="center">BIB</th>
-                  <th class="center">TIA</th>
-                  <th class="center">Total</th>
-                  <th>Aksi</th>
-                </tr>
-              </thead>
-              <tbody id="unitTableBody"></tbody>
-            </table>
-          </div>
-          <div class="table-foot">
-            <div class="info" id="pageInfo">Menampilkan 1 - 10 dari 127 data</div>
-            <div class="pager">
-              <div class="page-size">
-                <span id="pageSizeLabel">10 / halaman</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+        <div class="left-col">
+          <div class="card">
+            <div class="card-head"><h3>DAFTAR KOMISIONING</h3></div>
+            <div class="table-scroll">
+              <table class="comm-table">
+                <thead>
+                  <tr>
+                    <th rowspan="2">No</th>
+                    <th rowspan="2">Unit ID</th>
+                    <th rowspan="2">Model / Type</th>
+                    <th rowspan="2">Serial Number</th>
+                    <th rowspan="2">Site</th>
+                    <th rowspan="2">Area</th>
+                    <th rowspan="2">Registration No.</th>
+                    <th rowspan="2">ID BIB / TIA</th>
+                    <th class="group-th" colspan="2">Masa Berlaku</th>
+                    <th rowspan="2">Status</th>
+                    <th rowspan="2">Aksi</th>
+                  </tr>
+                  <tr class="sub-head">
+                    <th style="border-left:1px solid var(--line);">Mulai</th>
+                    <th style="border-right:1px solid var(--line);">Selesai</th>
+                  </tr>
+                </thead>
+                <tbody id="commTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination-bar">
+              <span id="commShowingInfo">Menampilkan 0 data</span>
+              <div class="pagination-controls">
+                <select id="commPageSizeSelect">
+                  <option value="10">10 / halaman</option>
+                  <option value="25">25 / halaman</option>
+                  <option value="50">50 / halaman</option>
+                </select>
+                <button class="page-nav-btn" id="commPrevBtn">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m15 18-6-6 6-6"/></svg>
+                </button>
+                <div id="commPageNumbers" style="display:flex;gap:6px;"></div>
+                <button class="page-nav-btn" id="commNextBtn">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4"><path d="m9 18 6-6-6-6"/></svg>
+                </button>
               </div>
-              <div class="page-btn nav" id="prevPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></div>
-              <div id="pageNumbers" style="display:flex;gap:6px;"></div>
-              <div class="page-btn nav" id="nextPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
             </div>
           </div>
         </div>
 
-        <div class="card detail-card" id="detailCard"></div>
+        <div class="card detail-panel" id="detailPanel"></div>
 
       </div>
 
@@ -608,265 +788,346 @@
 
 <script>
 /* =========================================================================
-   DATA SUMBER — GANTI BAGIAN INI DENGAN DATA ASLI (dari API / database)
+   DATA KOMISIONING — GANTI DENGAN DATA ASLI (dari API / database)
+   Contoh di bawah hanya 10 baris untuk demo; kartu statistik & paginasi
+   otomatis menyesuaikan begitu array ini diisi data sebenarnya (±248 baris).
    ========================================================================= */
-const MASTER_DATA = {
-  meta:{
-    user:{ name:"Abdul Azis", role:"Administrator" },
-    site:"ALL SITE", area:"ALL AREA"
-  },
-  stats:[
-    { label:"Total Unit", value:127, unit:"Unit", sub:"100% dari total unit", subColor:"navy", tone:"navy",
-      icon:'<path d="M3 17V7a2 2 0 0 1 2-2h7v12H3z"/><path d="M12 9h5l3 4v4h-8z"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>' },
-    { label:"Unit Aktif", value:125, unit:"Unit", sub:"98.4% dari total unit", subColor:"green", tone:"green",
-      icon:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>' },
-    { label:"Unit Non Aktif", value:2, unit:"Unit", sub:"1.6% dari total unit", subColor:"orange", tone:"orange",
-      icon:'<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' },
-    { label:"Total Komisioning (BIB + TIA)", value:248, unit:"Data", sub:"Rata-rata tersisa: 212 Hari", subColor:"navy", tone:"purple",
-      icon:'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/>' },
-  ],
-  filters:{
-    jenis:["Semua","Heavy Dump Truck","Excavator","Dozer","Grader","Water Truck","Fuel Truck","Light Vehicle","Compactor","Service Truck","Pompa"],
-    status:["Semua","Active","Non Aktif"],
-    site:["Semua Site","BIB","TIA"]
-  },
-  units:[
-    { id:"CO4536", model:"HD 4536 / HD785", jenis:"Heavy Dump Truck", sn:"CAT00HD7854536", tahun:2011, status:"Active", bib:1, tia:1, emoji:"🚚" },
-    { id:"EX1021", model:"EX 1021 / CAT 336GC", jenis:"Excavator", sn:"CAT0336GCL1021", tahun:2021, status:"Active", bib:1, tia:1, emoji:"🏗️" },
-    { id:"WT0213", model:"WT 0213 / HINO 500", jenis:"Water Truck", sn:"HINO500WT0213", tahun:2019, status:"Active", bib:1, tia:1, emoji:"🚰" },
-    { id:"DT045",  model:"DT 045 / CAT D8T", jenis:"Dozer", sn:"CATD8TDT045", tahun:2018, status:"Active", bib:1, tia:1, emoji:"🚜" },
-    { id:"GD060",  model:"GD 060 / CAT 140K", jenis:"Grader", sn:"CAT140KGD060", tahun:2016, status:"Active", bib:1, tia:1, emoji:"🚛" },
-    { id:"FV100",  model:"FV 100 / HINO 500", jenis:"Fuel Truck", sn:"HINO500FV100", tahun:2020, status:"Active", bib:1, tia:1, emoji:"🛢️" },
-    { id:"LT090",  model:"LT 090 / TOYOTA HILUX", jenis:"Light Vehicle", sn:"MROEX3CDXLT090", tahun:2020, status:"Active", bib:1, tia:1, emoji:"🚗" },
-    { id:"CM080",  model:"CM 080 / CAT CS563E", jenis:"Compactor", sn:"CATCS563ECM080", tahun:2017, status:"Active", bib:1, tia:1, emoji:"🚧" },
-    { id:"PM120",  model:"PM 120 / PUMP", jenis:"Pompa", sn:"PUMP120PM120", tahun:2021, status:"Active", bib:1, tia:1, emoji:"💧" },
-    { id:"SC200",  model:"SC 200 / VOLVO", jenis:"Service Truck", sn:"VOLVOSC200", tahun:2019, status:"Non Aktif", bib:1, tia:0, emoji:"🚐" },
-  ],
-  totalUnits:127,
-  pageSize:10,
-  totalPages:13,
-
-  detail:{
-    unitId:"CO4536",
-    model:"HD 4536 / HD785",
-    jenis:"Heavy Dump Truck",
-    sn:"CAT00HD7854536",
-    tahun:2011,
-    status:"Active",
-    emoji:"🚚",
-    sites:[
-      { site:"BIB", status:"Active", statusTone:"green", regNo:"BIB/CKT/2026/VII/120931", area:"GRB", masaBerlaku:"28-Aug-2026", sisaHari:"37 Hari", sisaTone:"green" },
-      { site:"TIA", status:"Near Expired", statusTone:"orange", regNo:"TIA/CKT/2026/VII/009872", area:"GRB", masaBerlaku:"06-Sep-2026", sisaHari:"46 Hari", sisaTone:"orange" },
-    ],
-    note:"Unit yang sama dapat memiliki komisioning berbeda di setiap site. Pastikan komisioning di semua site selalu diperbarui tepat waktu."
-  }
-};
+let COMMISSIONING_DATA = [
+  { unitId:"CO4536", model:"HD 4536 / HD785", serial:"CAT00HD7854536", jenisUnit:"Heavy Dump Truck", tahun:2011,
+    site:"BIB", area:"GRB", regNo:"BIB/CKT/2026/VII/120931", idCode:"HD4556", mulai:"29 Jul 2025", selesai:"28 Agu 2026" },
+  { unitId:"CO4536", model:"HD 4536 / HD785", serial:"CAT00HD7854536", jenisUnit:"Heavy Dump Truck", tahun:2011,
+    site:"TIA", area:"GRB", regNo:"TIA/CKT/2026/VII/009872", idCode:"HD4536", mulai:"07 Sep 2025", selesai:"06 Sep 2026" },
+  { unitId:"CO2314", model:"HD 785", serial:"CAT00HD7852314", jenisUnit:"Heavy Dump Truck", tahun:2012,
+    site:"BIB", area:"KGB", regNo:"BIB/CKT/2026/VI/110564", idCode:"HD2314", mulai:"16 Jun 2025", selesai:"15 Jun 2026" },
+  { unitId:"CO2314", model:"HD 785", serial:"CAT00HD7852314", jenisUnit:"Heavy Dump Truck", tahun:2012,
+    site:"TIA", area:"KGB", regNo:"TIA/CKT/2026/VI/009341", idCode:"HD2314", mulai:"01 Jul 2025", selesai:"30 Jun 2026" },
+  { unitId:"EX1021", model:"EX 1021", serial:"CAT0336GCL1021", jenisUnit:"Excavator", tahun:2013,
+    site:"BIB", area:"KGB", regNo:"BIB/CKT/2026/VI/110552", idCode:"EX1021", mulai:"10 Jun 2025", selesai:"09 Jun 2026" },
+  { unitId:"WT0213", model:"HINO 500", serial:"HINO500WT0213", jenisUnit:"Water Truck", tahun:2015,
+    site:"BIB", area:"GRB", regNo:"BIB/CKT/2026/VII/120211", idCode:"WT0213", mulai:"23 Jul 2025", selesai:"22 Jul 2026" },
+  { unitId:"DT045", model:"CAT D8T", serial:"CATD8TDT045", jenisUnit:"Dozer", tahun:2014,
+    site:"TIA", area:"STK", regNo:"TIA/CKT/2026/VII/009884", idCode:"DT045", mulai:"12 Jul 2025", selesai:"11 Jul 2026" },
+  { unitId:"GD060", model:"CAT 140K", serial:"CAT140KGD060", jenisUnit:"Grader", tahun:2016,
+    site:"BIB", area:"KGB", regNo:"BIB/CKT/2026/VII/110433", idCode:"GD060", mulai:"05 Jun 2025", selesai:"04 Jun 2026" },
+  { unitId:"FV100", model:"HINO 500", serial:"HINO500FV100", jenisUnit:"Fuel Truck", tahun:2015,
+    site:"TIA", area:"GRB", regNo:"TIA/CKT/2026/VI/009316", idCode:"FV100", mulai:"02 Jul 2025", selesai:"01 Jul 2026" },
+  { unitId:"PM120", model:"PUMP", serial:"PUMP120PM120", jenisUnit:"Pompa", tahun:2018,
+    site:"BIB", area:"FUEL", regNo:"BIB/CKT/2026/VII/120999", idCode:"PM120", mulai:"18 Jul 2025", selesai:"17 Jul 2026" },
+];
+const UNIT_THUMB = { "Heavy Dump Truck":"🚚","Excavator":"🏗️","Water Truck":"🚰","Dozer":"🚜","Grader":"🚧","Fuel Truck":"🛢️","Pompa":"💧" };
+const TODAY = new Date(2026, 6, 22); // 22 Jul 2026, sesuai tanggal pada header
 /* ========================================================================= */
 
-const toneColor = { green:"var(--green)", orange:"var(--orange)", red:"var(--red)", sky:"var(--sky)", navy:"var(--navy-800)", purple:"var(--purple)" };
-const toneBg = { green:"var(--green-bg)", orange:"var(--orange-bg)", red:"var(--red-bg)", sky:"var(--sky-bg)", navy:"#eef1fb", purple:"var(--purple-bg)" };
+const MONTHS_ID = {"Jan":0,"Feb":1,"Mar":2,"Apr":3,"Mei":4,"Jun":5,"Jul":6,"Agu":7,"Sep":8,"Okt":9,"Nov":10,"Des":11};
+function parseIndoDate(str){
+  const [d,m,y] = str.split(" ");
+  return new Date(parseInt(y,10), MONTHS_ID[m], parseInt(d,10));
+}
+function computeStatus(record){
+  const sisaHari = Math.round((parseIndoDate(record.selesai) - TODAY) / 86400000);
+  let status = "Aktif";
+  if(sisaHari < 0) status = "Expired";
+  else if(sisaHari <= 60) status = "Near Expired";
+  return { sisaHari, status };
+}
+COMMISSIONING_DATA.forEach(r=>{
+  const { sisaHari, status } = computeStatus(r);
+  r.sisaHari = sisaHari; r.status = status;
+});
 
 function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
 
-/* ---- header meta ---- */
-document.getElementById("siteFieldLabel").textContent = MASTER_DATA.meta.site;
-document.getElementById("areaFieldLabel").textContent = MASTER_DATA.meta.area;
-document.getElementById("userName").textContent = MASTER_DATA.meta.user.name;
-document.getElementById("userRole").textContent = MASTER_DATA.meta.user.role;
-document.getElementById("userAvatar").textContent = MASTER_DATA.meta.user.name.charAt(0);
-
+/* ---- clock ---- */
 function updateClock(){
   const now = new Date();
   const days = ["Minggu","Senin","Selasa","Rabu","Kamis","Jumat","Sabtu"];
   const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
-  document.getElementById("dateField").textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById("dateField").textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById("timeField").textContent = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) + " WIB";
 }
 updateClock(); setInterval(updateClock, 30000);
 
-document.getElementById("refreshBtn").addEventListener("click", ()=>{
-  const btn = document.getElementById("refreshBtn");
-  btn.style.transform = "rotate(360deg)"; btn.style.transition="transform .5s";
-  setTimeout(()=>{ btn.style.transform=""; }, 500);
-  renderAll();
-});
+/* =========================================================================
+   STAT CARDS
+   ========================================================================= */
+const toneColor = { green:"var(--green)", orange:"var(--orange)", red:"var(--red)", sky:"var(--sky)", navy:"var(--navy-800)" };
+const toneBg = { green:"var(--green-bg)", orange:"var(--orange-bg)", red:"var(--red-bg)", sky:"var(--sky-bg)", navy:"#eef1fb" };
 
-/* ---- stat cards ---- */
-function renderStats(){
-  const row = document.getElementById("statsRow");
+function renderCommStats(){
+  const total = COMMISSIONING_DATA.length;
+  const aktif = COMMISSIONING_DATA.filter(r=>r.status==="Aktif").length;
+  const near = COMMISSIONING_DATA.filter(r=>r.status==="Near Expired").length;
+  const expired = COMMISSIONING_DATA.filter(r=>r.status==="Expired").length;
+  const pct = n => total ? ((n/total)*100).toFixed(1) : "0.0";
+
+  const cards = [
+    { label:"Total Komisioning", value:total, unit:"Data", sub:"Tersebar di semua site", tone:"sky", labelColor:"var(--ink-600)", subColor:"var(--ink-600)",
+      icon:'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/>' },
+    { label:"Aktif", value:aktif, unit:"Data", sub:`${pct(aktif)}% dari total komisioning`, tone:"green", labelColor:"var(--green)", subColor:"var(--green)",
+      icon:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>' },
+    { label:"Near Expired (≤ 60 Hari)", value:near, unit:"Data", sub:`${pct(near)}% dari total komisioning`, tone:"orange", labelColor:"var(--orange)", subColor:"var(--orange)",
+      icon:'<circle cx="12" cy="12" r="9"/><path d="M12 8v4M12 16h.01"/>' },
+    { label:"Expired", value:expired, unit:"Data", sub:`${pct(expired)}% dari total komisioning`, tone:"red", labelColor:"var(--red)", subColor:"var(--red)",
+      icon:'<circle cx="12" cy="12" r="9"/><path d="m9.5 9.5 5 5m0-5-5 5"/>' },
+  ];
+  const row = document.getElementById("commStatsRow");
   row.innerHTML = "";
-  MASTER_DATA.stats.forEach(s=>{
+  cards.forEach(c=>{
     row.appendChild(el(`
-      <div class="card stat-card">
-        <div class="stat-icon" style="background:${toneBg[s.tone]};color:${toneColor[s.tone]}">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.icon}</svg>
+      <div class="card stat-card2">
+        <div class="stat2-icon" style="background:${toneBg[c.tone]};color:${toneColor[c.tone]}">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${c.icon}</svg>
         </div>
-        <div class="stat-body">
-          <div class="stat-label" style="color:${toneColor[s.tone]}">${s.label}</div>
-          <div class="stat-main"><b>${s.value}</b><span class="unit">${s.unit}</span></div>
-          <div class="stat-sub"><b style="color:${toneColor[s.subColor]}">${s.sub}</b></div>
+        <div class="stat2-body">
+          <div class="stat2-label" style="color:${c.labelColor}">${c.label}</div>
+          <div class="stat2-value"><b>${c.value}</b><span>${c.unit}</span></div>
+          <div class="stat2-sub" style="color:${c.subColor}">${c.sub}</div>
         </div>
       </div>
     `));
   });
 }
 
-/* ---- filter selects (static, decorative but wired to labels) ---- */
-function renderFilters(){
-  document.querySelectorAll(".select-input").forEach(box=>{
-    const key = box.getAttribute("data-select");
-    const opts = MASTER_DATA.filters[key];
-    let idx = 0;
-    box.addEventListener("click", ()=>{
-      idx = (idx+1) % opts.length;
-      box.querySelector("[data-label]").textContent = opts[idx];
-    });
-  });
-  document.getElementById("resetBtn").addEventListener("click", ()=>{
-    document.querySelectorAll(".select-input").forEach(box=>{
-      const key = box.getAttribute("data-select");
-      box.querySelector("[data-label]").textContent = MASTER_DATA.filters[key][0];
-    });
-    document.getElementById("searchInput").value = "";
+/* =========================================================================
+   FILTER STATE + OPTIONS
+   ========================================================================= */
+let commSearch = "", commSite = "", commArea = "", commStatus = "", commMasa = "";
+let commPage = 1, commPageSize = 10;
+let selectedUnitId = COMMISSIONING_DATA.length ? COMMISSIONING_DATA[0].unitId : null;
+
+function populateCommFilterOptions(){
+  const siteSel = document.getElementById("commSiteSelect");
+  const areaSel = document.getElementById("commAreaSelect");
+  const sites = [...new Set(COMMISSIONING_DATA.map(r=>r.site))];
+  const areas = [...new Set(COMMISSIONING_DATA.map(r=>r.area))];
+  siteSel.innerHTML = `<option value="">Semua Site</option>` + sites.map(s=>`<option value="${s}">${s}</option>`).join("");
+  areaSel.innerHTML = `<option value="">Semua Area</option>` + areas.map(a=>`<option value="${a}">${a}</option>`).join("");
+}
+
+function getFilteredComm(){
+  return COMMISSIONING_DATA.filter(r=>{
+    const q = commSearch;
+    const matchSearch = !q || r.unitId.toLowerCase().includes(q) || r.serial.toLowerCase().includes(q) || r.regNo.toLowerCase().includes(q);
+    const matchSite = !commSite || r.site === commSite;
+    const matchArea = !commArea || r.area === commArea;
+    const matchStatus = !commStatus || r.status === commStatus;
+    let matchMasa = true;
+    if(commMasa === "lt30") matchMasa = r.sisaHari >= 0 && r.sisaHari < 30;
+    else if(commMasa === "30to60") matchMasa = r.sisaHari >= 30 && r.sisaHari <= 60;
+    else if(commMasa === "gt60") matchMasa = r.sisaHari > 60;
+    else if(commMasa === "expired") matchMasa = r.sisaHari < 0;
+    return matchSearch && matchSite && matchArea && matchStatus && matchMasa;
   });
 }
 
-/* ---- unit table ---- */
-let selectedRow = 0;
-function renderTable(){
-  const body = document.getElementById("unitTableBody");
+function statusBadgeClass(status){
+  if(status === "Aktif") return "aktif";
+  if(status === "Near Expired") return "nonaktif";
+  return "nonaktif";
+}
+function statusBadgeStyle(status){
+  if(status === "Aktif") return "background:var(--green-bg);color:var(--green);";
+  if(status === "Near Expired") return "background:var(--orange-bg);color:var(--orange);";
+  return "background:var(--red-bg);color:var(--red);";
+}
+
+/* =========================================================================
+   TABEL + PAGINASI
+   ========================================================================= */
+function renderCommTable(){
+  const filtered = getFilteredComm();
+  const totalRows = filtered.length;
+  const totalPages = Math.max(1, Math.ceil(totalRows / commPageSize));
+  if(commPage > totalPages) commPage = totalPages;
+  const startIdx = (commPage-1) * commPageSize;
+  const pageRows = filtered.slice(startIdx, startIdx + commPageSize);
+
+  const body = document.getElementById("commTableBody");
   body.innerHTML = "";
-  MASTER_DATA.units.forEach((u,i)=>{
-    const total = u.bib + u.tia;
-    const statusClass = u.status === "Active" ? "status-active" : "status-nonaktif";
-    const row = el(`
-      <tr class="${i===selectedRow?'row-selected':''}" data-idx="${i}">
-        <td>${i+1}</td>
-        <td class="unit-id">${u.id}</td>
-        <td>${u.model}</td>
-        <td>${u.jenis}</td>
-        <td>${u.sn}</td>
-        <td>${u.tahun}</td>
-        <td><span class="status-pill ${statusClass}">${u.status}</span></td>
-        <td class="num">${u.bib}</td>
-        <td class="num">${u.tia}</td>
-        <td class="num">${total}</td>
+  if(pageRows.length === 0){
+    body.appendChild(el(`<tr><td colspan="12" style="text-align:center;color:var(--ink-400);padding:24px;">Tidak ada data yang cocok.</td></tr>`));
+  }
+  pageRows.forEach((r,i)=>{
+    const tr = el(`
+      <tr class="${r.unitId===selectedUnitId?'row-selected':''}">
+        <td>${startIdx + i + 1}</td>
+        <td><span class="unit-id-link">${r.unitId}</span></td>
+        <td>${r.model}</td>
+        <td>${r.serial}</td>
+        <td><span class="site-badge ${r.site==='BIB'?'bib':'tia'}">${r.site}</span></td>
+        <td>${r.area}</td>
+        <td>${r.regNo}</td>
+        <td>${r.idCode}</td>
+        <td>${r.mulai}</td>
+        <td>${r.selesai}</td>
+        <td><span class="status-badge" style="${statusBadgeStyle(r.status)}">${r.status}</span></td>
         <td>
           <div class="action-icons">
-            <div class="mini-ico view" title="Lihat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
-            <div class="mini-ico edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
-            <div class="mini-ico del" title="Hapus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></div>
+            <svg class="ic-view" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+            <svg class="ic-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4v16h16v-7"/><path d="m18.5 2.5 3 3L13 14l-4 1 1-4z"/></svg>
+            <svg class="ic-del" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg>
           </div>
         </td>
       </tr>
     `);
-    row.addEventListener("click", (e)=>{
-      if(e.target.closest(".mini-ico")) return;
-      selectedRow = i;
-      renderTable();
-      renderDetail(u);
+    tr.addEventListener("click", (e)=>{
+      if(e.target.closest(".action-icons")) return;
+      selectedUnitId = r.unitId;
+      renderCommTable();
+      renderDetailPanel();
     });
-    body.appendChild(row);
+    body.appendChild(tr);
   });
+
+  document.getElementById("commShowingInfo").textContent =
+    totalRows === 0 ? "Menampilkan 0 data" : `Menampilkan ${startIdx+1} - ${Math.min(startIdx+commPageSize,totalRows)} dari ${totalRows} data`;
+
+  const numWrap = document.getElementById("commPageNumbers");
+  numWrap.innerHTML = "";
+  for(let p=1;p<=totalPages;p++){
+    const btn = el(`<button class="page-num-btn ${p===commPage?'active':''}">${p}</button>`);
+    btn.addEventListener("click", ()=>{ commPage = p; renderCommTable(); });
+    numWrap.appendChild(btn);
+  }
+  document.getElementById("commPrevBtn").disabled = commPage <= 1;
+  document.getElementById("commNextBtn").disabled = commPage >= totalPages;
 }
 
-/* ---- detail panel ---- */
-function renderDetail(unit){
-  const d = MASTER_DATA.detail;
-  const card = document.getElementById("detailCard");
-  const statusClass = unit.status === "Active" ? "status-active" : "status-nonaktif";
+/* =========================================================================
+   PANEL DETAIL
+   ========================================================================= */
+function renderDetailPanel(){
+  const panel = document.getElementById("detailPanel");
+  const records = COMMISSIONING_DATA.filter(r=>r.unitId===selectedUnitId);
 
-  let sitesHtml = "";
-  d.sites.forEach(s=>{
-    sitesHtml += `
-      <div class="site-block" style="position:relative;">
-        <div class="site-block-head">
-          <b>${s.site}</b>
-          <span class="status-pill" style="background:${toneBg[s.statusTone]};color:${toneColor[s.statusTone]}">${s.status}</span>
+  if(!records.length){
+    panel.innerHTML = `
+      <div class="detail-head"><h3>DETAIL KOMISIONING</h3></div>
+      <div class="detail-empty">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 13h8M8 17h5"/></svg>
+        <span>Pilih salah satu Unit ID pada tabel untuk melihat detail komisioning.</span>
+      </div>`;
+    return;
+  }
+
+  const base = records[0];
+  const instancesHtml = records.map(r=>{
+    const tone = r.status === "Aktif" ? "green" : (r.status === "Near Expired" ? "orange" : "orange");
+    const badgeTone = r.status === "Aktif" ? "green" : "orange";
+    const sisaLabel = r.sisaHari < 0 ? `${Math.abs(r.sisaHari)} Hari Lewat` : `${r.sisaHari} Hari`;
+    return `
+      <div class="site-instance tone-${tone}">
+        <div class="site-instance-head">
+          <b>${r.site}</b>
+          <span class="si-badge ${badgeTone}">${r.status}</span>
         </div>
-        <div class="site-block-row"><span>Registration No.</span><b>${s.regNo}</b></div>
-        <div class="site-block-row"><span>Area</span><b>${s.area}</b></div>
-        <div class="site-block-row"><span>Masa Berlaku</span><b>${s.masaBerlaku}</b></div>
-        <div class="site-block-row"><span>Sisa Hari</span><b style="color:${toneColor[s.sisaTone]}">${s.sisaHari}</b></div>
-      </div>
-    `;
-  });
+        <div class="si-row"><div class="si-label">Registration No.</div><div class="si-value">${r.regNo}</div></div>
+        <div class="si-row"><div class="si-label">Area</div><div class="si-value">${r.area}</div></div>
+        <div class="si-row"><div class="si-label">ID ${r.site}</div><div class="si-value">${r.idCode}</div></div>
+        <div class="si-row"><div class="si-label">Masa Berlaku</div><div class="si-value">${r.mulai} s/d ${r.selesai}</div></div>
+        <div class="si-row"><div class="si-label">Sisa Hari</div><div class="si-value ${badgeTone}">${sisaLabel}</div></div>
+      </div>`;
+  }).join("");
 
-  card.innerHTML = `
-    <div class="card-head">
-      <h3>DETAIL UNIT</h3>
-      <div class="detail-close" id="closeDetail">
-        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+  panel.innerHTML = `
+    <div class="detail-head">
+      <h3>DETAIL KOMISIONING</h3>
+      <svg class="detail-close" id="detailCloseBtn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m18 6-12 12M6 6l12 12"/></svg>
+    </div>
+    <div class="detail-unit-row">
+      <div class="detail-unit-id">
+        <div class="lbl">Unit ID</div>
+        <div class="val">${base.unitId}</div>
       </div>
+      <div class="detail-unit-thumb">${UNIT_THUMB[base.jenisUnit] || "🚛"}</div>
     </div>
-    <div class="detail-hero">
-      <div class="thumb">${unit.emoji}</div>
-      <div>
-        <div style="font-weight:800;font-size:15px;">${unit.id}</div>
-        <div style="font-size:12.3px;color:var(--ink-600);margin-top:2px;">${unit.model}</div>
-      </div>
+    <div class="detail-fields">
+      <div class="df-row"><div class="df-label">Model / Type</div><div class="df-value">${base.model}</div></div>
+      <div class="df-row"><div class="df-label">Serial Number</div><div class="df-value">${base.serial}</div></div>
+      <div class="df-row"><div class="df-label">Jenis Unit</div><div class="df-value">${base.jenisUnit}</div></div>
+      <div class="df-row"><div class="df-label">Tahun</div><div class="df-value">${base.tahun}</div></div>
     </div>
-    <div class="detail-list">
-      <div class="detail-row"><span class="k">Unit ID</span><span class="v">${unit.id}</span></div>
-      <div class="detail-row"><span class="k">Model / Tipe</span><span class="v">${unit.model}</span></div>
-      <div class="detail-row"><span class="k">Jenis Unit</span><span class="v">${unit.jenis}</span></div>
-      <div class="detail-row"><span class="k">Serial Number</span><span class="v">${unit.sn}</span></div>
-      <div class="detail-row"><span class="k">Tahun</span><span class="v">${unit.tahun}</span></div>
-      <div class="detail-row"><span class="k">Status Unit</span><span class="v"><span class="status-pill ${statusClass}">${unit.status}</span></span></div>
-    </div>
-
-    <div class="sub-head">
-      <h4>KOMISIONING UNIT (PER SITE)</h4>
-      <div class="btn-tiny" id="addKomisioning">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
-        Tambah
-      </div>
-    </div>
-    ${sitesHtml}
-
-    <div class="info-note">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
-      <span>${d.note}</span>
-    </div>
+    ${instancesHtml}
+    <button class="detail-history-btn" id="historyBtn">
+      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 7v5l3 2"/></svg>
+      Lihat Riwayat Komisioning
+    </button>
   `;
 
-  document.getElementById("closeDetail").addEventListener("click", ()=>{
-    card.innerHTML = `<div class="card-head"><h3>DETAIL UNIT</h3></div><div style="padding:30px 6px;text-align:center;color:var(--ink-400);font-size:13px;">Pilih unit pada tabel untuk melihat detail.</div>`;
+  document.getElementById("detailCloseBtn").addEventListener("click", ()=>{
+    selectedUnitId = null;
+    renderCommTable();
+    renderDetailPanel();
+  });
+  document.getElementById("historyBtn").addEventListener("click", ()=>{
+    alert(`Riwayat komisioning untuk Unit ID ${base.unitId} akan tampil di sini setelah terhubung dengan data histori.`);
   });
 }
 
-/* ---- pagination ---- */
-let currentPage = 1;
-function renderPagination(){
-  document.getElementById("pageInfo").textContent =
-    `Menampilkan ${(currentPage-1)*MASTER_DATA.pageSize + 1} - ${Math.min(currentPage*MASTER_DATA.pageSize, MASTER_DATA.totalUnits)} dari ${MASTER_DATA.totalUnits} data`;
+/* =========================================================================
+   EVENT HANDLERS: FILTER, RESET, TAMBAH, PAGINASI
+   ========================================================================= */
+document.getElementById("commSearchInput").addEventListener("input", (e)=>{
+  commSearch = e.target.value.trim().toLowerCase(); commPage = 1; renderCommTable();
+});
+document.getElementById("commSiteSelect").addEventListener("change", (e)=>{ commSite = e.target.value; commPage=1; renderCommTable(); });
+document.getElementById("commAreaSelect").addEventListener("change", (e)=>{ commArea = e.target.value; commPage=1; renderCommTable(); });
+document.getElementById("commStatusSelect").addEventListener("change", (e)=>{ commStatus = e.target.value; commPage=1; renderCommTable(); });
+document.getElementById("commMasaSelect").addEventListener("change", (e)=>{ commMasa = e.target.value; commPage=1; renderCommTable(); });
 
-  const wrap = document.getElementById("pageNumbers");
-  wrap.innerHTML = "";
-  const total = MASTER_DATA.totalPages;
-  const pagesToShow = [1,2,3,4,5];
-  pagesToShow.forEach(p=>{
-    if(p>total) return;
-    const btn = el(`<div class="page-btn ${p===currentPage?'active':''}">${p}</div>`);
-    btn.addEventListener("click", ()=>{ currentPage = p; renderPagination(); });
-    wrap.appendChild(btn);
-  });
-  wrap.appendChild(el(`<div class="page-dots">…</div>`));
-  const lastBtn = el(`<div class="page-btn ${currentPage===total?'active':''}">${total}</div>`);
-  lastBtn.addEventListener("click", ()=>{ currentPage = total; renderPagination(); });
-  wrap.appendChild(lastBtn);
-}
-document.getElementById("prevPage").addEventListener("click", ()=>{ if(currentPage>1){ currentPage--; renderPagination(); } });
-document.getElementById("nextPage").addEventListener("click", ()=>{ if(currentPage<MASTER_DATA.totalPages){ currentPage++; renderPagination(); } });
+document.getElementById("commFilterBtn").addEventListener("click", ()=>{
+  commSearch = document.getElementById("commSearchInput").value.trim().toLowerCase();
+  commSite = document.getElementById("commSiteSelect").value;
+  commArea = document.getElementById("commAreaSelect").value;
+  commStatus = document.getElementById("commStatusSelect").value;
+  commMasa = document.getElementById("commMasaSelect").value;
+  commPage = 1;
+  renderCommTable();
+});
+document.getElementById("commResetBtn").addEventListener("click", ()=>{
+  document.getElementById("commSearchInput").value = "";
+  document.getElementById("commSiteSelect").value = "";
+  document.getElementById("commAreaSelect").value = "";
+  document.getElementById("commStatusSelect").value = "";
+  document.getElementById("commMasaSelect").value = "";
+  commSearch = ""; commSite = ""; commArea = ""; commStatus = ""; commMasa = ""; commPage = 1;
+  renderCommTable();
+});
+document.getElementById("commPageSizeSelect").addEventListener("change", (e)=>{
+  commPageSize = parseInt(e.target.value, 10); commPage = 1; renderCommTable();
+});
+document.getElementById("commPrevBtn").addEventListener("click", ()=>{ if(commPage>1){ commPage--; renderCommTable(); } });
+document.getElementById("commNextBtn").addEventListener("click", ()=>{ commPage++; renderCommTable(); });
 
-function renderAll(){
-  renderStats();
-  renderFilters();
-  renderTable();
-  renderDetail({ ...MASTER_DATA.units[selectedRow], ...{} });
-  renderPagination();
-}
-renderAll();
+document.getElementById("commAddBtn").addEventListener("click", ()=>{
+  const unitId = prompt("Unit ID:"); if(!unitId) return;
+  const model = prompt("Model / Type:", "-") || "-";
+  const serial = prompt("Serial Number:", "-") || "-";
+  const jenisUnit = prompt("Jenis Unit:", "Heavy Dump Truck") || "Heavy Dump Truck";
+  const tahun = parseInt(prompt("Tahun unit:", "2020") || "2020", 10);
+  const site = (prompt("Site (BIB/TIA):", "BIB") || "BIB").toUpperCase();
+  const area = prompt("Area:", "-") || "-";
+  const regNo = prompt("Registration No.:", "-") || "-";
+  const idCode = prompt("ID BIB/TIA:", "-") || "-";
+  const mulai = prompt("Masa Berlaku Mulai (dd Mon yyyy):", "01 Jan 2026") || "01 Jan 2026";
+  const selesai = prompt("Masa Berlaku Selesai (dd Mon yyyy):", "31 Des 2026") || "31 Des 2026";
+  const rec = { unitId, model, serial, jenisUnit, tahun, site, area, regNo, idCode, mulai, selesai };
+  const { sisaHari, status } = computeStatus(rec);
+  rec.sisaHari = sisaHari; rec.status = status;
+  COMMISSIONING_DATA.push(rec);
+  populateCommFilterOptions();
+  renderCommStats();
+  selectedUnitId = unitId;
+  commPage = Math.ceil(getFilteredComm().length / commPageSize) || 1;
+  renderCommTable();
+  renderDetailPanel();
+});
+
+/* ---- init ---- */
+populateCommFilterOptions();
+renderCommStats();
+renderCommTable();
+renderDetailPanel();
 
 /* ---- mobile sidebar drawer ---- */
 const sidebar = document.getElementById("sidebar");
