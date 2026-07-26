@@ -43,6 +43,13 @@
   a{text-decoration:none;color:inherit;}
   button{font-family:inherit;}
 
+  /* Touch-friendly / mobile tap behavior */
+  button, .btn, .mini-ico, .page-btn, .select-input, .search-input input,
+  .field, .icon-btn, .dropdown-item, .status-pill{
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
   /* ---------- layout shell ---------- */
   .shell{
     display:grid;
@@ -71,10 +78,10 @@
   }
   .brand-badge{
     width:38px;height:38px;border-radius:10px;
-    background:radial-gradient(circle at 30% 30%, #ffb144, #e0362e);
+    background:rgba(255,255,255,.18);
     display:flex;align-items:center;justify-content:center;
-    font-weight:800;color:#fff;font-size:13px;flex-shrink:0;
-    box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+    font-size:20px;flex-shrink:0;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.25);
   }
   .brand-text b{display:block;font-size:14.5px;color:#fff;letter-spacing:.2px;}
   .brand-text span{display:block;font-size:11.5px;color:#9fb0d6;margin-top:1px;}
@@ -202,8 +209,9 @@
   .filter-card{
     display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
     padding:16px 20px;
+    overflow:visible;
   }
-  .filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;}
+  .filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;position:relative;}
   .filter-group.search{flex:2;min-width:220px;}
   .filter-group label{font-size:11px;font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.03em;}
   .search-input{
@@ -217,8 +225,22 @@
     display:flex;align-items:center;justify-content:space-between;gap:8px;
     border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
     font-size:13px;font-weight:600;color:var(--ink-900);cursor:pointer;
+    position:relative;
   }
   .select-input svg{width:14px;height:14px;color:var(--ink-400);flex-shrink:0;}
+  /* custom dropdown list for jenis / status / site filters */
+  .dropdown-list{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;
+    background:#fff;border:1px solid var(--line);border-radius:10px;
+    box-shadow:var(--shadow);z-index:45;max-height:230px;overflow-y:auto;
+    display:none;
+  }
+  .dropdown-list.show{display:block;}
+  .dropdown-item{
+    padding:9px 12px;font-size:13px;color:var(--ink-900);cursor:pointer;font-weight:500;
+  }
+  .dropdown-item:hover{background:var(--blue-50);color:var(--blue-600);}
+  .dropdown-item.active{background:var(--blue-50);color:var(--blue-600);font-weight:700;}
   .btn{
     display:flex;align-items:center;justify-content:center;gap:7px;
     border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;
@@ -386,6 +408,12 @@
     .user-chip span{display:none;}
     .filter-card{flex-direction:column;align-items:stretch;}
     .btn-add{margin-left:0;}
+
+    /* larger touch targets on mobile */
+    .select-input,.search-input,.btn{min-height:44px;}
+    .dropdown-item{padding:12px 14px;font-size:14px;}
+    .mini-ico{width:34px;height:34px;}
+    .page-btn{width:36px;height:36px;}
   }
 </style>
 </head>
@@ -398,7 +426,7 @@
   <!-- ================= SIDEBAR ================= -->
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-badge">CK</div>
+      <div class="brand-badge">⛏️</div>
       <div class="brand-text">
         <b>ISAM CK BIB</b>
         <span>Inspeksi K3 System</span>
@@ -534,33 +562,36 @@
           <label>Cari Unit</label>
           <div class="search-input">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
-            <input id="searchInput" type="text" placeholder="Cari Unit ID, Model, atau SN...">
+            <input id="searchInput" type="text" placeholder="Cari Unit ID, Model, atau SN... (tekan Enter atau klik Filter)">
           </div>
         </div>
         <div class="filter-group">
           <label>Jenis Unit</label>
-          <div class="select-input" data-select="jenis">
+          <div class="select-input" data-select="jenis" onclick="toggleDropdown(this, event)">
             <span data-label>Semua</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="dropdown-list" data-dropdown="jenis"></div>
           </div>
         </div>
         <div class="filter-group">
           <label>Status Unit</label>
-          <div class="select-input" data-select="status">
+          <div class="select-input" data-select="status" onclick="toggleDropdown(this, event)">
             <span data-label>Semua</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="dropdown-list" data-dropdown="status"></div>
           </div>
         </div>
         <div class="filter-group">
           <label>Site</label>
-          <div class="select-input" data-select="site">
+          <div class="select-input" data-select="site" onclick="toggleDropdown(this, event)">
             <span data-label>Semua Site</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+            <div class="dropdown-list" data-dropdown="site"></div>
           </div>
         </div>
         <button class="btn btn-primary" id="filterBtn">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>
-          Filter
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+          Cari / Filter
         </button>
         <button class="btn btn-ghost" id="resetBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
@@ -738,12 +769,18 @@ document.getElementById("refreshBtn").addEventListener("click", ()=>{
   loadData();
 });
 
+/* ---- helper: baris unit yang Unit_ID-nya benar-benar terisi ---- */
+function getValidUnits(){
+  return ALL_UNITS.filter(u => u.Unit_ID && String(u.Unit_ID).trim() !== "");
+}
+
 /* ---- stat cards ---- */
 function renderStats(){
-  const total = ALL_UNITS.length;
-  const active = ALL_UNITS.filter(u=>u.Status==="Active").length;
+  const validUnits = getValidUnits();
+  const total = validUnits.length;
+  const active = validUnits.filter(u=>u.Status==="Active").length;
   const nonAktif = total - active;
-  const totalKomisioning = ALL_UNITS.reduce((s,u)=>s+(u.total||0),0);
+  const totalKomisioning = validUnits.reduce((s,u)=>s+(u.total||0),0);
   const stats = [
     { label:"Total Unit", value:total, unit:"Unit", sub:`100% dari total unit`, subColor:"navy", tone:"navy",
       icon:'<path d="M3 17V7a2 2 0 0 1 2-2h7v12H3z"/><path d="M12 9h5l3 4v4h-8z"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>' },
@@ -768,7 +805,21 @@ function renderStats(){
   `).join("");
 }
 
-/* ---- filter dropdowns (klik utk cycle, sama gaya kayak versi awal, tapi sekarang beneran filter) ---- */
+/* ---- dropdown toggle (jenis / status / site) ---- */
+function toggleDropdown(box, evt){
+  if(evt) evt.stopPropagation();
+  const dd = box.querySelector('.dropdown-list');
+  const alreadyOpen = dd && dd.classList.contains('show');
+  document.querySelectorAll('.dropdown-list.show').forEach(d=>d.classList.remove('show'));
+  if(dd && !alreadyOpen) dd.classList.add('show');
+}
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.select-input')){
+    document.querySelectorAll('.dropdown-list.show').forEach(d=>d.classList.remove('show'));
+  }
+});
+
+/* ---- filter dropdowns: pilih opsi dari daftar, filter baru dijalankan saat klik tombol Filter ---- */
 function renderFilters(){
   document.querySelectorAll(".select-input").forEach(box=>{
     const key = box.getAttribute("data-select");
@@ -776,17 +827,24 @@ function renderFilters(){
     if(key === "jenis") opts = ["Semua", ...JENIS_LIST];
     else if(key === "status") opts = ["Semua","Active","Non Aktif"];
     else opts = ["Semua Site","BIB","TIA"];
-    let idx = opts.indexOf(FILTER_STATE[key]); if(idx<0) idx = 0;
-    box.onclick = ()=>{
-      idx = (idx+1) % opts.length;
-      FILTER_STATE[key] = opts[idx];
-      box.querySelector("[data-label]").textContent = opts[idx];
-      currentPage = 1;
-      renderTable();
-    };
+
+    const dd = box.querySelector('.dropdown-list');
+    if(!dd) return;
+    dd.innerHTML = opts.map(o=>`<div class="dropdown-item ${FILTER_STATE[key]===o?'active':''}" data-val="${o}">${o}</div>`).join("");
+    dd.querySelectorAll('.dropdown-item').forEach(item=>{
+      item.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        FILTER_STATE[key] = item.getAttribute('data-val');
+        box.querySelector('[data-label]').textContent = FILTER_STATE[key];
+        dd.querySelectorAll('.dropdown-item').forEach(i=>i.classList.remove('active'));
+        item.classList.add('active');
+        dd.classList.remove('show');
+      });
+    });
   });
 }
 
+/* Klik tombol Filter/Cari = terapkan pilihan dropdown + teks pencarian sekaligus */
 document.getElementById("filterBtn").addEventListener("click", ()=>{ currentPage=1; renderTable(); });
 document.getElementById("resetBtn").addEventListener("click", ()=>{
   FILTER_STATE.jenis = "Semua"; FILTER_STATE.status = "Semua"; FILTER_STATE.site = "Semua Site";
@@ -798,7 +856,14 @@ document.getElementById("resetBtn").addEventListener("click", ()=>{
   currentPage = 1;
   renderTable();
 });
-document.getElementById("searchInput").addEventListener("input", ()=>{ currentPage=1; renderTable(); });
+/* Tekan Enter pada kolom pencarian = langsung cari (setara klik tombol Filter/Cari) */
+document.getElementById("searchInput").addEventListener("keydown", (e)=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    currentPage = 1;
+    renderTable();
+  }
+});
 
 document.getElementById("pageSizeToggle").addEventListener("click", ()=>{
   const idx = PAGE_SIZE_OPTIONS.indexOf(pageSize);
@@ -811,7 +876,7 @@ document.getElementById("pageSizeToggle").addEventListener("click", ()=>{
 /* ---- filtering ---- */
 function getFiltered(){
   const q = document.getElementById("searchInput").value.trim().toLowerCase();
-  return ALL_UNITS.filter(u=>{
+  return getValidUnits().filter(u=>{
     if(FILTER_STATE.jenis !== "Semua" && u.Jenis_Unit !== FILTER_STATE.jenis) return false;
     if(FILTER_STATE.status !== "Semua" && u.Status !== FILTER_STATE.status) return false;
     if(FILTER_STATE.site === "BIB" && !u.bib) return false;
