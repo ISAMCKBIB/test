@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISAM CK BIB — Master Unit</title>
+<style>
+  :root{
+    --navy-950:#0b1f45;
+    --navy-900:#0f2a5c;
+    --navy-800:#15366f;
+    --blue-600:#2563eb;
+    --blue-500:#3b82f6;
+    --blue-50:#eef4ff;
+    --bg:#eef1f8;
+    --card:#ffffff;
+    --ink-900:#101828;
+    --ink-600:#475467;
+    --ink-400:#98a2b3;
+    --line:#e6e9f2;
+    --green:#16a34a;
+    --green-bg:#e9f9ee;
+    --orange:#f59e0b;
+    --orange-bg:#fff6e6;
+    --red:#e0362e;
+    --red-bg:#fdeceb;
+    --sky:#2f6fed;
+    --sky-bg:#eaf1ff;
+    --purple:#7c5cff;
+    --purple-bg:#f1edff;
+    --radius:16px;
+    --shadow: 0 1px 2px rgba(16,24,40,.04), 0 8px 24px -12px rgba(16,24,40,.10);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family: "Inter","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--ink-900);
+    -webkit-font-smoothing:antialiased;
+  }
+  a{text-decoration:none;color:inherit;}
+  button{font-family:inherit;}
+
+  /* ---------- layout shell ---------- */
+  .shell{
+    display:grid;
+    grid-template-columns: 250px 1fr;
+    min-height:100vh;
+  }
+
+  /* ---------- sidebar ---------- */
+  .sidebar{
+    background:linear-gradient(180deg,var(--navy-900) 0%, var(--navy-950) 100%);
+    color:#dce4f5;
+    padding:22px 16px 18px;
+    display:flex;
+    flex-direction:column;
+    gap:4px;
+    position:sticky;
+    top:0;
+    height:100vh;
+    overflow-y:auto;
+  }
+  .brand{
+    display:flex;align-items:center;gap:10px;
+    padding:4px 8px 20px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    margin-bottom:14px;
+  }
+  .brand-badge{
+    width:38px;height:38px;border-radius:10px;
+    background:radial-gradient(circle at 30% 30%, #ffb144, #e0362e);
+    display:flex;align-items:center;justify-content:center;
+    font-weight:800;color:#fff;font-size:13px;flex-shrink:0;
+    box-shadow: inset 0 0 0 2px rgba(255,255,255,.25);
+  }
+  .brand-text b{display:block;font-size:14.5px;color:#fff;letter-spacing:.2px;}
+  .brand-text span{display:block;font-size:11.5px;color:#9fb0d6;margin-top:1px;}
+
+  .nav-label{
+    font-size:10.5px;font-weight:700;letter-spacing:.08em;
+    color:#7488b6;text-transform:uppercase;
+    margin:14px 10px 6px;
+  }
+  .nav-item{
+    display:flex;align-items:center;gap:10px;
+    padding:9px 12px;border-radius:10px;
+    font-size:13.6px;color:#c6d2ee;font-weight:500;
+    cursor:pointer;transition:background .15s ease, color .15s ease;
+  }
+  .nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.9;}
+  .nav-item:hover{background:rgba(255,255,255,.06);color:#fff;}
+  .nav-item.active{
+    background:var(--blue-600);
+    color:#fff;
+    box-shadow: 0 4px 14px -4px rgba(37,99,235,.7);
+  }
+  .sidebar-foot{margin-top:auto;padding-top:14px;}
+  .back-btn{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 12px;border-radius:10px;
+    background:rgba(255,255,255,.06);
+    color:#c6d2ee;font-size:13px;font-weight:600;
+  }
+  .back-btn:hover{background:rgba(255,255,255,.1);}
+
+  /* ---------- topbar ---------- */
+  .main{display:flex;flex-direction:column;min-width:0;}
+  .topbar{
+    background:#fff;border-bottom:1px solid var(--line);
+    padding:12px 24px;
+    display:flex;align-items:center;gap:14px;
+    position:sticky;top:0;z-index:20;
+    flex-wrap:wrap;
+  }
+  .hamburger{
+    display:none;background:none;border:none;cursor:pointer;
+    width:36px;height:36px;border-radius:8px;align-items:center;justify-content:center;
+    color:var(--ink-900);
+  }
+  .hamburger:hover{background:var(--blue-50);}
+  .topbar-title b{font-size:16.5px;display:block;color:var(--ink-900);}
+  .topbar-title span{font-size:12px;color:var(--ink-600);}
+
+  .topbar-spacer{flex:1;}
+  .field{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:10px;
+    padding:8px 12px;font-size:12.8px;color:var(--ink-900);
+    background:#fbfcfe;font-weight:600;white-space:nowrap;
+    position:relative;cursor:pointer;
+  }
+  .field svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;}
+  .field .chev-mini{width:12px;height:12px;color:var(--ink-400);margin-left:2px;}
+  .icon-btn{
+    width:38px;height:38px;border-radius:10px;border:1px solid var(--line);
+    display:flex;align-items:center;justify-content:center;position:relative;
+    background:#fff;cursor:pointer;color:var(--ink-600);flex-shrink:0;
+  }
+  .icon-btn:hover{background:var(--blue-50);}
+  .icon-btn svg{width:17px;height:17px;}
+  .badge-dot{
+    position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;
+    font-size:9.5px;font-weight:700;border-radius:20px;padding:1px 5px;
+    border:2px solid #fff;
+  }
+  .user-chip{display:flex;align-items:center;gap:9px;padding-left:8px;}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--blue-600);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;}
+  .user-chip b{font-size:13px;display:block;}
+  .user-chip span{font-size:11.3px;color:var(--ink-600);}
+  .user-chip .chev-mini{width:14px;height:14px;color:var(--ink-400);}
+
+  /* ---------- breadcrumb ---------- */
+  .breadcrumb{
+    padding:14px 24px 0;font-size:13px;color:var(--ink-600);
+    display:flex;align-items:center;gap:6px;flex-wrap:wrap;
+  }
+  .breadcrumb b{color:var(--ink-900);font-weight:600;}
+  .breadcrumb .chev{opacity:.5;}
+
+  .content{padding:16px 24px 40px;display:flex;flex-direction:column;gap:16px;}
+
+  /* ---------- cards ---------- */
+  .card{
+    background:var(--card);border-radius:var(--radius);
+    box-shadow:var(--shadow);padding:20px 20px 18px;
+    border:1px solid var(--line);
+    min-width:0;
+  }
+
+  /* ---------- stat cards ---------- */
+  .stats-row{
+    display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  }
+  .stat-card{display:flex;gap:14px;align-items:flex-start;padding:18px 18px 16px;}
+  .stat-card .stat-icon{
+    width:48px;height:48px;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  }
+  .stat-card .stat-icon svg{width:23px;height:23px;}
+  .stat-card .stat-body{min-width:0;}
+  .stat-label{
+    font-size:12px;font-weight:700;letter-spacing:.03em;
+    color:var(--ink-600);text-transform:uppercase;
+  }
+  .stat-main{display:flex;align-items:baseline;gap:6px;margin-top:6px;}
+  .stat-main b{font-size:28px;font-weight:800;letter-spacing:-.02em;line-height:1;}
+  .stat-main span.unit{font-size:12.5px;color:var(--ink-600);font-weight:600;}
+  .stat-sub{margin-top:7px;font-size:12px;color:var(--ink-600);}
+  .stat-sub b{font-weight:700;}
+
+  .tag-green{color:var(--green);} .bg-green{background:var(--green-bg);}
+  .tag-orange{color:var(--orange);} .bg-orange{background:var(--orange-bg);}
+  .tag-red{color:var(--red);} .bg-red{background:var(--red-bg);}
+  .tag-sky{color:var(--sky);} .bg-sky{background:var(--sky-bg);}
+  .tag-navy{color:var(--navy-800);} .bg-navy{background:#eef1fb;}
+  .tag-purple{color:var(--purple);} .bg-purple{background:var(--purple-bg);}
+
+  /* ---------- filter bar ---------- */
+  .filter-card{
+    display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;
+    padding:16px 20px;
+  }
+  .filter-group{display:flex;flex-direction:column;gap:6px;flex:1;min-width:170px;}
+  .filter-group.search{flex:2;min-width:220px;}
+  .filter-group label{font-size:11px;font-weight:700;color:var(--ink-600);text-transform:uppercase;letter-spacing:.03em;}
+  .search-input{
+    display:flex;align-items:center;gap:8px;
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
+  }
+  .search-input svg{width:16px;height:16px;color:var(--ink-400);flex-shrink:0;}
+  .search-input input{border:none;background:transparent;outline:none;font-size:13px;color:var(--ink-900);width:100%;font-family:inherit;}
+  .search-input input::placeholder{color:var(--ink-400);}
+  .select-input{
+    display:flex;align-items:center;justify-content:space-between;gap:8px;
+    border:1px solid var(--line);border-radius:10px;padding:9px 12px;background:#fbfcfe;
+    font-size:13px;font-weight:600;color:var(--ink-900);cursor:pointer;
+  }
+  .select-input svg{width:14px;height:14px;color:var(--ink-400);flex-shrink:0;}
+  .btn{
+    display:flex;align-items:center;justify-content:center;gap:7px;
+    border-radius:10px;padding:9px 16px;font-size:13px;font-weight:700;
+    cursor:pointer;border:1px solid transparent;white-space:nowrap;
+  }
+  .btn svg{width:15px;height:15px;flex-shrink:0;}
+  .btn-primary{background:var(--blue-600);color:#fff;box-shadow:0 4px 14px -4px rgba(37,99,235,.6);}
+  .btn-primary:hover{background:#1d4ed8;}
+  .btn-ghost{background:#fff;color:var(--ink-600);border-color:var(--line);}
+  .btn-ghost:hover{background:var(--blue-50);color:var(--blue-600);}
+  .btn-add{margin-left:auto;}
+
+  /* ---------- row: table + detail panel ---------- */
+  .row-main{display:grid;grid-template-columns:1.75fr 1fr;gap:16px;align-items:start;}
+
+  .card-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:14px;
+  }
+  .card-head h3{margin:0;font-size:14.5px;font-weight:800;color:var(--navy-900);letter-spacing:.01em;}
+
+  /* table */
+  .table-scroll{overflow-x:auto;}
+  table{width:100%;border-collapse:collapse;font-size:12.8px;min-width:760px;}
+  thead th{
+    text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.03em;
+    color:var(--ink-600);font-weight:700;padding:9px 10px;border-bottom:2px solid var(--line);
+    white-space:nowrap;
+  }
+  thead th.center{text-align:center;}
+  tbody td{padding:10px;border-bottom:1px solid var(--line);color:var(--ink-900);font-weight:600;white-space:nowrap;}
+  tbody tr{cursor:pointer;transition:background .12s ease;}
+  tbody tr:hover{background:#f7f9fd;}
+  tbody tr.row-selected{background:var(--blue-50);}
+  td.num, td.center{text-align:center;font-variant-numeric:tabular-nums;}
+  td.unit-id{color:var(--blue-600);font-weight:800;}
+  .status-pill{
+    display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:20px;
+    font-size:11px;font-weight:700;
+  }
+  .status-active{background:var(--green-bg);color:var(--green);}
+  .status-nonaktif{background:var(--orange-bg);color:var(--orange);}
+  .action-icons{display:flex;gap:6px;}
+  .mini-ico{
+    width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);background:#fff;cursor:pointer;flex-shrink:0;
+  }
+  .mini-ico svg{width:14px;height:14px;}
+  .mini-ico.view{color:var(--ink-600);}
+  .mini-ico.edit{color:var(--blue-600);}
+  .mini-ico.del{color:var(--red);}
+  .mini-ico:hover{background:var(--blue-50);}
+
+  .table-foot{display:flex;align-items:center;justify-content:space-between;margin-top:14px;flex-wrap:wrap;gap:10px;}
+  .table-foot .info{font-size:12.5px;color:var(--ink-600);}
+  .pager{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .page-size{
+    display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:10px;
+    padding:7px 10px;font-size:12.5px;font-weight:600;color:var(--ink-900);background:#fbfcfe;cursor:pointer;
+  }
+  .page-size svg{width:13px;height:13px;color:var(--ink-400);}
+  .page-btn{
+    width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:#fff;
+    display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:700;color:var(--ink-600);cursor:pointer;
+  }
+  .page-btn:hover{background:var(--blue-50);}
+  .page-btn.active{background:var(--blue-600);color:#fff;border-color:var(--blue-600);}
+  .page-btn.nav svg{width:14px;height:14px;}
+  .page-dots{color:var(--ink-400);font-size:13px;padding:0 2px;}
+
+  /* ---------- detail panel ---------- */
+  .detail-card{position:sticky;top:78px;}
+  .detail-close{
+    width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;
+    color:var(--ink-400);cursor:pointer;flex-shrink:0;
+  }
+  .detail-close:hover{background:var(--blue-50);color:var(--ink-600);}
+  .detail-hero{display:flex;gap:14px;align-items:center;padding:6px 4px 16px;border-bottom:1px solid var(--line);margin-bottom:14px;}
+  .detail-hero .thumb{
+    width:76px;height:64px;border-radius:12px;background:var(--blue-50);
+    display:flex;align-items:center;justify-content:center;font-size:30px;flex-shrink:0;
+    border:1px solid #dbe7ff;
+  }
+  .detail-list{display:flex;flex-direction:column;gap:9px;}
+  .detail-row{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;font-size:12.8px;}
+  .detail-row .k{color:var(--ink-600);font-weight:600;flex-shrink:0;}
+  .detail-row .v{color:var(--ink-900);font-weight:700;text-align:right;}
+
+  .sub-head{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-top:18px;margin-bottom:10px;
+  }
+  .sub-head h4{margin:0;font-size:13px;font-weight:800;color:var(--navy-900);}
+  .btn-tiny{
+    display:flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;
+    color:var(--blue-600);background:var(--blue-50);border:1px solid #dbe7ff;
+    padding:6px 10px;border-radius:8px;cursor:pointer;
+  }
+  .btn-tiny svg{width:12px;height:12px;}
+  .btn-tiny:hover{background:#e2ecff;}
+
+  .site-block{
+    border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:#fbfcfe;
+    position:relative;
+  }
+  .site-block-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+  .site-block-head b{font-size:13.5px;color:var(--ink-900);}
+  .site-block-row{display:flex;justify-content:space-between;font-size:12.3px;padding:3px 0;color:var(--ink-600);}
+  .site-block-row b{color:var(--ink-900);font-weight:700;}
+  .site-block-actions{display:flex;gap:6px;margin-top:8px;justify-content:flex-end;}
+
+  .info-note{
+    margin-top:14px;display:flex;gap:9px;align-items:flex-start;
+    background:var(--blue-50);border:1px solid #dbe7ff;border-radius:10px;padding:10px 12px;
+    font-size:11.8px;color:var(--navy-800);line-height:1.45;
+  }
+  .info-note svg{width:15px;height:15px;color:var(--blue-600);flex-shrink:0;margin-top:1px;}
+
+  /* ---------- overlay for mobile drawer ---------- */
+  .overlay{
+    display:none;position:fixed;inset:0;background:rgba(11,31,69,.45);z-index:29;
+  }
+
+  /* ---------- modal ---------- */
+  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(11,31,69,.55);z-index:50;align-items:center;justify-content:center;padding:20px;}
+  .modal-overlay.show{display:flex;}
+  .modal{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.25);max-height:90vh;overflow-y:auto;}
+  .modal h3{margin:0 0 16px;font-size:16px;color:var(--navy-900);}
+  .modal label{display:block;font-size:11.5px;font-weight:700;color:var(--ink-600);text-transform:uppercase;margin:10px 0 5px;}
+  .modal input, .modal select{width:100%;padding:9px 12px;border:1px solid var(--line);border-radius:10px;font-size:13px;font-family:inherit;box-sizing:border-box;}
+  .modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end;}
+  .toast{position:fixed;bottom:20px;right:20px;background:var(--navy-900);color:#fff;padding:12px 18px;border-radius:10px;font-size:13px;font-weight:600;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.25);display:none;max-width:320px;}
+  .toast.show{display:block;}
+  .loading-row{padding:30px;text-align:center;color:var(--ink-400);font-size:13px;}
+
+  /* ================= RESPONSIVE ================= */
+  @media (max-width: 1180px){
+    .row-main{grid-template-columns:1fr;}
+    .detail-card{position:static;}
+  }
+
+  @media (max-width: 1000px){
+    .stats-row{grid-template-columns:repeat(2,1fr);}
+  }
+
+  @media (max-width: 860px){
+    .shell{grid-template-columns:1fr;}
+    .sidebar{
+      position:fixed;left:0;top:0;bottom:0;z-index:30;width:250px;
+      transform:translateX(-100%);transition:transform .25s ease;
+    }
+    .sidebar.open{transform:translateX(0);}
+    .hamburger{display:flex;}
+    .overlay.show{display:block;}
+    .topbar{gap:10px;}
+    .field.date-field, .field.time-field{display:none;}
+  }
+
+  @media (max-width: 720px){
+    .stats-row{grid-template-columns:1fr;}
+    .content{padding:14px 14px 32px;}
+    .breadcrumb{padding:12px 14px 0;}
+    .topbar{padding:10px 14px;}
+    .field{display:none;}
+    .user-chip span{display:none;}
+    .filter-card{flex-direction:column;align-items:stretch;}
+    .btn-add{margin-left:0;}
+  }
+</style>
+</head>
+<body>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="shell">
+
+  <!-- ================= SIDEBAR ================= -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-badge">CK</div>
+      <div class="brand-text">
+        <b>ISAM CK BIB</b>
+        <span>Inspeksi K3 System</span>
+      </div>
+    </div>
+
+    <a class="nav-item" href="comissioning.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg>
+      Dashboard
+    </a>
+
+    <div class="nav-label">Data Master</div>
+    <a class="nav-item active" href="datamasterunit.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+      Master Unit
+    </a>
+    <a class="nav-item" href="comissioningdash.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h7"/></svg>
+      Jenis Unit
+    </a>
+    <a class="nav-item" href="comissioningdash.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8v4l3 2"/></svg>
+      Area
+    </a>
+
+    <div class="nav-label">Commissioning</div>
+    <a class="nav-item" href="datacomissioning.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      Commissioning
+    </a>
+    <a class="nav-item" href="waitingstiker.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>
+      Waiting Sticker
+    </a>
+    <a class="nav-item" href="expcomissioning.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+      Expired / Near Expired
+    </a>
+
+    <div class="nav-label">Report</div>
+    <a class="nav-item" href="reportcom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/></svg>
+      Laporan
+    </a>
+    <a class="nav-item" href="reportcom.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"/></svg>
+      Export Data
+    </a>
+
+    <div class="nav-label">Settings</div>
+    <a class="nav-item" href="settingcomissioning.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
+      User Management
+    </a>
+    <a class="nav-item" href="settingcomissioning.html">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.7 1.7 0 0 0-1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.7 1.7 0 0 0 1.5-1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.7 1.7 0 0 0-1.4 1z"/></svg>
+      Pengaturan
+    </a>
+
+    <div class="sidebar-foot">
+      <a class="back-btn" href="dashboard.html">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5m0 0 6 6m-6-6 6-6"/></svg>
+        Kembali ke Fitur
+      </a>
+    </div>
+  </aside>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+
+    <!-- topbar -->
+    <div class="topbar">
+      <button class="hamburger" id="hamburgerBtn" aria-label="Buka menu">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="topbar-title">
+        <b>Master Unit</b>
+        <span>Data Master &gt; Master Unit</span>
+      </div>
+      <div class="topbar-spacer"></div>
+
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 0 1 0 18M12 3a15 15 0 0 0 0 18"/></svg>
+        <span id="siteFieldLabel">ALL SITE</span>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.3"/></svg>
+        <span id="areaFieldLabel">ALL AREA</span>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+      <div class="field date-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+        <span id="dateField">—</span>
+      </div>
+      <div class="field time-field">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+        <span id="timeField">—</span>
+      </div>
+      <button class="icon-btn" id="refreshBtn" title="Refresh data">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+      </button>
+      <button class="icon-btn" title="Notifikasi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>
+        <span class="badge-dot" id="notifCount">0</span>
+      </button>
+      <div class="user-chip">
+        <div class="avatar" id="userAvatar">A</div>
+        <div>
+          <b id="userName">Abdul Azis</b>
+          <span id="userRole">Administrator</span>
+        </div>
+        <svg class="chev-mini" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+      </div>
+    </div>
+
+    <!-- breadcrumb -->
+    <div class="breadcrumb">
+      <span>Dashboard</span><span class="chev">›</span>
+      <span>Data Master</span><span class="chev">›</span>
+      <b>Master Unit</b>
+    </div>
+
+    <!-- content -->
+    <div class="content">
+
+      <!-- stat cards -->
+      <div class="stats-row" id="statsRow"></div>
+
+      <!-- filter bar -->
+      <div class="card filter-card">
+        <div class="filter-group search">
+          <label>Cari Unit</label>
+          <div class="search-input">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4-4"/></svg>
+            <input id="searchInput" type="text" placeholder="Cari Unit ID, Model, atau SN...">
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Jenis Unit</label>
+          <div class="select-input" data-select="jenis">
+            <span data-label>Semua</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Status Unit</label>
+          <div class="select-input" data-select="status">
+            <span data-label>Semua</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <div class="filter-group">
+          <label>Site</label>
+          <div class="select-input" data-select="site">
+            <span data-label>Semua Site</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+          </div>
+        </div>
+        <button class="btn btn-primary" id="filterBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 5h16l-6 8v6l-4-2v-4z"/></svg>
+          Filter
+        </button>
+        <button class="btn btn-ghost" id="resetBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>
+          Reset
+        </button>
+        <button class="btn btn-primary btn-add" id="addUnitBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+          Tambah Unit
+        </button>
+      </div>
+
+      <!-- row: table + detail -->
+      <div class="row-main">
+
+        <div class="card">
+          <div class="card-head"><h3>DAFTAR MASTER UNIT</h3></div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>No</th>
+                  <th>Unit ID</th>
+                  <th>Model</th>
+                  <th>Jenis Unit</th>
+                  <th>Serial Number</th>
+                  <th>Tahun</th>
+                  <th>Status Unit</th>
+                  <th class="center">BIB</th>
+                  <th class="center">TIA</th>
+                  <th class="center">Total</th>
+                  <th>Aksi</th>
+                </tr>
+              </thead>
+              <tbody id="unitTableBody"><tr><td colspan="11" class="loading-row">Memuat data dari Google Sheets...</td></tr></tbody>
+            </table>
+          </div>
+          <div class="table-foot">
+            <div class="info" id="pageInfo">Menampilkan 0 data</div>
+            <div class="pager">
+              <div class="page-size" id="pageSizeToggle">
+                <span id="pageSizeLabel">10 / halaman</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <div class="page-btn nav" id="prevPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m15 18-6-6 6-6"/></svg></div>
+              <div id="pageNumbers" style="display:flex;gap:6px;"></div>
+              <div class="page-btn nav" id="nextPage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m9 18 6-6-6-6"/></svg></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card detail-card" id="detailCard">
+          <div class="card-head"><h3>DETAIL UNIT</h3></div>
+          <div style="padding:30px 6px;text-align:center;color:var(--ink-400);font-size:13px;">Pilih unit pada tabel untuk melihat detail.</div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: TAMBAH / EDIT UNIT ================= -->
+<div class="modal-overlay" id="unitModalOverlay">
+  <div class="modal">
+    <h3 id="unitModalTitle">Tambah Unit</h3>
+    <input type="hidden" id="unitModalMode" value="add">
+    <label>Unit ID</label>
+    <input type="text" id="m_unitId" placeholder="contoh: CO4536">
+    <label>Model</label>
+    <input type="text" id="m_model" placeholder="contoh: HD 4536 / HD785">
+    <label>Jenis Unit</label>
+    <select id="m_jenis"></select>
+    <label>Serial Number</label>
+    <input type="text" id="m_sn">
+    <label>Tahun</label>
+    <input type="number" id="m_tahun">
+    <label>Status</label>
+    <select id="m_status"><option>Active</option><option>Non Aktif</option></select>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="modalCancelBtn">Batal</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= MODAL: TAMBAH / EDIT KOMISIONING PER SITE ================= -->
+<div class="modal-overlay" id="commModalOverlay">
+  <div class="modal">
+    <h3 id="commModalTitle">Tambah Komisioning</h3>
+    <input type="hidden" id="c_unitId">
+    <label>Site</label>
+    <select id="c_site"><option value="BIB">BIB</option><option value="TIA">TIA</option></select>
+    <label>Registration No.</label>
+    <input type="text" id="c_regno" placeholder="contoh: BIB/CKT/2026/VII/120931">
+    <label>Area</label>
+    <input type="text" id="c_area" placeholder="contoh: GRB">
+    <label>Tanggal Terbit</label>
+    <input type="date" id="c_terbit">
+    <label>Masa Berlaku</label>
+    <input type="date" id="c_berlaku">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="commModalCancelBtn">Batal</button>
+      <button class="btn btn-primary" id="commModalSaveBtn">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================================
+   GANTI URL INI dengan URL Web App hasil deploy Apps Script kamu
+   (Deploy > New deployment > Web app > Execute as: Me > Access: Anyone)
+   ========================================================================= */
+const API_URL = "PASTE_URL_WEB_APP_APPS_SCRIPT_DI_SINI";
+/* ========================================================================= */
+
+const toneColor = { green:"var(--green)", orange:"var(--orange)", red:"var(--red)", sky:"var(--sky)", navy:"var(--navy-800)", purple:"var(--purple)" };
+const toneBg = { green:"var(--green-bg)", orange:"var(--orange-bg)", red:"var(--red-bg)", sky:"var(--sky-bg)", navy:"#eef1fb", purple:"var(--purple-bg)" };
+
+function el(html){ const t=document.createElement("template"); t.innerHTML=html.trim(); return t.content.firstElementChild; }
+function showToast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"), 2800); }
+
+/* ---- state ---- */
+let ALL_UNITS = [];
+let JENIS_LIST = [];
+let selectedUnitId = null;
+let currentPage = 1;
+let pageSize = 10;
+const PAGE_SIZE_OPTIONS = [10,25,50];
+const FILTER_STATE = { jenis:"Semua", status:"Semua", site:"Semua Site" };
+
+/* ---- header meta / clock (tetap sama seperti aslinya) ---- */
+function updateClock(){
+  const now = new Date();
+  const months = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
+  document.getElementById("dateField").textContent = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById("timeField").textContent = now.toLocaleTimeString("id-ID",{hour:"2-digit",minute:"2-digit"}) + " WIB";
+}
+updateClock(); setInterval(updateClock, 30000);
+
+/* ---- API helpers ---- */
+async function apiGet(){
+  const res = await fetch(API_URL + "?action=list");
+  return res.json();
+}
+async function apiPost(payload){
+  const res = await fetch(API_URL, { method:"POST", body: JSON.stringify(payload) });
+  return res.json();
+}
+
+async function loadData(){
+  document.getElementById("unitTableBody").innerHTML = '<tr><td colspan="11" class="loading-row">Memuat data dari Google Sheets...</td></tr>';
+  try{
+    const data = await apiGet();
+    if(!data.ok){ showToast("Gagal memuat data: " + data.error); return; }
+    ALL_UNITS = data.units || [];
+    JENIS_LIST = data.jenisUnit || [];
+    document.getElementById("m_jenis").innerHTML = JENIS_LIST.map(j=>`<option value="${j}">${j}</option>`).join("");
+    renderStats();
+    renderTable();
+    if(selectedUnitId){
+      const u = ALL_UNITS.find(x=>x.Unit_ID===selectedUnitId);
+      if(u) renderDetail(u);
+    }
+  }catch(err){
+    document.getElementById("unitTableBody").innerHTML = '<tr><td colspan="11" class="loading-row">Gagal konek ke API. Cek API_URL sudah benar & Web App sudah di-deploy.</td></tr>';
+  }
+}
+
+document.getElementById("refreshBtn").addEventListener("click", ()=>{
+  const btn = document.getElementById("refreshBtn");
+  btn.style.transform = "rotate(360deg)"; btn.style.transition="transform .5s";
+  setTimeout(()=>{ btn.style.transform=""; }, 500);
+  loadData();
+});
+
+/* ---- stat cards ---- */
+function renderStats(){
+  const total = ALL_UNITS.length;
+  const active = ALL_UNITS.filter(u=>u.Status==="Active").length;
+  const nonAktif = total - active;
+  const totalKomisioning = ALL_UNITS.reduce((s,u)=>s+(u.total||0),0);
+  const stats = [
+    { label:"Total Unit", value:total, unit:"Unit", sub:`100% dari total unit`, subColor:"navy", tone:"navy",
+      icon:'<path d="M3 17V7a2 2 0 0 1 2-2h7v12H3z"/><path d="M12 9h5l3 4v4h-8z"/><circle cx="7" cy="19" r="2"/><circle cx="17" cy="19" r="2"/>' },
+    { label:"Unit Aktif", value:active, unit:"Unit", sub:`${total? (active/total*100).toFixed(1):0}% dari total unit`, subColor:"green", tone:"green",
+      icon:'<path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/>' },
+    { label:"Unit Non Aktif", value:nonAktif, unit:"Unit", sub:`${total? (nonAktif/total*100).toFixed(1):0}% dari total unit`, subColor:"orange", tone:"orange",
+      icon:'<path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/>' },
+    { label:"Total Komisioning (BIB + TIA)", value:totalKomisioning, unit:"Data", sub:"Data live dari sheet COMMISSIONING", subColor:"navy", tone:"purple",
+      icon:'<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4"/><path d="M9 13h6M9 17h4"/>' },
+  ];
+  document.getElementById("statsRow").innerHTML = stats.map(s=>`
+    <div class="card stat-card">
+      <div class="stat-icon" style="background:${toneBg[s.tone]};color:${toneColor[s.tone]}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${s.icon}</svg>
+      </div>
+      <div class="stat-body">
+        <div class="stat-label" style="color:${toneColor[s.tone]}">${s.label}</div>
+        <div class="stat-main"><b>${s.value}</b><span class="unit">${s.unit}</span></div>
+        <div class="stat-sub"><b style="color:${toneColor[s.subColor]}">${s.sub}</b></div>
+      </div>
+    </div>
+  `).join("");
+}
+
+/* ---- filter dropdowns (klik utk cycle, sama gaya kayak versi awal, tapi sekarang beneran filter) ---- */
+function renderFilters(){
+  document.querySelectorAll(".select-input").forEach(box=>{
+    const key = box.getAttribute("data-select");
+    let opts;
+    if(key === "jenis") opts = ["Semua", ...JENIS_LIST];
+    else if(key === "status") opts = ["Semua","Active","Non Aktif"];
+    else opts = ["Semua Site","BIB","TIA"];
+    let idx = opts.indexOf(FILTER_STATE[key]); if(idx<0) idx = 0;
+    box.onclick = ()=>{
+      idx = (idx+1) % opts.length;
+      FILTER_STATE[key] = opts[idx];
+      box.querySelector("[data-label]").textContent = opts[idx];
+      currentPage = 1;
+      renderTable();
+    };
+  });
+}
+
+document.getElementById("filterBtn").addEventListener("click", ()=>{ currentPage=1; renderTable(); });
+document.getElementById("resetBtn").addEventListener("click", ()=>{
+  FILTER_STATE.jenis = "Semua"; FILTER_STATE.status = "Semua"; FILTER_STATE.site = "Semua Site";
+  document.querySelectorAll(".select-input").forEach(box=>{
+    const key = box.getAttribute("data-select");
+    box.querySelector("[data-label]").textContent = FILTER_STATE[key];
+  });
+  document.getElementById("searchInput").value = "";
+  currentPage = 1;
+  renderTable();
+});
+document.getElementById("searchInput").addEventListener("input", ()=>{ currentPage=1; renderTable(); });
+
+document.getElementById("pageSizeToggle").addEventListener("click", ()=>{
+  const idx = PAGE_SIZE_OPTIONS.indexOf(pageSize);
+  pageSize = PAGE_SIZE_OPTIONS[(idx+1) % PAGE_SIZE_OPTIONS.length];
+  document.getElementById("pageSizeLabel").textContent = `${pageSize} / halaman`;
+  currentPage = 1;
+  renderTable();
+});
+
+/* ---- filtering ---- */
+function getFiltered(){
+  const q = document.getElementById("searchInput").value.trim().toLowerCase();
+  return ALL_UNITS.filter(u=>{
+    if(FILTER_STATE.jenis !== "Semua" && u.Jenis_Unit !== FILTER_STATE.jenis) return false;
+    if(FILTER_STATE.status !== "Semua" && u.Status !== FILTER_STATE.status) return false;
+    if(FILTER_STATE.site === "BIB" && !u.bib) return false;
+    if(FILTER_STATE.site === "TIA" && !u.tia) return false;
+    if(q && !(String(u.Unit_ID).toLowerCase().includes(q) || String(u.Model).toLowerCase().includes(q) || String(u.Serial_Number).toLowerCase().includes(q))) return false;
+    return true;
+  });
+}
+
+/* ---- table + pagination ---- */
+function renderTable(){
+  const filtered = getFiltered();
+  const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
+  if(currentPage > totalPages) currentPage = totalPages;
+  const startIdx = (currentPage-1)*pageSize;
+  const pageItems = filtered.slice(startIdx, startIdx+pageSize);
+
+  const body = document.getElementById("unitTableBody");
+  if(pageItems.length===0){
+    body.innerHTML = '<tr><td colspan="11" class="loading-row">Tidak ada data yang cocok.</td></tr>';
+  } else {
+    body.innerHTML = "";
+    pageItems.forEach((u,i)=>{
+      const statusClass = u.Status === "Active" ? "status-active" : "status-nonaktif";
+      const row = el(`
+        <tr class="${u.Unit_ID===selectedUnitId?'row-selected':''}" data-unit="${u.Unit_ID}">
+          <td>${startIdx+i+1}</td>
+          <td class="unit-id">${u.Unit_ID}</td>
+          <td>${u.Model}</td>
+          <td>${u.Jenis_Unit}</td>
+          <td>${u.Serial_Number}</td>
+          <td>${u.Tahun}</td>
+          <td><span class="status-pill ${statusClass}">${u.Status}</span></td>
+          <td class="num">${u.bib}</td>
+          <td class="num">${u.tia}</td>
+          <td class="num">${u.total}</td>
+          <td>
+            <div class="action-icons">
+              <div class="mini-ico view" title="Lihat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg></div>
+              <div class="mini-ico edit" title="Edit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></div>
+              <div class="mini-ico del" title="Hapus"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></div>
+            </div>
+          </td>
+        </tr>
+      `);
+      row.addEventListener("click", (e)=>{
+        if(e.target.closest(".edit")){ openUnitModal("edit", u); return; }
+        if(e.target.closest(".del")){ deleteUnit(u.Unit_ID); return; }
+        selectedUnitId = u.Unit_ID;
+        renderTable();
+        renderDetail(u);
+      });
+      body.appendChild(row);
+    });
+  }
+
+  document.getElementById("pageInfo").textContent =
+    filtered.length===0 ? "Menampilkan 0 data" :
+    `Menampilkan ${startIdx+1} - ${Math.min(startIdx+pageSize, filtered.length)} dari ${filtered.length} data`;
+
+  renderPagination(totalPages);
+  renderFilters();
+}
+
+function renderPagination(totalPages){
+  const wrap = document.getElementById("pageNumbers");
+  wrap.innerHTML = "";
+  const maxShown = 5;
+  let pages = [];
+  if(totalPages <= maxShown){
+    for(let p=1;p<=totalPages;p++) pages.push(p);
+  } else {
+    pages = [1,2,3,4,5];
+  }
+  pages.forEach(p=>{
+    const btn = el(`<div class="page-btn ${p===currentPage?'active':''}">${p}</div>`);
+    btn.addEventListener("click", ()=>{ currentPage=p; renderTable(); });
+    wrap.appendChild(btn);
+  });
+  if(totalPages > maxShown){
+    wrap.appendChild(el(`<div class="page-dots">…</div>`));
+    const lastBtn = el(`<div class="page-btn ${currentPage===totalPages?'active':''}">${totalPages}</div>`);
+    lastBtn.addEventListener("click", ()=>{ currentPage=totalPages; renderTable(); });
+    wrap.appendChild(lastBtn);
+  }
+}
+document.getElementById("prevPage").addEventListener("click", ()=>{ if(currentPage>1){ currentPage--; renderTable(); } });
+document.getElementById("nextPage").addEventListener("click", ()=>{ currentPage++; renderTable(); });
+
+/* ---- detail panel ---- */
+function renderDetail(unit){
+  const card = document.getElementById("detailCard");
+  const statusClass = unit.Status === "Active" ? "status-active" : "status-nonaktif";
+  const c = unit.commissioning || {};
+
+  let sitesHtml = "";
+  if(c.Registration_No_BIB){ sitesHtml += siteBlockHtml_(unit.Unit_ID, "BIB", c.Registration_No_BIB, c.Area_BIB, c.Status_BIB, c.Masa_Berlaku_BIB, c.Sisa_Hari_BIB); }
+  if(c.Registration_No_TIA){ sitesHtml += siteBlockHtml_(unit.Unit_ID, "TIA", c.Registration_No_TIA, c.Area_TIA, c.Status_TIA, c.Masa_Berlaku_TIA, c.Sisa_Hari_TIA); }
+  if(!sitesHtml){ sitesHtml = '<div style="font-size:12.5px;color:var(--ink-400);padding:6px 0;">Belum ada data komisioning untuk unit ini.</div>'; }
+
+  card.innerHTML = `
+    <div class="card-head">
+      <h3>DETAIL UNIT</h3>
+      <div class="detail-close" id="closeDetail">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </div>
+    </div>
+    <div class="detail-hero">
+      <div class="thumb">🚚</div>
+      <div>
+        <div style="font-weight:800;font-size:15px;">${unit.Unit_ID}</div>
+        <div style="font-size:12.3px;color:var(--ink-600);margin-top:2px;">${unit.Model}</div>
+      </div>
+    </div>
+    <div class="detail-list">
+      <div class="detail-row"><span class="k">Unit ID</span><span class="v">${unit.Unit_ID}</span></div>
+      <div class="detail-row"><span class="k">Model / Tipe</span><span class="v">${unit.Model}</span></div>
+      <div class="detail-row"><span class="k">Jenis Unit</span><span class="v">${unit.Jenis_Unit}</span></div>
+      <div class="detail-row"><span class="k">Serial Number</span><span class="v">${unit.Serial_Number}</span></div>
+      <div class="detail-row"><span class="k">Tahun</span><span class="v">${unit.Tahun}</span></div>
+      <div class="detail-row"><span class="k">Status Unit</span><span class="v"><span class="status-pill ${statusClass}">${unit.Status}</span></span></div>
+    </div>
+
+    <div class="sub-head">
+      <h4>KOMISIONING UNIT (PER SITE)</h4>
+      <div class="btn-tiny" id="addKomisioning">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        Tambah
+      </div>
+    </div>
+    ${sitesHtml}
+
+    <div class="info-note">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11 12h1v4h1"/></svg>
+      <span>Data komisioning live dari Google Sheets. Unit yang sama bisa punya komisioning berbeda di tiap site — pastikan selalu diperbarui tepat waktu.</span>
+    </div>
+  `;
+
+  document.getElementById("closeDetail").addEventListener("click", ()=>{
+    selectedUnitId = null; renderTable();
+    card.innerHTML = `<div class="card-head"><h3>DETAIL UNIT</h3></div><div style="padding:30px 6px;text-align:center;color:var(--ink-400);font-size:13px;">Pilih unit pada tabel untuk melihat detail.</div>`;
+  });
+  document.getElementById("addKomisioning").addEventListener("click", ()=>openCommModal(unit.Unit_ID, "BIB"));
+}
+
+function siteBlockHtml_(unitId, site, regNo, area, status, masaBerlaku, sisaHari){
+  let tone = "green";
+  if(status === "Expired") tone = "red"; else if(status === "Near Expired") tone = "orange";
+  const dateStr = masaBerlaku ? new Date(masaBerlaku).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}) : "-";
+  return `
+    <div class="site-block">
+      <div class="site-block-head">
+        <b>${site}</b>
+        <span class="status-pill" style="background:${toneBg[tone]};color:${toneColor[tone]}">${status||"-"}</span>
+      </div>
+      <div class="site-block-row"><span>Registration No.</span><b>${regNo}</b></div>
+      <div class="site-block-row"><span>Area</span><b>${area||"-"}</b></div>
+      <div class="site-block-row"><span>Masa Berlaku</span><b>${dateStr}</b></div>
+      <div class="site-block-row"><span>Sisa Hari</span><b style="color:${toneColor[tone]}">${sisaHari!==undefined && sisaHari!==""?sisaHari+" Hari":"-"}</b></div>
+      <div class="site-block-actions">
+        <button class="btn btn-ghost editSiteBtn" data-unit="${unitId}" data-site="${site}" style="padding:5px 10px;font-size:11.5px;">Edit</button>
+        <button class="btn btn-danger delSiteBtn" data-unit="${unitId}" data-site="${site}" style="padding:5px 10px;font-size:11.5px;background:var(--red);color:#fff;">Hapus</button>
+      </div>
+    </div>
+  `;
+}
+
+document.getElementById("detailCard").addEventListener("click", (e)=>{
+  const editBtn = e.target.closest(".editSiteBtn");
+  const delBtn = e.target.closest(".delSiteBtn");
+  if(editBtn){
+    const unitId = editBtn.getAttribute("data-unit");
+    const site = editBtn.getAttribute("data-site");
+    const u = ALL_UNITS.find(x=>x.Unit_ID===unitId);
+    openCommModal(unitId, site, u ? u.commissioning : null);
+  }
+  if(delBtn){
+    const unitId = delBtn.getAttribute("data-unit");
+    const site = delBtn.getAttribute("data-site");
+    deleteCommissioningSite(unitId, site);
+  }
+});
+
+/* ---- modal tambah/edit unit ---- */
+function openUnitModal(mode, u){
+  document.getElementById("unitModalMode").value = mode;
+  document.getElementById("unitModalTitle").textContent = mode === "add" ? "Tambah Unit" : "Edit Unit";
+  document.getElementById("m_unitId").value = u ? u.Unit_ID : "";
+  document.getElementById("m_unitId").disabled = mode === "edit";
+  document.getElementById("m_model").value = u ? u.Model : "";
+  document.getElementById("m_jenis").value = u ? u.Jenis_Unit : (JENIS_LIST[0]||"");
+  document.getElementById("m_sn").value = u ? u.Serial_Number : "";
+  document.getElementById("m_tahun").value = u ? u.Tahun : new Date().getFullYear();
+  document.getElementById("m_status").value = u ? u.Status : "Active";
+  document.getElementById("unitModalOverlay").classList.add("show");
+}
+document.getElementById("addUnitBtn").addEventListener("click", ()=>openUnitModal("add", null));
+document.getElementById("modalCancelBtn").addEventListener("click", ()=>document.getElementById("unitModalOverlay").classList.remove("show"));
+
+document.getElementById("modalSaveBtn").addEventListener("click", async ()=>{
+  const mode = document.getElementById("unitModalMode").value;
+  const payload = {
+    Unit_ID: document.getElementById("m_unitId").value.trim(),
+    Model: document.getElementById("m_model").value.trim(),
+    Jenis_Unit: document.getElementById("m_jenis").value,
+    Serial_Number: document.getElementById("m_sn").value.trim(),
+    Tahun: Number(document.getElementById("m_tahun").value),
+    Status: document.getElementById("m_status").value
+  };
+  if(!payload.Unit_ID || !payload.Model){ showToast("Unit ID dan Model wajib diisi"); return; }
+
+  const action = mode === "add" ? "addUnit" : "updateUnit";
+  const res = await apiPost({ action, data: payload });
+  if(res.ok){
+    showToast(mode === "add" ? "Unit berhasil ditambahkan" : "Unit berhasil diperbarui");
+    document.getElementById("unitModalOverlay").classList.remove("show");
+    loadData();
+  } else {
+    showToast("Gagal: " + res.error);
+  }
+});
+
+async function deleteUnit(unitId){
+  if(!confirm(`Hapus unit ${unitId}? Data komisioning terkait juga akan terhapus.`)) return;
+  const res = await apiPost({ action:"deleteUnit", unitId });
+  if(res.ok){ showToast("Unit berhasil dihapus"); if(selectedUnitId===unitId) selectedUnitId=null; loadData(); }
+  else showToast("Gagal: " + res.error);
+}
+
+/* ---- modal tambah/edit komisioning per site ---- */
+function openCommModal(unitId, site, existing){
+  document.getElementById("c_unitId").value = unitId;
+  document.getElementById("c_site").value = site;
+  document.getElementById("commModalTitle").textContent = `Komisioning — ${unitId} (${site})`;
+  if(existing && site==="BIB" && existing.Registration_No_BIB){
+    document.getElementById("c_regno").value = existing.Registration_No_BIB || "";
+    document.getElementById("c_area").value = existing.Area_BIB || "";
+    document.getElementById("c_terbit").value = toDateInput_(existing.Tanggal_Terbit_BIB);
+    document.getElementById("c_berlaku").value = toDateInput_(existing.Masa_Berlaku_BIB);
+  } else if(existing && site==="TIA" && existing.Registration_No_TIA){
+    document.getElementById("c_regno").value = existing.Registration_No_TIA || "";
+    document.getElementById("c_area").value = existing.Area_TIA || "";
+    document.getElementById("c_terbit").value = toDateInput_(existing.Tanggal_Terbit_TIA);
+    document.getElementById("c_berlaku").value = toDateInput_(existing.Masa_Berlaku_TIA);
+  } else {
+    document.getElementById("c_regno").value = "";
+    document.getElementById("c_area").value = "";
+    document.getElementById("c_terbit").value = "";
+    document.getElementById("c_berlaku").value = "";
+  }
+  document.getElementById("commModalOverlay").classList.add("show");
+}
+function toDateInput_(v){
+  if(!v) return "";
+  const d = new Date(v);
+  if(isNaN(d)) return "";
+  return d.toISOString().slice(0,10);
+}
+document.getElementById("commModalCancelBtn").addEventListener("click", ()=>document.getElementById("commModalOverlay").classList.remove("show"));
+
+document.getElementById("commModalSaveBtn").addEventListener("click", async ()=>{
+  const payload = {
+    Unit_ID: document.getElementById("c_unitId").value,
+    site: document.getElementById("c_site").value,
+    Registration_No: document.getElementById("c_regno").value.trim(),
+    Area: document.getElementById("c_area").value.trim(),
+    Tanggal_Terbit: document.getElementById("c_terbit").value,
+    Masa_Berlaku: document.getElementById("c_berlaku").value,
+  };
+  if(!payload.Registration_No || !payload.Masa_Berlaku){ showToast("Registration No. dan Masa Berlaku wajib diisi"); return; }
+  const res = await apiPost({ action:"upsertCommissioning", data: payload });
+  if(res.ok){
+    showToast("Komisioning berhasil disimpan");
+    document.getElementById("commModalOverlay").classList.remove("show");
+    loadData();
+  } else {
+    showToast("Gagal: " + res.error);
+  }
+});
+
+async function deleteCommissioningSite(unitId, site){
+  if(!confirm(`Hapus data komisioning ${site} untuk unit ${unitId}?`)) return;
+  const res = await apiPost({ action:"deleteCommissioningSite", unitId, site });
+  if(res.ok){ showToast("Komisioning berhasil dihapus"); loadData(); }
+  else showToast("Gagal: " + res.error);
+}
+
+/* ---- init ---- */
+loadData();
+
+/* ---- mobile sidebar drawer ---- */
+const sidebar = document.getElementById("sidebar");
+const overlay = document.getElementById("overlay");
+document.getElementById("hamburgerBtn").addEventListener("click", ()=>{
+  sidebar.classList.add("open"); overlay.classList.add("show");
+});
+overlay.addEventListener("click", ()=>{
+  sidebar.classList.remove("open"); overlay.classList.remove("show");
+});
+</script>
+</body>
+</html>
