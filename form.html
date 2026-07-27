@@ -12,10 +12,16 @@
     }
     *{box-sizing:border-box;}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--gray-100);color:var(--gray-800);}
-    .topbar{background:var(--blue-900);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;}
+    .topbar{background:var(--blue-900);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .topbar .brand-group{display:flex;align-items:center;gap:12px;}
     .topbar .logo{width:38px;height:38px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--blue-900);font-weight:bold;}
     .topbar .title{font-weight:bold;font-size:16px;}
     .topbar .subtitle{font-size:11px;opacity:.85;}
+    .topbar .nav-actions{display:flex;align-items:center;gap:10px;}
+    .topbar .nav-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;border-radius:8px;font-size:13px;font-weight:bold;text-decoration:none;border:1px solid rgba(255,255,255,.25);color:#fff;background:transparent;cursor:pointer;font-family:inherit;}
+    .topbar .nav-btn:hover{background:rgba(255,255,255,.1);}
+    .topbar .nav-btn.solid{background:#fff;color:var(--blue-900);border-color:#fff;}
+    .topbar .nav-btn.solid:hover{background:var(--blue-50);}
     .wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px;}
     h1.page-title{font-size:22px;margin:18px 0 4px;color:var(--gray-800);}
     p.page-sub{color:var(--gray-600);font-size:13px;margin-top:0;}
@@ -63,10 +69,16 @@
 </head>
 <body>
   <div class="topbar">
-    <div class="logo">CK</div>
-    <div>
-      <div class="title">ISAM CK BIB</div>
-      <div class="subtitle">Commissioning System</div>
+    <div class="brand-group">
+      <div class="logo">CK</div>
+      <div>
+        <div class="title">ISAM CK BIB</div>
+        <div class="subtitle">Commissioning System</div>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <a class="nav-btn" href="?page=dashboard">🏠 Dashboard</a>
+      <button class="nav-btn solid" onclick="goToLogin()">🔒 Login</button>
     </div>
   </div>
 
@@ -176,9 +188,30 @@
   <div id="toast"></div>
 
   <script>
+    function goToLogin(){
+      // Login sesungguhnya dikendalikan lewat pembatasan akses deployment Dashboard
+      // (Google Workspace domain) - klik ini mengarahkan ke halaman Dashboard,
+      // Google otomatis akan minta sign-in kalau deployment dashboard dibatasi.
+      window.top.location.href = '?page=dashboard';
+    }
+
     var photos = {};   // { Depan: {base64,lat,lng}, ... }
     var checklistItems = [];
     var prefillUnit = "<?= prefillUnit ?>";
+
+    // ---------- FALLBACK DEFAULTS (dipakai kalau server belum bisa dihubungi) ----------
+    var DEFAULT_SISI_FOTO = ['Depan', 'Belakang', 'Kiri', 'Kanan'];
+    var DEFAULT_SITE_AREA_MAP = { 'BIB': ['GRB', 'KGB', 'FUEL'], 'TIA': ['GRB', 'STK'] };
+    var DEFAULT_JENIS_UNIT = ['Dump Truck', 'Excavator', 'Water Truck', 'Dozer', 'Pump', 'Trailer', 'Grader', 'Lain-lain'];
+    var DEFAULT_CHECKLIST = [
+      {no:1,item:'Beacon / Lampu Rotari'}, {no:2,item:'Reverse Alarm'},
+      {no:3,item:'Lampu Utama & Lampu Sein'}, {no:4,item:'Horn / Klakson'},
+      {no:5,item:'Wiper'}, {no:6,item:'Kaca Spion'}, {no:7,item:'Seat Belt'},
+      {no:8,item:'APAR (Alat Pemadam Api Ringan)'}, {no:9,item:'Safety Decal / Stiker'},
+      {no:10,item:'Handrail / Tangga'}, {no:11,item:'Rem (Service Brake & Park Brake)'},
+      {no:12,item:'Ban / Kondisi Ban'}, {no:13,item:'Kebocoran (Oli, Fuel, Hydraulic)'},
+      {no:14,item:'Kamera / Monitor'}, {no:15,item:'Lain - lain'}
+    ];
 
     function toast(msg, type){
       var t = document.getElementById('toast');
@@ -206,8 +239,18 @@
         });
       }
 
-      google.script.run.withSuccessHandler(renderMeta).withFailureHandler(function(err){
-        toast('Gagal memuat data awal: ' + err.message, 'error');
+      // Render langsung pakai default, jadi form tetap bisa dipakai walau server lambat/gagal
+      renderPhotoGrid(DEFAULT_SISI_FOTO);
+      renderDropdowns(DEFAULT_SITE_AREA_MAP, DEFAULT_JENIS_UNIT);
+      renderChecklist(DEFAULT_CHECKLIST);
+
+      // Lalu coba ambil data terbaru dari server (Master_Checklist, Master_Unit, dsb)
+      // kalau berhasil, dropdown & checklist di-refresh sesuai data sheet.
+      google.script.run.withSuccessHandler(function(meta){
+        renderDropdowns(meta.siteAreaMap, meta.jenisUnit);
+        renderChecklist(meta.checklist && meta.checklist.length ? meta.checklist : DEFAULT_CHECKLIST);
+      }).withFailureHandler(function(err){
+        toast('Tidak bisa memuat data dari server (' + err.message + '). Form tetap bisa diisi pakai data default, tapi cek koneksi/setup Apps Script Anda.', 'error');
       }).getFormMeta();
 
       document.getElementById('catatanTambahan').addEventListener('input', function(e){
@@ -226,27 +269,10 @@
       if (prefillUnit) document.getElementById('unitId').value = prefillUnit;
     };
 
-    function renderMeta(meta){
-      // Site dropdown
-      var siteSel = document.getElementById('site');
-      Object.keys(meta.siteAreaMap).forEach(function(s){
-        var o = document.createElement('option'); o.value = s; o.textContent = s; siteSel.appendChild(o);
-      });
-      siteSel.addEventListener('change', function(){
-        var areaSel = document.getElementById('area');
-        areaSel.innerHTML = '<option value="">Pilih Area</option>';
-        (meta.siteAreaMap[siteSel.value] || []).forEach(function(a){
-          var o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o);
-        });
-      });
-      // Jenis unit
-      var jenisSel = document.getElementById('jenisUnit');
-      meta.jenisUnit.forEach(function(j){
-        var o = document.createElement('option'); o.value = j; o.textContent = j; jenisSel.appendChild(o);
-      });
-      // Foto grid
+    function renderPhotoGrid(sisiFoto){
       var photoGrid = document.getElementById('photoGrid');
-      meta.sisiFoto.forEach(function(sisi){
+      photoGrid.innerHTML = '';
+      sisiFoto.forEach(function(sisi){
         var box = document.createElement('div');
         box.className = 'photo-box';
         box.id = 'box-' + sisi;
@@ -260,10 +286,38 @@
         photoGrid.appendChild(box);
         box.querySelector('input').addEventListener('change', function(e){ handlePhoto(sisi, e.target.files[0]); });
       });
-      // Checklist
-      checklistItems = meta.checklist || [];
+    }
+
+    function renderDropdowns(siteAreaMap, jenisUnit){
+      var siteSel = document.getElementById('site');
+      var currentSite = siteSel.value;
+      siteSel.innerHTML = '<option value="">Pilih Site</option>';
+      Object.keys(siteAreaMap).forEach(function(s){
+        var o = document.createElement('option'); o.value = s; o.textContent = s; siteSel.appendChild(o);
+      });
+      siteSel.value = currentSite;
+      siteSel.onchange = function(){
+        var areaSel = document.getElementById('area');
+        areaSel.innerHTML = '<option value="">Pilih Area</option>';
+        (siteAreaMap[siteSel.value] || []).forEach(function(a){
+          var o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o);
+        });
+      };
+
+      var jenisSel = document.getElementById('jenisUnit');
+      var currentJenis = jenisSel.value;
+      jenisSel.innerHTML = '<option value="">Pilih Jenis Unit</option>';
+      jenisUnit.forEach(function(j){
+        var o = document.createElement('option'); o.value = j; o.textContent = j; jenisSel.appendChild(o);
+      });
+      jenisSel.value = currentJenis;
+    }
+
+    function renderChecklist(items){
+      checklistItems = items;
       var grid = document.getElementById('checklistGrid');
-      checklistItems.forEach(function(c){
+      grid.innerHTML = '';
+      items.forEach(function(c){
         var row = document.createElement('label');
         row.className = 'chk-row';
         row.innerHTML = '<input type="checkbox" checked data-no="'+c.no+'" data-item="'+c.item+'"> ' + c.no + '. ' + c.item;
