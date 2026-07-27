@@ -11,6 +11,11 @@
   2. Copy URL yang diakhiri "/exec", tempel ke variabel API_URL di bawah (cari
      "GANTI_DENGAN_URL_WEB_APP_ANDA").
   3. Upload/hosting file ini di mana saja (Netlify, GitHub Pages, subdomain, dsb).
+
+  PERUBAHAN (fix dari temuan):
+  - Popup pilih sumber foto (Kamera/Galeri) sekarang otomatis lanjut ke sisi
+    berikutnya yang belum diisi (Depan -> Belakang -> Kiri -> Kanan), sampai
+    ke-4 foto terisi, baru berhenti (tidak ada popup lagi).
 -->
 <html>
 <head>
@@ -160,7 +165,7 @@
     <div class="card">
       <h2><span class="badge">2</span> DOKUMENTASI FOTO UNIT (WAJIB 4 SISI) <span class="req" style="margin-left:auto;font-size:11px;">* Wajib diisi</span></h2>
       <div class="photo-grid" id="photoGrid"></div>
-      <div class="tips">💡 Tips: pilih <b>Ambil dari Kamera</b> supaya foto otomatis dibubuhi cap waktu &amp; titik koordinat GPS (seperti GPS Map Camera). Pilih <b>Galeri</b> kalau foto sudah ada sebelumnya (tanpa cap lokasi live).</div>
+      <div class="tips">💡 Tips: pilih <b>Ambil dari Kamera</b> supaya foto otomatis dibubuhi cap waktu &amp; titik koordinat GPS (seperti GPS Map Camera). Pilih <b>Galeri</b> kalau foto sudah ada sebelumnya (tanpa cap lokasi live). Setelah 1 foto selesai, form otomatis lanjut ke sisi berikutnya sampai ke-4 foto terisi.</div>
     </div>
 
     <!-- 3. CHECKLIST -->
@@ -271,6 +276,7 @@
 
     var photos = {};   // { Depan: {base64,lat,lng,source}, ... }
     var checklistItems = [];
+    var currentSisiList = [];  // urutan sisi foto, dipakai untuk auto-lanjut ke foto berikutnya
     // Prefill unit dari query string, mis. form.html?unit=CO4536 (dari link email alert)
     var prefillUnit = new URLSearchParams(window.location.search).get('unit') || '';
     var activeSisi = null;
@@ -357,6 +363,7 @@
 
     // ---------- PHOTO GRID: box + 2 input tersembunyi (kamera & galeri) ----------
     function renderPhotoGrid(sisiFoto){
+      currentSisiList = sisiFoto.slice();
       var photoGrid = document.getElementById('photoGrid');
       photoGrid.innerHTML = '';
       sisiFoto.forEach(function(sisi){
@@ -391,6 +398,22 @@
       if (!sisi) return;
       if (src === 'camera') document.getElementById('input-camera-' + sisi).click();
       else document.getElementById('input-gallery-' + sisi).click();
+    }
+
+    // Setelah 1 foto selesai diproses, otomatis buka popup untuk sisi berikutnya
+    // yang belum ada fotonya (urut sesuai currentSisiList). Kalau semua sisi sudah
+    // terisi, tidak ada popup lagi yang muncul (berhenti otomatis).
+    function advanceToNextPhoto(){
+      for (var i = 0; i < currentSisiList.length; i++){
+        var sisi = currentSisiList[i];
+        if (!photos[sisi]){
+          setTimeout(function(nextSisi){
+            return function(){ openPhotoSourceChooser(nextSisi); };
+          }(sisi), 600);
+          return;
+        }
+      }
+      // semua sisi sudah terisi -> tidak melakukan apa-apa (tidak ada popup lagi)
     }
 
     function renderDropdowns(siteAreaMap, jenisUnit){
@@ -571,6 +594,9 @@
               ? '📍 <span class="ok">GPS + Cap Waktu Terekam</span>'
               : '🖼️ <span class="gal">Dari Galeri (tanpa GPS live)</span>') +
             ' · ' + res.sizeKB + ' KB';
+
+          // Otomatis lanjut ke sisi foto berikutnya yang masih kosong
+          advanceToNextPhoto();
         };
         img.src = e.target.result;
       };
