@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <style>
+    :root{
+      --blue-900:#1e3a8a; --blue-700:#1d4ed8; --blue-50:#eff6ff; --blue-100:#dbeafe;
+      --gray-50:#f8fafc; --gray-100:#f1f5f9; --gray-200:#e2e8f0; --gray-400:#94a3b8;
+      --gray-600:#475569; --gray-800:#1e293b; --green-600:#16a34a; --red-500:#ef4444;
+      --amber-50:#fffbeb; --amber-400:#fbbf24;
+    }
+    *{box-sizing:border-box;}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--gray-100);color:var(--gray-800);}
+    .topbar{background:var(--blue-900);color:#fff;padding:14px 24px;display:flex;align-items:center;gap:12px;}
+    .topbar .logo{width:38px;height:38px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--blue-900);font-weight:bold;}
+    .topbar .title{font-weight:bold;font-size:16px;}
+    .topbar .subtitle{font-size:11px;opacity:.85;}
+    .wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px;}
+    h1.page-title{font-size:22px;margin:18px 0 4px;color:var(--gray-800);}
+    p.page-sub{color:var(--gray-600);font-size:13px;margin-top:0;}
+    .info-banner{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:8px;padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:18px;}
+    .card{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
+    .card h2{font-size:14px;margin:0 0 14px;display:flex;align-items:center;gap:8px;color:var(--gray-800);}
+    .card h2 .badge{background:var(--blue-900);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+    .req{color:var(--red-500);}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
+    label{display:block;font-size:12px;font-weight:bold;margin-bottom:5px;color:var(--gray-800);}
+    input[type=text],input[type=date],input[type=time],select,textarea{
+      width:100%;padding:9px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--gray-800);
+    }
+    textarea{resize:vertical;min-height:70px;}
+    .photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
+    .photo-box{border:2px dashed var(--gray-200);border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:var(--gray-50);position:relative;overflow:hidden;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    .photo-box.filled{border-style:solid;border-color:var(--green-600);}
+    .photo-box img{max-width:100%;max-height:100px;border-radius:6px;margin-bottom:6px;}
+    .photo-box .cam{color:var(--blue-700);font-size:26px;}
+    .photo-box .lbl{font-weight:bold;font-size:12px;color:var(--blue-700);margin-top:4px;}
+    .photo-box .hint{font-size:10px;color:var(--gray-400);}
+    .photo-meta{font-size:10px;color:var(--gray-600);margin-top:6px;text-align:center;}
+    .photo-meta .ok{color:var(--green-600);font-weight:bold;}
+    .tips{background:var(--blue-50);border-radius:7px;padding:10px 12px;font-size:12px;color:#1e40af;margin-top:14px;}
+    .checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;}
+    .chk-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;}
+    .chk-row input{width:16px;height:16px;}
+    .doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
+    .doc-box{border:2px dashed var(--gray-200);border-radius:8px;padding:18px;text-align:center;background:var(--gray-50);cursor:pointer;}
+    .doc-box .lbl{font-weight:bold;font-size:13px;color:var(--blue-700);}
+    .doc-box .sub{font-size:11px;color:var(--gray-400);}
+    .opsional-tag{background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:normal;}
+    .warn-box{background:var(--amber-50);border:1px solid var(--amber-400);border-radius:7px;padding:10px 12px;font-size:12px;color:#92400e;margin-top:12px;}
+    .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
+    button{cursor:pointer;font-family:inherit;font-size:13px;font-weight:bold;border-radius:8px;padding:12px 22px;border:none;}
+    .btn-secondary{background:#fff;border:1px solid var(--gray-200);color:var(--gray-800);}
+    .btn-primary{background:var(--blue-700);color:#fff;}
+    .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
+    .char-count{text-align:right;font-size:11px;color:var(--gray-400);}
+    #toast{position:fixed;top:16px;right:16px;background:#fff;border-left:4px solid var(--blue-700);box-shadow:0 4px 12px rgba(0,0,0,.15);padding:12px 16px;border-radius:8px;font-size:13px;display:none;z-index:999;max-width:320px;}
+    #toast.error{border-left-color:var(--red-500);}
+    #toast.success{border-left-color:var(--green-600);}
+    .gps-pill{display:inline-block;background:#dcfce7;color:#166534;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:6px;}
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">CK</div>
+    <div>
+      <div class="title">ISAM CK BIB</div>
+      <div class="subtitle">Commissioning System</div>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <h1 class="page-title">FORM KOMISIONING UNIT</h1>
+    <p class="page-sub">Form ini digunakan oleh PIC Lapangan untuk mengumpulkan data, foto unit, checklist, serta dokumen pendukung sebelum proses komisioning.</p>
+    <div class="info-banner">ℹ️ Pastikan semua data dan foto diisi dengan benar sebelum menekan tombol <b>SUBMIT</b>.</div>
+
+    <!-- 1. INFORMASI UNIT -->
+    <div class="card">
+      <h2><span class="badge">1</span> INFORMASI UNIT</h2>
+      <div class="grid">
+        <div>
+          <label>Unit / No. Polisi <span class="req">*</span></label>
+          <input type="text" id="unitId" placeholder="Contoh: CO4536">
+        </div>
+        <div>
+          <label>Model Unit <span class="req">*</span></label>
+          <input type="text" id="model" placeholder="Contoh: CAT 777G">
+        </div>
+        <div>
+          <label>Jenis Unit <span class="req">*</span></label>
+          <select id="jenisUnit"><option value="">Pilih Jenis Unit</option></select>
+        </div>
+        <div>
+          <label>Site <span class="req">*</span></label>
+          <select id="site"><option value="">Pilih Site</option></select>
+        </div>
+        <div>
+          <label>Area <span class="req">*</span></label>
+          <select id="area"><option value="">Pilih Area</option></select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. DOKUMENTASI FOTO -->
+    <div class="card">
+      <h2><span class="badge">2</span> DOKUMENTASI FOTO UNIT (WAJIB 4 SISI) <span class="req" style="margin-left:auto;font-size:11px;">* Wajib diisi</span></h2>
+      <div class="photo-grid" id="photoGrid"></div>
+      <div class="tips">💡 Tips: Pastikan foto menampilkan seluruh sisi unit dengan jelas dan nomor unit terbaca.</div>
+    </div>
+
+    <!-- 3. CHECKLIST -->
+    <div class="card">
+      <h2><span class="badge">3</span> CHECKLIST KONDISI UNIT</h2>
+      <div class="checklist-grid" id="checklistGrid"></div>
+      <label style="margin-top:12px;">Catatan tambahan (opsional)</label>
+      <textarea id="catatanTambahan" maxlength="500" placeholder="Tuliskan catatan / kondisi khusus unit (jika ada)..."></textarea>
+      <div class="char-count"><span id="ccCount">0</span>/500</div>
+    </div>
+
+    <!-- 4. DOKUMEN PENDUKUNG -->
+    <div class="card">
+      <h2><span class="badge">4</span> DOKUMEN PENDUKUNG (OPSIONAL) <span class="opsional-tag">Opsional</span></h2>
+      <p style="font-size:12px;color:var(--gray-600);margin-top:-6px;">Upload dokumen jika tersedia. Jika tidak ada, dapat dilengkapi oleh Admin nanti.</p>
+      <div class="doc-grid">
+        <div>
+          <label>BAST (Berita Acara Serah Terima) <span style="font-weight:normal;color:var(--gray-400);">(Opsional)</span></label>
+          <div class="doc-box" onclick="document.getElementById('bastFile').click()">
+            <div style="color:var(--blue-700);font-size:22px;">📄</div>
+            <div class="lbl">Upload File</div>
+            <div class="sub" id="bastName">PDF maks. 10MB</div>
+          </div>
+          <input type="file" id="bastFile" accept="application/pdf" style="display:none">
+        </div>
+        <div>
+          <label>History Maintenance <span style="font-weight:normal;color:var(--gray-400);">(Opsional)</span></label>
+          <div class="doc-box" onclick="document.getElementById('historyFile').click()">
+            <div style="color:var(--blue-700);font-size:22px;">📄</div>
+            <div class="lbl">Upload File</div>
+            <div class="sub" id="historyName">PDF maks. 10MB</div>
+          </div>
+          <input type="file" id="historyFile" accept="application/pdf" style="display:none">
+        </div>
+      </div>
+      <div class="warn-box">⚠️ Dokumen ini akan sangat membantu proses komisioning. Jika belum tersedia, lengkapi nanti oleh Admin.</div>
+    </div>
+
+    <!-- 5 & 6 -->
+    <div class="grid" style="grid-template-columns:1fr 1fr;">
+      <div class="card">
+        <h2><span class="badge">5</span> INFORMASI PENGAMBILAN DATA</h2>
+        <label>Nama PIC <span class="req">*</span></label>
+        <input type="text" id="namaPic" placeholder="Masukkan nama Anda">
+        <label style="margin-top:10px;">Tanggal <span class="req">*</span></label>
+        <input type="date" id="tglSubmit">
+        <label style="margin-top:10px;">Waktu <span class="req">*</span></label>
+        <input type="time" id="waktuSubmit">
+        <label style="margin-top:10px;">Lokasi (GPS) <span class="req">*</span> <span class="gps-pill" id="gpsPill">Mendeteksi...</span></label>
+        <input type="text" id="gpsText" readonly>
+      </div>
+      <div class="card">
+        <h2><span class="badge">6</span> REMARK / CATATAN LAIN</h2>
+        <label>Catatan lain (opsional)</label>
+        <textarea id="remark" maxlength="500" placeholder="Tuliskan catatan tambahan jika ada..."></textarea>
+        <div class="char-count"><span id="rcCount">0</span>/500</div>
+      </div>
+    </div>
+
+    <div class="card footer-actions">
+      <button class="btn-secondary" onclick="simpanDraft()">💾 SIMPAN DRAFT</button>
+      <button class="btn-primary" id="submitBtn" onclick="submitForm_()">➤ SUBMIT FORM</button>
+    </div>
+    <p style="font-size:11px;color:var(--gray-400);text-align:center;">Pastikan semua data sudah benar sebelum submit.</p>
+  </div>
+
+  <div id="toast"></div>
+
+  <script>
+    var photos = {};   // { Depan: {base64,lat,lng}, ... }
+    var checklistItems = [];
+    var prefillUnit = "<?= prefillUnit ?>";
+
+    function toast(msg, type){
+      var t = document.getElementById('toast');
+      t.textContent = msg; t.className = type || '';
+      t.style.display = 'block';
+      setTimeout(function(){ t.style.display='none'; }, 4000);
+    }
+
+    // ---------- INIT ----------
+    window.onload = function(){
+      document.getElementById('tglSubmit').valueAsDate = new Date();
+      var now = new Date();
+      document.getElementById('waktuSubmit').value =
+        String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+      if (navigator.geolocation){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          window.currentLat = pos.coords.latitude;
+          window.currentLng = pos.coords.longitude;
+          document.getElementById('gpsText').value = pos.coords.latitude.toFixed(6) + ', ' + pos.coords.longitude.toFixed(6);
+          document.getElementById('gpsPill').textContent = 'Terekam Otomatis';
+        }, function(){
+          document.getElementById('gpsPill').textContent = 'GPS gagal, isi manual';
+          document.getElementById('gpsText').removeAttribute('readonly');
+        });
+      }
+
+      google.script.run.withSuccessHandler(renderMeta).withFailureHandler(function(err){
+        toast('Gagal memuat data awal: ' + err.message, 'error');
+      }).getFormMeta();
+
+      document.getElementById('catatanTambahan').addEventListener('input', function(e){
+        document.getElementById('ccCount').textContent = e.target.value.length;
+      });
+      document.getElementById('remark').addEventListener('input', function(e){
+        document.getElementById('rcCount').textContent = e.target.value.length;
+      });
+      document.getElementById('bastFile').addEventListener('change', function(e){
+        if (e.target.files[0]) document.getElementById('bastName').textContent = e.target.files[0].name;
+      });
+      document.getElementById('historyFile').addEventListener('change', function(e){
+        if (e.target.files[0]) document.getElementById('historyName').textContent = e.target.files[0].name;
+      });
+
+      if (prefillUnit) document.getElementById('unitId').value = prefillUnit;
+    };
+
+    function renderMeta(meta){
+      // Site dropdown
+      var siteSel = document.getElementById('site');
+      Object.keys(meta.siteAreaMap).forEach(function(s){
+        var o = document.createElement('option'); o.value = s; o.textContent = s; siteSel.appendChild(o);
+      });
+      siteSel.addEventListener('change', function(){
+        var areaSel = document.getElementById('area');
+        areaSel.innerHTML = '<option value="">Pilih Area</option>';
+        (meta.siteAreaMap[siteSel.value] || []).forEach(function(a){
+          var o = document.createElement('option'); o.value = a; o.textContent = a; areaSel.appendChild(o);
+        });
+      });
+      // Jenis unit
+      var jenisSel = document.getElementById('jenisUnit');
+      meta.jenisUnit.forEach(function(j){
+        var o = document.createElement('option'); o.value = j; o.textContent = j; jenisSel.appendChild(o);
+      });
+      // Foto grid
+      var photoGrid = document.getElementById('photoGrid');
+      meta.sisiFoto.forEach(function(sisi){
+        var box = document.createElement('div');
+        box.className = 'photo-box';
+        box.id = 'box-' + sisi;
+        box.innerHTML =
+          '<div class="cam">📷</div>' +
+          '<div class="lbl">Foto ' + sisi + ' *</div>' +
+          '<div class="hint">Ambil Foto atau klik untuk ambil</div>' +
+          '<div class="photo-meta" id="meta-' + sisi + '">⌚ Belum diambil<br>📍 Lokasi: -</div>' +
+          '<input type="file" accept="image/*" capture="environment" style="display:none" id="input-' + sisi + '">';
+        box.onclick = function(){ document.getElementById('input-' + sisi).click(); };
+        photoGrid.appendChild(box);
+        box.querySelector('input').addEventListener('change', function(e){ handlePhoto(sisi, e.target.files[0]); });
+      });
+      // Checklist
+      checklistItems = meta.checklist || [];
+      var grid = document.getElementById('checklistGrid');
+      checklistItems.forEach(function(c){
+        var row = document.createElement('label');
+        row.className = 'chk-row';
+        row.innerHTML = '<input type="checkbox" checked data-no="'+c.no+'" data-item="'+c.item+'"> ' + c.no + '. ' + c.item;
+        grid.appendChild(row);
+      });
+    }
+
+    function handlePhoto(sisi, file){
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function(e){
+        photos[sisi] = { base64: e.target.result, lat: window.currentLat, lng: window.currentLng };
+        var box = document.getElementById('box-' + sisi);
+        box.classList.add('filled');
+        box.querySelector('.hint') && (box.querySelector('.hint').textContent = 'Ambil ulang foto');
+        var img = box.querySelector('img');
+        if (!img){
+          img = document.createElement('img');
+          box.insertBefore(img, box.firstChild);
+        }
+        img.src = e.target.result;
+        document.getElementById('meta-' + sisi).innerHTML =
+          '⌚ ' + new Date().toLocaleTimeString() + '<br>📍 <span class="ok">Terekam</span>';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function readFileAsBase64(fileInputEl){
+      return new Promise(function(resolve){
+        var f = fileInputEl.files[0];
+        if (!f) return resolve(null);
+        var r = new FileReader();
+        r.onload = function(e){ resolve({ base64: e.target.result, name: f.name }); };
+        r.readAsDataURL(f);
+      });
+    }
+
+    function simpanDraft(){
+      toast('Draft disimpan di perangkat ini (belum dikirim ke server).', 'success');
+      // (opsional) bisa dikembangkan pakai localStorage / IndexedDB kalau perlu.
+    }
+
+    async function submitForm_(){
+      var unitId = document.getElementById('unitId').value.trim();
+      var model = document.getElementById('model').value.trim();
+      var jenisUnit = document.getElementById('jenisUnit').value;
+      var site = document.getElementById('site').value;
+      var area = document.getElementById('area').value;
+      var namaPic = document.getElementById('namaPic').value.trim();
+
+      if (!unitId || !model || !jenisUnit || !site || !area || !namaPic){
+        toast('Mohon lengkapi semua field wajib (*).', 'error'); return;
+      }
+      if (Object.keys(photos).length < 4){
+        toast('Foto 4 sisi unit wajib diambil semua.', 'error'); return;
+      }
+
+      var btn = document.getElementById('submitBtn');
+      btn.disabled = true; btn.textContent = 'Mengirim...';
+
+      var bastData = await readFileAsBase64(document.getElementById('bastFile'));
+      var historyData = await readFileAsBase64(document.getElementById('historyFile'));
+
+      var checklistPayload = Array.from(document.querySelectorAll('#checklistGrid input[type=checkbox]')).map(function(cb){
+        return { no: cb.dataset.no, item: cb.dataset.item, kondisi: cb.checked ? 'OK' : 'Rusak', catatan: '' };
+      });
+
+      var payload = {
+        unitId: unitId, model: model, jenisUnit: jenisUnit, site: site, area: area,
+        photos: Object.keys(photos).map(function(sisi){
+          return { sisi: sisi, base64: photos[sisi].base64, lat: photos[sisi].lat, lng: photos[sisi].lng };
+        }),
+        checklist: checklistPayload,
+        catatanTambahan: document.getElementById('catatanTambahan').value,
+        remark: document.getElementById('remark').value,
+        namaPic: namaPic,
+        waktuSubmit: document.getElementById('waktuSubmit').value,
+        gpsLat: window.currentLat, gpsLng: window.currentLng,
+        bastBase64: bastData ? bastData.base64 : null, bastFileName: bastData ? bastData.name : null,
+        historyBase64: historyData ? historyData.base64 : null, historyFileName: historyData ? historyData.name : null
+      };
+
+      google.script.run
+        .withSuccessHandler(function(res){
+          btn.disabled = false; btn.textContent = '➤ SUBMIT FORM';
+          if (res.success){
+            toast(res.message, 'success');
+            setTimeout(function(){ location.reload(); }, 2500);
+          } else {
+            toast(res.message, 'error');
+          }
+        })
+        .withFailureHandler(function(err){
+          btn.disabled = false; btn.textContent = '➤ SUBMIT FORM';
+          toast('Gagal submit: ' + err.message, 'error');
+        })
+        .submitForm(payload);
+    }
+  </script>
+</body>
+</html>
