@@ -425,7 +425,7 @@
       items.forEach(function(c){
         var row = document.createElement('label');
         row.className = 'chk-row';
-        row.innerHTML = '<input type="checkbox" checked data-no="'+c.no+'" data-item="'+c.item+'"> ' + c.no + '. ' + c.item;
+        row.innerHTML = '<input type="checkbox" data-no="'+c.no+'" data-item="'+c.item+'"> ' + c.no + '. ' + c.item;
         grid.appendChild(row);
       });
     }
