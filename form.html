@@ -1,8 +1,21 @@
 <!DOCTYPE html>
+<!--
+  ISAM CK BIB - Form Komisioning Unit
+  File ini di-HOSTING TERPISAH dari Apps Script (misal: static hosting, embed di
+  aplikasi lain, dsb). Komunikasi ke backend Google Apps Script dilakukan lewat
+  fetch() ke API_URL, BUKAN lewat google.script.run.
+
+  CARA PAKAI:
+  1. Deploy Code.gs sebagai Web App (Deploy > New deployment > Web app,
+     Execute as: Me, Who has access: Anyone).
+  2. Copy URL yang diakhiri "/exec", tempel ke variabel API_URL di bawah (cari
+     "GANTI_DENGAN_URL_WEB_APP_ANDA").
+  3. Upload/hosting file ini di mana saja (Netlify, GitHub Pages, subdomain, dsb).
+-->
 <html>
 <head>
-  <base target="_top">
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
   <style>
     :root{
       --blue-900:#1e3a8a; --blue-700:#1d4ed8; --blue-50:#eff6ff; --blue-100:#dbeafe;
@@ -10,11 +23,12 @@
       --gray-600:#475569; --gray-800:#1e293b; --green-600:#16a34a; --red-500:#ef4444;
       --amber-50:#fffbeb; --amber-400:#fbbf24;
     }
-    *{box-sizing:border-box;}
+    *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+    html{-webkit-text-size-adjust:100%;}
     body{margin:0;font-family:Arial,Helvetica,sans-serif;background:var(--gray-100);color:var(--gray-800);}
-    .topbar{background:var(--blue-900);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+    .topbar{background:var(--blue-900);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;position:sticky;top:0;z-index:50;}
     .topbar .brand-group{display:flex;align-items:center;gap:12px;}
-    .topbar .logo{width:38px;height:38px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--blue-900);font-weight:bold;}
+    .topbar .logo{width:38px;height:38px;background:#fff;border-radius:6px;display:flex;align-items:center;justify-content:center;color:var(--blue-900);font-weight:bold;flex-shrink:0;}
     .topbar .title{font-weight:bold;font-size:16px;}
     .topbar .subtitle{font-size:11px;opacity:.85;}
     .topbar .nav-actions{display:flex;align-items:center;gap:10px;}
@@ -22,33 +36,35 @@
     .topbar .nav-btn:hover{background:rgba(255,255,255,.1);}
     .topbar .nav-btn.solid{background:#fff;color:var(--blue-900);border-color:#fff;}
     .topbar .nav-btn.solid:hover{background:var(--blue-50);}
-    .wrap{max-width:960px;margin:0 auto;padding:20px 16px 60px;}
+    .wrap{max-width:960px;margin:0 auto;padding:20px 16px 100px;}
     h1.page-title{font-size:22px;margin:18px 0 4px;color:var(--gray-800);}
     p.page-sub{color:var(--gray-600);font-size:13px;margin-top:0;}
     .info-banner{background:var(--blue-50);border:1px solid var(--blue-100);border-radius:8px;padding:10px 14px;font-size:13px;color:#1e40af;margin-bottom:18px;}
     .card{background:#fff;border-radius:10px;padding:18px 20px;margin-bottom:18px;box-shadow:0 1px 2px rgba(0,0,0,.05);}
-    .card h2{font-size:14px;margin:0 0 14px;display:flex;align-items:center;gap:8px;color:var(--gray-800);}
-    .card h2 .badge{background:var(--blue-900);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;}
+    .card h2{font-size:14px;margin:0 0 14px;display:flex;align-items:center;gap:8px;color:var(--gray-800);flex-wrap:wrap;}
+    .card h2 .badge{background:var(--blue-900);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
     .req{color:var(--red-500);}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;}
     label{display:block;font-size:12px;font-weight:bold;margin-bottom:5px;color:var(--gray-800);}
     input[type=text],input[type=date],input[type=time],select,textarea{
-      width:100%;padding:9px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:13px;font-family:inherit;background:#fff;color:var(--gray-800);
+      width:100%;padding:11px 10px;border:1px solid var(--gray-200);border-radius:7px;font-size:16px;font-family:inherit;background:#fff;color:var(--gray-800);
     }
     textarea{resize:vertical;min-height:70px;}
-    .photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;}
-    .photo-box{border:2px dashed var(--gray-200);border-radius:8px;padding:16px;text-align:center;cursor:pointer;background:var(--gray-50);position:relative;overflow:hidden;min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;}
+    .photo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;}
+    .photo-box{border:2px dashed var(--gray-200);border-radius:8px;padding:14px 10px;text-align:center;cursor:pointer;background:var(--gray-50);position:relative;overflow:hidden;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;-webkit-user-select:none;user-select:none;}
+    .photo-box:active{background:var(--gray-100);}
     .photo-box.filled{border-style:solid;border-color:var(--green-600);}
-    .photo-box img{max-width:100%;max-height:100px;border-radius:6px;margin-bottom:6px;}
+    .photo-box img{max-width:100%;max-height:100px;border-radius:6px;margin-bottom:6px;object-fit:cover;}
     .photo-box .cam{color:var(--blue-700);font-size:26px;}
     .photo-box .lbl{font-weight:bold;font-size:12px;color:var(--blue-700);margin-top:4px;}
     .photo-box .hint{font-size:10px;color:var(--gray-400);}
-    .photo-meta{font-size:10px;color:var(--gray-600);margin-top:6px;text-align:center;}
+    .photo-meta{font-size:10px;color:var(--gray-600);margin-top:6px;text-align:center;line-height:1.5;}
     .photo-meta .ok{color:var(--green-600);font-weight:bold;}
+    .photo-meta .gal{color:#b45309;font-weight:bold;}
     .tips{background:var(--blue-50);border-radius:7px;padding:10px 12px;font-size:12px;color:#1e40af;margin-top:14px;}
     .checklist-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;}
-    .chk-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:4px 0;}
-    .chk-row input{width:16px;height:16px;}
+    .chk-row{display:flex;align-items:center;gap:8px;font-size:13px;padding:6px 0;}
+    .chk-row input{width:18px;height:18px;flex-shrink:0;}
     .doc-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;}
     .doc-box{border:2px dashed var(--gray-200);border-radius:8px;padding:18px;text-align:center;background:var(--gray-50);cursor:pointer;}
     .doc-box .lbl{font-weight:bold;font-size:13px;color:var(--blue-700);}
@@ -56,15 +72,41 @@
     .opsional-tag{background:#fef3c7;color:#92400e;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:6px;font-weight:normal;}
     .warn-box{background:var(--amber-50);border:1px solid var(--amber-400);border-radius:7px;padding:10px 12px;font-size:12px;color:#92400e;margin-top:12px;}
     .footer-actions{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;}
-    button{cursor:pointer;font-family:inherit;font-size:13px;font-weight:bold;border-radius:8px;padding:12px 22px;border:none;}
+    button{cursor:pointer;font-family:inherit;font-size:14px;font-weight:bold;border-radius:8px;padding:13px 22px;border:none;}
     .btn-secondary{background:#fff;border:1px solid var(--gray-200);color:var(--gray-800);}
     .btn-primary{background:var(--blue-700);color:#fff;}
     .btn-primary:disabled{opacity:.6;cursor:not-allowed;}
     .char-count{text-align:right;font-size:11px;color:var(--gray-400);}
-    #toast{position:fixed;top:16px;right:16px;background:#fff;border-left:4px solid var(--blue-700);box-shadow:0 4px 12px rgba(0,0,0,.15);padding:12px 16px;border-radius:8px;font-size:13px;display:none;z-index:999;max-width:320px;}
+    #toast{position:fixed;top:16px;right:16px;left:16px;background:#fff;border-left:4px solid var(--blue-700);box-shadow:0 4px 12px rgba(0,0,0,.15);padding:12px 16px;border-radius:8px;font-size:13px;display:none;z-index:999;max-width:320px;margin-left:auto;}
     #toast.error{border-left-color:var(--red-500);}
     #toast.success{border-left-color:var(--green-600);}
     .gps-pill{display:inline-block;background:#dcfce7;color:#166534;font-size:10px;padding:2px 8px;border-radius:10px;margin-left:6px;}
+
+    /* ---- Bottom-sheet modal: pilih Kamera / Galeri ---- */
+    .modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;z-index:1000;}
+    .modal-overlay.show{display:flex;}
+    .modal-sheet{background:#fff;width:100%;max-width:480px;border-radius:16px 16px 0 0;padding:8px 16px calc(20px + env(safe-area-inset-bottom));animation:slideUp .18s ease-out;}
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .modal-handle{width:40px;height:4px;background:var(--gray-200);border-radius:4px;margin:8px auto 6px;}
+    .modal-title{text-align:center;font-weight:bold;font-size:13px;padding:4px 0 10px;color:var(--gray-600);}
+    .sheet-btn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:15px 12px;font-size:15px;border:none;background:none;border-top:1px solid var(--gray-100);color:var(--blue-700);font-weight:bold;border-radius:0;}
+    .sheet-btn.cancel{color:var(--red-500);text-align:center;justify-content:center;margin-top:8px;border-top:none;background:var(--gray-50);border-radius:8px;}
+
+    /* ---- Mobile tweaks ---- */
+    @media (max-width:520px){
+      .topbar{padding:10px 14px;}
+      .topbar .title{font-size:14px;}
+      .topbar .subtitle{font-size:10px;}
+      .topbar .nav-btn{padding:8px 12px;font-size:12px;}
+      .wrap{padding:14px 10px 110px;}
+      h1.page-title{font-size:18px;}
+      .card{padding:14px 14px;margin-bottom:14px;}
+      .checklist-grid{grid-template-columns:1fr;}
+      .footer-actions{position:fixed;left:0;right:0;bottom:0;background:#fff;padding:10px 14px calc(10px + env(safe-area-inset-bottom));box-shadow:0 -2px 10px rgba(0,0,0,.08);border-radius:0;margin:0;flex-direction:column-reverse;z-index:40;}
+      .footer-actions button{width:100%;}
+      .footer-actions p{display:none;}
+      .wrap{padding-bottom:130px;}
+    }
   </style>
 </head>
 <body>
@@ -77,7 +119,7 @@
       </div>
     </div>
     <div class="nav-actions">
-      <a class="nav-btn" href="?page=dashboard">🏠 Dashboard</a>
+      <a class="nav-btn" href="dashboard.html">🏠 Dashboard</a>
       <button class="nav-btn solid" onclick="goToLogin()">🔒 Login</button>
     </div>
   </div>
@@ -118,7 +160,7 @@
     <div class="card">
       <h2><span class="badge">2</span> DOKUMENTASI FOTO UNIT (WAJIB 4 SISI) <span class="req" style="margin-left:auto;font-size:11px;">* Wajib diisi</span></h2>
       <div class="photo-grid" id="photoGrid"></div>
-      <div class="tips">💡 Tips: Pastikan foto menampilkan seluruh sisi unit dengan jelas dan nomor unit terbaca.</div>
+      <div class="tips">💡 Tips: pilih <b>Ambil dari Kamera</b> supaya foto otomatis dibubuhi cap waktu &amp; titik koordinat GPS (seperti GPS Map Camera). Pilih <b>Galeri</b> kalau foto sudah ada sebelumnya (tanpa cap lokasi live).</div>
     </div>
 
     <!-- 3. CHECKLIST -->
@@ -181,23 +223,57 @@
     <div class="card footer-actions">
       <button class="btn-secondary" onclick="simpanDraft()">💾 SIMPAN DRAFT</button>
       <button class="btn-primary" id="submitBtn" onclick="submitForm_()">➤ SUBMIT FORM</button>
+      <p style="font-size:11px;color:var(--gray-400);text-align:center;width:100%;">Pastikan semua data sudah benar sebelum submit.</p>
     </div>
-    <p style="font-size:11px;color:var(--gray-400);text-align:center;">Pastikan semua data sudah benar sebelum submit.</p>
+  </div>
+
+  <!-- Bottom sheet: pilih sumber foto -->
+  <div id="photoSourceModal" class="modal-overlay" onclick="if(event.target===this) closePhotoSourceModal();">
+    <div class="modal-sheet">
+      <div class="modal-handle"></div>
+      <div class="modal-title">Ambil Foto <span id="modalSisiName"></span></div>
+      <button class="sheet-btn" onclick="chooseSource('camera')">📷 Ambil dari Kamera <span style="font-weight:normal;color:var(--gray-400);font-size:11px;margin-left:auto;">+ GPS &amp; waktu</span></button>
+      <button class="sheet-btn" onclick="chooseSource('gallery')">🖼️ Pilih dari Galeri</button>
+      <button class="sheet-btn cancel" onclick="closePhotoSourceModal()">Batal</button>
+    </div>
   </div>
 
   <div id="toast"></div>
 
   <script>
-    function goToLogin(){
-      // Login sesungguhnya dikendalikan lewat pembatasan akses deployment Dashboard
-      // (Google Workspace domain) - klik ini mengarahkan ke halaman Dashboard,
-      // Google otomatis akan minta sign-in kalau deployment dashboard dibatasi.
-      window.top.location.href = '?page=dashboard';
+    // =========================================================
+    // KONFIGURASI API
+    // Tempel URL deployment Web App Apps Script kamu di sini (diakhiri "/exec")
+    // =========================================================
+    var API_URL = 'https://script.google.com/macros/s/AKfycbyNU-pRMPcmFBC0qzmcN2QxDa73K8JhkTTBsPcSi1kw8PyJMei5KJgqH25gdocyu_cB/exec';
+
+    // GET ringan (tanpa payload besar) -> API_URL?action=xxx
+    function apiGet(action){
+      return fetch(API_URL + '?action=' + encodeURIComponent(action))
+        .then(function(r){ return r.json(); });
     }
 
-    var photos = {};   // { Depan: {base64,lat,lng}, ... }
+    // POST untuk kirim data (submit form, dsb).
+    // PENTING: Content-Type di-set ke text/plain supaya browser tidak melakukan
+    // CORS preflight (OPTIONS) -- Apps Script Web App tidak bisa menjawab
+    // preflight itu. Body-nya tetap JSON string biasa.
+    function apiPost(action, payload){
+      return fetch(API_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: action, payload: payload })
+      }).then(function(r){ return r.json(); });
+    }
+
+    function goToLogin(){
+      window.location.href = 'dashboard.html';
+    }
+
+    var photos = {};   // { Depan: {base64,lat,lng,source}, ... }
     var checklistItems = [];
-    var prefillUnit = "<?= prefillUnit ?>";
+    // Prefill unit dari query string, mis. form.html?unit=CO4536 (dari link email alert)
+    var prefillUnit = new URLSearchParams(window.location.search).get('unit') || '';
+    var activeSisi = null;
 
     // ---------- FALLBACK DEFAULTS (dipakai kalau server belum bisa dihubungi) ----------
     var DEFAULT_SISI_FOTO = ['Depan', 'Belakang', 'Kiri', 'Kanan'];
@@ -236,7 +312,7 @@
         }, function(){
           document.getElementById('gpsPill').textContent = 'GPS gagal, isi manual';
           document.getElementById('gpsText').removeAttribute('readonly');
-        });
+        }, { enableHighAccuracy:true, timeout:10000 });
       }
 
       // Render langsung pakai default, jadi form tetap bisa dipakai walau server lambat/gagal
@@ -245,13 +321,23 @@
       renderChecklist(DEFAULT_CHECKLIST);
 
       // Lalu coba ambil data terbaru dari server (Master_Checklist, Master_Unit, dsb)
-      // kalau berhasil, dropdown & checklist di-refresh sesuai data sheet.
-      google.script.run.withSuccessHandler(function(meta){
-        renderDropdowns(meta.siteAreaMap, meta.jenisUnit);
-        renderChecklist(meta.checklist && meta.checklist.length ? meta.checklist : DEFAULT_CHECKLIST);
-      }).withFailureHandler(function(err){
-        toast('Tidak bisa memuat data dari server (' + err.message + '). Form tetap bisa diisi pakai data default, tapi cek koneksi/setup Apps Script Anda.', 'error');
-      }).getFormMeta();
+      // -- INI BAGIAN "CONNECT" KE Code.gs lewat REST API: getFormMeta mengambil
+      // dropdown & checklist langsung dari Google Sheet supaya form selalu sinkron.
+      if (!API_URL || API_URL.indexOf('GANTI_DENGAN_URL') > -1){
+        toast('API_URL belum diisi di kode Form.html. Form tetap bisa diisi pakai data default.', 'error');
+      } else {
+        apiGet('getFormMeta').then(function(meta){
+          if (!meta || meta.success === false){
+            toast('Server API error: ' + (meta && meta.message ? meta.message : 'tidak diketahui'), 'error');
+            return;
+          }
+          renderDropdowns(meta.siteAreaMap, meta.jenisUnit);
+          renderChecklist(meta.checklist && meta.checklist.length ? meta.checklist : DEFAULT_CHECKLIST);
+          if (meta.sisiFoto && meta.sisiFoto.length) renderPhotoGrid(meta.sisiFoto);
+        }).catch(function(err){
+          toast('Tidak bisa memuat data dari server (' + err.message + '). Form tetap bisa diisi pakai data default, cek API_URL/koneksi/setup CORS.', 'error');
+        });
+      }
 
       document.getElementById('catatanTambahan').addEventListener('input', function(e){
         document.getElementById('ccCount').textContent = e.target.value.length;
@@ -269,6 +355,7 @@
       if (prefillUnit) document.getElementById('unitId').value = prefillUnit;
     };
 
+    // ---------- PHOTO GRID: box + 2 input tersembunyi (kamera & galeri) ----------
     function renderPhotoGrid(sisiFoto){
       var photoGrid = document.getElementById('photoGrid');
       photoGrid.innerHTML = '';
@@ -279,13 +366,31 @@
         box.innerHTML =
           '<div class="cam">📷</div>' +
           '<div class="lbl">Foto ' + sisi + ' *</div>' +
-          '<div class="hint">Ambil Foto atau klik untuk ambil</div>' +
+          '<div class="hint">Ketuk untuk ambil / pilih foto</div>' +
           '<div class="photo-meta" id="meta-' + sisi + '">⌚ Belum diambil<br>📍 Lokasi: -</div>' +
-          '<input type="file" accept="image/*" capture="environment" style="display:none" id="input-' + sisi + '">';
-        box.onclick = function(){ document.getElementById('input-' + sisi).click(); };
+          '<input type="file" accept="image/*" capture="environment" style="display:none" id="input-camera-' + sisi + '">' +
+          '<input type="file" accept="image/*" style="display:none" id="input-gallery-' + sisi + '">';
+        box.onclick = function(){ openPhotoSourceChooser(sisi); };
         photoGrid.appendChild(box);
-        box.querySelector('input').addEventListener('change', function(e){ handlePhoto(sisi, e.target.files[0]); });
+        document.getElementById('input-camera-' + sisi).addEventListener('change', function(e){ handlePhoto(sisi, e.target.files[0], true); e.target.value=''; });
+        document.getElementById('input-gallery-' + sisi).addEventListener('change', function(e){ handlePhoto(sisi, e.target.files[0], false); e.target.value=''; });
       });
+    }
+
+    function openPhotoSourceChooser(sisi){
+      activeSisi = sisi;
+      document.getElementById('modalSisiName').textContent = sisi;
+      document.getElementById('photoSourceModal').classList.add('show');
+    }
+    function closePhotoSourceModal(){
+      document.getElementById('photoSourceModal').classList.remove('show');
+    }
+    function chooseSource(src){
+      var sisi = activeSisi;
+      closePhotoSourceModal();
+      if (!sisi) return;
+      if (src === 'camera') document.getElementById('input-camera-' + sisi).click();
+      else document.getElementById('input-gallery-' + sisi).click();
     }
 
     function renderDropdowns(siteAreaMap, jenisUnit){
@@ -325,22 +430,149 @@
       });
     }
 
-    function handlePhoto(sisi, file){
+    // ---------- GEO HELPERS ----------
+    // Ambil posisi GPS ter-update saat tombol kamera ditekan (lebih akurat dari posisi awal load halaman)
+    function getFreshLocation(){
+      return new Promise(function(resolve){
+        if (!navigator.geolocation) return resolve(window.currentLat ? {lat:window.currentLat,lng:window.currentLng} : null);
+        navigator.geolocation.getCurrentPosition(function(pos){
+          window.currentLat = pos.coords.latitude;
+          window.currentLng = pos.coords.longitude;
+          resolve({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+        }, function(){
+          resolve(window.currentLat ? { lat: window.currentLat, lng: window.currentLng } : null);
+        }, { enableHighAccuracy:true, timeout:8000 });
+      });
+    }
+
+    // Reverse geocoding pakai OpenStreetMap Nominatim (gratis, tanpa API key).
+    // Catatan: untuk pemakaian volume tinggi/production skala besar, pertimbangkan
+    // pakai layanan berbayar (Google Geocoding API dsb) sesuai kebijakan penggunaan Nominatim.
+    function reverseGeocode(lat, lng){
+      return fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=16&addressdetails=0')
+        .then(function(r){ return r.json(); })
+        .then(function(d){ return (d && d.display_name) ? d.display_name : null; })
+        .catch(function(){ return null; });
+    }
+
+    function wrapText(text, maxChars){
+      var words = text.split(' ');
+      var lines = [], cur = '';
+      words.forEach(function(w){
+        if ((cur + ' ' + w).trim().length > maxChars){ lines.push(cur.trim()); cur = w; }
+        else cur = (cur + ' ' + w).trim();
+      });
+      if (cur) lines.push(cur);
+      return lines.slice(0, 2); // maksimal 2 baris alamat biar overlay tidak kepanjangan
+    }
+
+    // Gambar ulang foto ke canvas + tempel overlay cap waktu/GPS/lokasi ala GPS Map Camera
+    function drawWatermark(img, lat, lng, address, sisi, unitId){
+      var maxWidth = 1280;
+      var scale = Math.min(1, maxWidth / img.width);
+      var canvas = document.createElement('canvas');
+      canvas.width = Math.round(img.width * scale);
+      canvas.height = Math.round(img.height * scale);
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      var now = new Date();
+      var hari = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now.getDay()];
+      var tglStr = hari + ', ' + String(now.getDate()).padStart(2,'0') + '/' + String(now.getMonth()+1).padStart(2,'0') + '/' + now.getFullYear();
+      var jamStr = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+      var tzOffset = -now.getTimezoneOffset() / 60;
+      var tzStr = 'GMT' + (tzOffset >= 0 ? '+' : '') + tzOffset + ':00';
+
+      var flatLines = [];
+      if (address) wrapText(address, 55).forEach(function(l){ flatLines.push(l); });
+      flatLines.push('Lat ' + lat.toFixed(6) + ', Long ' + lng.toFixed(6));
+      flatLines.push(tglStr + '  ' + jamStr + '  ' + tzStr);
+      flatLines.push('Unit: ' + (unitId || '-') + '  |  Sisi: ' + sisi);
+
+      var pad = Math.round(canvas.width * 0.025);
+      var lineHeight = Math.max(15, Math.round(canvas.width * 0.032));
+      var fontSize = Math.round(lineHeight * 0.62);
+      var boxHeight = flatLines.length * lineHeight + pad * 1.6;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.58)';
+      ctx.fillRect(0, canvas.height - boxHeight, canvas.width, boxHeight);
+
+      // ikon pin lokasi sederhana
+      var pinX = pad + 6, pinY = canvas.height - boxHeight + pad + 6;
+      ctx.fillStyle = '#3b82f6';
+      ctx.beginPath();
+      ctx.arc(pinX, pinY, Math.max(5, fontSize*0.35), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold ' + fontSize + 'px Arial';
+      ctx.textBaseline = 'top';
+      flatLines.forEach(function(line, i){
+        ctx.fillText(line, pad + 22, canvas.height - boxHeight + pad * 0.8 + i * lineHeight);
+      });
+
+      return canvas;
+    }
+
+    function canvasToCompressedDataUrl(canvas, maxSizeKB){
+      var quality = 0.85;
+      var dataUrl = canvas.toDataURL('image/jpeg', quality);
+      function sizeKB(du){ return Math.round((du.length * 3 / 4) / 1024); }
+      while (sizeKB(dataUrl) > maxSizeKB && quality > 0.3){
+        quality -= 0.1;
+        dataUrl = canvas.toDataURL('image/jpeg', quality);
+      }
+      return { dataUrl: dataUrl, sizeKB: sizeKB(dataUrl) };
+    }
+
+    // isCamera = true  -> foto diambil langsung dari kamera: ditempeli cap waktu+GPS+lokasi
+    // isCamera = false -> foto dari galeri: hanya dikompres, tanpa cap lokasi live
+    function handlePhoto(sisi, file, isCamera){
       if (!file) return;
+      var box = document.getElementById('box-' + sisi);
+      var metaEl = document.getElementById('meta-' + sisi);
+      metaEl.innerHTML = isCamera ? '⏳ Mengambil GPS &amp; memproses foto...' : '⏳ Memproses foto...';
+
       var reader = new FileReader();
       reader.onload = function(e){
-        photos[sisi] = { base64: e.target.result, lat: window.currentLat, lng: window.currentLng };
-        var box = document.getElementById('box-' + sisi);
-        box.classList.add('filled');
-        box.querySelector('.hint') && (box.querySelector('.hint').textContent = 'Ambil ulang foto');
-        var img = box.querySelector('img');
-        if (!img){
-          img = document.createElement('img');
-          box.insertBefore(img, box.firstChild);
-        }
+        var img = new Image();
+        img.onload = async function(){
+          var canvas, lat, lng, address = null, res;
+
+          if (isCamera){
+            var loc = await getFreshLocation();
+            lat = loc ? loc.lat : (window.currentLat || 0);
+            lng = loc ? loc.lng : (window.currentLng || 0);
+            if (lat && lng) address = await reverseGeocode(lat, lng);
+            var unitId = document.getElementById('unitId').value.trim();
+            canvas = drawWatermark(img, lat, lng, address, sisi, unitId);
+          } else {
+            var scale = Math.min(1, 1280 / img.width);
+            canvas = document.createElement('canvas');
+            canvas.width = Math.round(img.width * scale);
+            canvas.height = Math.round(img.height * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            lat = window.currentLat; lng = window.currentLng;
+          }
+
+          res = canvasToCompressedDataUrl(canvas, 220);
+          photos[sisi] = { base64: res.dataUrl, lat: lat, lng: lng, source: isCamera ? 'Kamera' : 'Galeri' };
+
+          box.classList.add('filled');
+          var imgEl = box.querySelector('img');
+          if (!imgEl){ imgEl = document.createElement('img'); box.insertBefore(imgEl, box.firstChild); }
+          imgEl.src = res.dataUrl;
+
+          metaEl.innerHTML = '⌚ ' + new Date().toLocaleTimeString() + '<br>' +
+            (isCamera
+              ? '📍 <span class="ok">GPS + Cap Waktu Terekam</span>'
+              : '🖼️ <span class="gal">Dari Galeri (tanpa GPS live)</span>') +
+            ' · ' + res.sizeKB + ' KB';
+        };
         img.src = e.target.result;
-        document.getElementById('meta-' + sisi).innerHTML =
-          '⌚ ' + new Date().toLocaleTimeString() + '<br>📍 <span class="ok">Terekam</span>';
       };
       reader.readAsDataURL(file);
     }
@@ -357,7 +589,6 @@
 
     function simpanDraft(){
       toast('Draft disimpan di perangkat ini (belum dikirim ke server).', 'success');
-      // (opsional) bisa dikembangkan pakai localStorage / IndexedDB kalau perlu.
     }
 
     async function submitForm_(){
@@ -388,7 +619,13 @@
       var payload = {
         unitId: unitId, model: model, jenisUnit: jenisUnit, site: site, area: area,
         photos: Object.keys(photos).map(function(sisi){
-          return { sisi: sisi, base64: photos[sisi].base64, lat: photos[sisi].lat, lng: photos[sisi].lng };
+          return {
+            sisi: sisi,
+            base64: photos[sisi].base64,
+            lat: photos[sisi].lat,
+            lng: photos[sisi].lng,
+            source: photos[sisi].source   // 'Kamera' atau 'Galeri' -> dicatat ke Photo_Log
+          };
         }),
         checklist: checklistPayload,
         catatanTambahan: document.getElementById('catatanTambahan').value,
@@ -400,21 +637,26 @@
         historyBase64: historyData ? historyData.base64 : null, historyFileName: historyData ? historyData.name : null
       };
 
-      google.script.run
-        .withSuccessHandler(function(res){
+      if (!API_URL || API_URL.indexOf('GANTI_DENGAN_URL') > -1){
+        btn.disabled = false; btn.textContent = '➤ SUBMIT FORM';
+        toast('API_URL belum diisi di kode Form.html, tidak bisa submit.', 'error');
+        return;
+      }
+
+      apiPost('submitForm', payload)
+        .then(function(res){
           btn.disabled = false; btn.textContent = '➤ SUBMIT FORM';
           if (res.success){
             toast(res.message, 'success');
             setTimeout(function(){ location.reload(); }, 2500);
           } else {
-            toast(res.message, 'error');
+            toast(res.message || 'Submit gagal, cek data & coba lagi.', 'error');
           }
         })
-        .withFailureHandler(function(err){
+        .catch(function(err){
           btn.disabled = false; btn.textContent = '➤ SUBMIT FORM';
           toast('Gagal submit: ' + err.message, 'error');
-        })
-        .submitForm(payload);
+        });
     }
   </script>
 </body>
