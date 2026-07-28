@@ -197,6 +197,92 @@ tbody tr:hover{ background:#f9fbff; }
 .progress-track{ background:#eef0f5; height:6px; border-radius:4px; width:80px; overflow:hidden;}
 .progress-fill{ height:100%; border-radius:4px; background:var(--blue-600);}
 .progress-pct{ font-size:11.5px; color:var(--text-600); margin-bottom:4px; display:block;}
+
+/* ===== SETTINGS / PENGATURAN ===== */
+.tabs-bar{ display:flex; gap:26px; border-bottom:1px solid var(--border); margin-bottom:18px; overflow-x:auto;}
+.tab-item{ padding:10px 2px; font-size:13.5px; font-weight:600; color:var(--text-400); cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent;}
+.tab-item:hover{ color:var(--navy-900);}
+.tab-item.active{ color:var(--blue-600); border-bottom-color:var(--blue-600);}
+
+.settings-grid3{ display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px;}
+@media (max-width:1100px){ .settings-grid3{ grid-template-columns:1fr;} }
+
+.settings-two-rev{ display:grid; grid-template-columns:1fr 1.5fr; gap:16px;}
+@media (max-width:980px){ .settings-two-rev{ grid-template-columns:1fr;} }
+
+.settings-two{ display:grid; grid-template-columns:2fr 1fr; gap:16px;}
+@media (max-width:980px){ .settings-two{ grid-template-columns:1fr;} }
+
+.toggle-row{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 0;}
+.toggle-row .t-label{ font-size:13px; color:var(--text-900); font-weight:600;}
+.toggle-row .t-sub{ font-size:11.5px; color:var(--text-400); margin-top:2px;}
+.toggle{ position:relative; width:42px; height:23px; background:#ccd3e6; border-radius:999px; cursor:pointer; transition:.2s; flex:none;}
+.toggle.on{ background:var(--blue-600);}
+.toggle.disabled{ opacity:.45; cursor:not-allowed;}
+.toggle::after{ content:''; position:absolute; top:2px; left:2px; width:19px; height:19px; background:#fff; border-radius:50%; transition:.2s; box-shadow:0 1px 2px rgba(0,0,0,.2);}
+.toggle.on::after{ left:21px;}
+
+.status-banner-green{ background:var(--green-bg); border:1px solid #bfe8cf; border-radius:10px; padding:12px 14px; margin-bottom:12px;}
+.status-banner-green .l{ font-size:13px; font-weight:700; color:var(--green); display:flex; align-items:center; gap:8px;}
+.status-banner-green .s{ font-size:11.5px; color:#3d8a5c; margin-top:2px;}
+
+.kv-row{ display:flex; justify-content:space-between; font-size:12.5px; padding:6px 0; color:var(--text-600); border-bottom:1px solid var(--border);}
+.kv-row:last-child{ border-bottom:none;}
+.kv-row b{ color:var(--text-900);}
+
+.jadwal-row{ display:flex; align-items:center; gap:10px; padding:6px 0;}
+.jadwal-row input[type=number]{ width:56px; border:1px solid var(--border); border-radius:6px; padding:5px 6px; font-size:12.5px; text-align:center;}
+.jadwal-row label{ font-size:12.8px; color:var(--text-900); flex:1; cursor:pointer;}
+.jadwal-row input[type=checkbox]{ width:16px; height:16px; flex:none; cursor:pointer;}
+.jadwal-row.disabled label, .jadwal-row.disabled span{ color:var(--text-400);}
+
+.area-select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:8px 10px; font-size:12.8px; margin-bottom:10px;}
+.penerima-item{ display:flex; align-items:center; gap:8px; padding:7px 0; border-bottom:1px solid var(--border); font-size:12.5px;}
+.penerima-item:last-child{ border-bottom:none;}
+.penerima-item input[type=checkbox]{ width:16px; height:16px; flex:none; cursor:pointer;}
+.penerima-item .nm{ font-weight:700; color:var(--text-900);}
+.penerima-item .em{ font-size:11px; color:var(--text-400); margin-left:auto; text-align:right;}
+.penerima-item .role-pill{ font-size:10px; background:#eaf0ff; color:var(--blue-600); padding:1px 7px; border-radius:10px; margin-left:6px; white-space:nowrap;}
+
+.reminder-template{ width:100%; min-height:150px; border:1px solid var(--border); border-radius:8px; padding:10px 12px; font-size:12.3px; font-family:inherit; color:var(--text-900); resize:vertical; line-height:1.6;}
+
+.mini-stat-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px;}
+.mini-stat{ border:1px solid var(--border); border-radius:12px; padding:14px; text-align:center;}
+.mini-stat .v{ font-size:22px; font-weight:800; color:var(--text-900);}
+.mini-stat .l{ font-size:11px; color:var(--text-400); margin-top:4px;}
+.mini-stat.blue{ background:#f3f7ff;} .mini-stat.green{ background:var(--green-bg);} .mini-stat.red{ background:var(--red-bg);} .mini-stat.purple{ background:#f5f0ff;}
+
+.escalation-row{ display:flex; align-items:center; gap:8px; overflow-x:auto; padding:6px 0;}
+.escalation-step{ border:1px solid var(--border); border-radius:10px; padding:10px 12px; min-width:150px; background:#fafbff; flex:none;}
+.escalation-step b{ font-size:11px; color:var(--blue-600); display:block;}
+.escalation-step .tgt{ font-size:12px; font-weight:700; margin-top:4px; color:var(--text-900);}
+.escalation-step .nt{ font-size:10.5px; color:var(--text-400); margin-top:2px;}
+.escalation-arrow{ font-size:16px; color:var(--text-400); flex:none;}
+
+.icon-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-top:8px;}
+.icon-option{ border:1.5px solid var(--border); border-radius:10px; padding:10px 6px; text-align:center; cursor:pointer; position:relative;}
+.icon-option .ic{ font-size:22px;}
+.icon-option .lb{ font-size:9.5px; color:var(--text-600); margin-top:4px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.icon-option.sel{ border-color:var(--blue-600); background:#f3f7ff;}
+.icon-option .chk{ position:absolute; top:5px; right:5px; width:16px; height:16px; border-radius:50%; background:var(--blue-600); color:#fff; font-size:9px; display:none; align-items:center; justify-content:center;}
+.icon-option.sel .chk{ display:flex;}
+
+.form-group{ margin-bottom:14px;}
+.form-group label{ display:block; font-size:12.5px; font-weight:700; color:var(--text-900); margin-bottom:6px;}
+.form-group label .req{ color:var(--red);}
+.form-group input[type=text], .form-group textarea, .form-group select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
+.form-group textarea{ resize:vertical; min-height:60px;}
+
+.subtab-bar{ display:flex; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px;}
+.subtab-item{ padding:8px 2px; font-size:12.8px; font-weight:600; color:var(--text-400); cursor:pointer; border-bottom:2px solid transparent;}
+.subtab-item.active{ color:var(--blue-600); border-bottom-color:var(--blue-600);}
+
+.unit-icon-cell{ width:38px; height:38px; border-radius:8px; background:#f4f6fb; display:flex; align-items:center; justify-content:center; font-size:19px;}
+
+.coming-soon-box{ text-align:center; padding:70px 20px; color:var(--text-400);}
+.coming-soon-box .ic{ font-size:44px; margin-bottom:14px;}
+.coming-soon-box .t{ font-size:15px; font-weight:700; color:var(--text-600); margin-bottom:6px;}
+.coming-soon-box .d{ font-size:12.8px;}
 </style>
 </head>
 <body>
@@ -520,10 +606,8 @@ tbody tr:hover{ background:#f9fbff; }
 
       <!-- ============ PENGATURAN ============ -->
       <div class="page" id="page-pengaturan">
-        <div class="panel">
-          <div class="panel-title">PENGATURAN SISTEM</div>
-          <p style="color:var(--text-400); font-size:13px;">Halaman pengaturan umum aplikasi. Sambungkan menu ini ke sheet konfigurasi Anda sendiri bila diperlukan.</p>
-        </div>
+        <div class="tabs-bar" id="settingsTabs"></div>
+        <div id="settingsTabContent"></div>
       </div>
 
     </div>
@@ -653,8 +737,102 @@ const DEMO_DATA = {
     {nama:"Data Master Unit - Jul 2026",jenis:"Data Master Unit",format:"XLSX",oleh:"Abdul Azis",tanggal:"22 Jul 2026 08:25",status:"Selesai"},
     {nama:"Data Commissioning - Jul 2026",jenis:"Data Commissioning",format:"XLSX",oleh:"Abdul Azis",tanggal:"22 Jul 2026 08:10",status:"Selesai"},
     {nama:"Data Waiting Sticker - Jul 2026",jenis:"Data Waiting Sticker",format:"PDF",oleh:"Abdul Azis",tanggal:"22 Jul 2026 07:55",status:"Selesai"}
+  ],
+  unitTypes: [
+    {icon:"dump_truck",   jenis:"Heavy Dump Truck",    deskripsi:"Unit angkut berat untuk material",            status:"Aktif"},
+    {icon:"excavator",    jenis:"Excavator",            deskripsi:"Unit alat gali",                              status:"Aktif"},
+    {icon:"dozer",        jenis:"Dozer",                 deskripsi:"Unit alat dorong",                            status:"Aktif"},
+    {icon:"motor_grader", jenis:"Grader (Motor Grader)", deskripsi:"Unit perata jalan",                           status:"Aktif"},
+    {icon:"water_truck",  jenis:"Water Truck",          deskripsi:"Unit tangki air",                             status:"Aktif"},
+    {icon:"fuel_truck",   jenis:"Fuel Truck",           deskripsi:"Unit tangki bahan bakar",                     status:"Aktif"},
+    {icon:"compactor",    jenis:"Compactor",            deskripsi:"Unit pemadat tanah",                          status:"Aktif"},
+    {icon:"service_truck",jenis:"Service Truck",        deskripsi:"Unit perawatan dan servis",                   status:"Aktif"},
+    {icon:"tower_lamp",   jenis:"Tower Lamp",            deskripsi:"Unit penerangan",                             status:"Aktif"},
+    {icon:"crane",        jenis:"Crane",                 deskripsi:"Unit alat angkat",                            status:"Aktif"},
+    {icon:"wheel_loader", jenis:"Wheel Loader",         deskripsi:"Unit alat muat material",                     status:"Aktif"},
+    {icon:"backhoe_loader",jenis:"Backhoe Loader",      deskripsi:"Unit gali dan muat kombinasi",                status:"Aktif"},
+    {icon:"skid_steer",   jenis:"Skid Steer Loader",    deskripsi:"Unit loader kompak",                          status:"Aktif"},
+    {icon:"articulated_truck",jenis:"Articulated Truck", deskripsi:"Unit truk angkut bersendi",                  status:"Aktif"},
+    {icon:"compressor",   jenis:"Compressor",           deskripsi:"Unit kompresor udara",                        status:"Aktif"},
+    {icon:"genset",       jenis:"Genset",                deskripsi:"Unit pembangkit listrik cadangan",           status:"Aktif"},
+    {icon:"light_vehicle",jenis:"Light Vehicle",        deskripsi:"Kendaraan operasional ringan",                status:"Aktif"},
+    {icon:"manitou",      jenis:"Manitou",               deskripsi:"Unit forklift all-terrain",                  status:"Aktif"},
+    {icon:"lowboy",       jenis:"Lowboy",                deskripsi:"Unit trailer angkut alat berat",             status:"Non Aktif"}
+  ],
+  reminderSettings: {
+    autoReminder:true,
+    status:"Aktif",
+    terakhirDikirim:"22 Jul 2026 08:00 WIB",
+    berikutnya:"23 Jul 2026 08:00 WIB",
+    jadwal:[
+      {label:"H-90 Hari",checked:true,value:90},
+      {label:"H-60 Hari",checked:true,value:60},
+      {label:"H-30 Hari",checked:true,value:30},
+      {label:"H-14 Hari",checked:true,value:14},
+      {label:"H-7 Hari", checked:true,value:7},
+      {label:"H-3 Hari", checked:true,value:3},
+      {label:"H-1 Hari", checked:true,value:1},
+      {label:"Hari H (Expired)",checked:true,value:0},
+      {label:"H+1 Hari", checked:true,value:1}
+    ],
+    setiapHariSetelahExpired:true,
+    channels:{email:true,telegram:true,whatsapp:false,dashboard:true},
+    template:"⚠️ Reminder Commissioning\nUnit        : {UNIT_ID} - {MODEL}\nJenis Unit  : {JENIS_UNIT}\nSite        : {SITE}\nArea        : {AREA}\nExpired     : {EXPIRED_DATE}\nSisa Hari   : {SISA_HARI}\n\nSilakan segera lakukan pengajuan commissioning.\nTerima kasih.",
+    areaFilter:"BIB - GRB",
+    penerima:[
+      {nama:"Abdul Azis",role:"PIC",email:"abdul.azis@ck.co.id",checked:true},
+      {nama:"Hendro",role:"PIC",email:"hendro@ck.co.id",checked:true},
+      {nama:"Rommy",role:"PIC",email:"rommy@ck.co.id",checked:true},
+      {nama:"Supervisor GRB",role:"Supervisor",email:"supervisor.grb@ck.co.id",checked:true},
+      {nama:"Admin Commissioning",role:"Admin",email:"admin.commissioning@ck.co.id",checked:true}
+    ],
+    expiredReminder:true,
+    jadwalPengiriman:[{label:"08:00 WIB",checked:true},{label:"13:00 WIB",checked:true},{label:"16:00 WIB",checked:true}],
+    customizeTime:"18:00",
+    customizeOn:false,
+    summary:{totalTerkirim:145,berhasil:144,berhasilPct:99.3,gagal:1,gagalPct:0.7,lastSend:"08:00 WIB",lastSendDate:"22 Jul 2026"},
+    escalation:[
+      {range:"H-30 s/d H-14", target:"PIC", note:"Menerima reminder"},
+      {range:"H-7 s/d H-1", target:"PIC + Supervisor Area", note:"Menerima reminder"},
+      {range:"Hari H (Expired) s/d H+3", target:"PIC + Supervisor + Superintendent", note:"Menerima reminder"},
+      {range:"H+7 s/d H+14", target:"Manager Area", note:"Menerima reminder"}
+    ]
+  },
+  reminderLog: [
+    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"CO4536",pic:"Abdul Azis",jenis:"H-30 Hari",channel:"Email, Telegram",status:"Berhasil",ket:"-"},
+    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"WT0213",pic:"Hendro",jenis:"H-7 Hari",channel:"Email, Telegram",status:"Berhasil",ket:"-"},
+    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"HD5678",pic:"Rommy",jenis:"Expired (H+1)",channel:"Email, Telegram",status:"Gagal",ket:"Email tidak valid"},
+    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"EX1021",pic:"Supervisor GRB",jenis:"H-14 Hari",channel:"Dashboard",status:"Berhasil",ket:"-"},
+    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"FV1003",pic:"Admin",jenis:"Expired (H+1)",channel:"Email, Telegram",status:"Berhasil",ket:"-"}
   ]
 };
+
+const ICON_LIBRARY = [
+  {key:"dump_truck",       label:"Dump Truck",         icon:"🚛"},
+  {key:"excavator",        label:"Excavator",          icon:"🚜"},
+  {key:"dozer",            label:"Dozer",              icon:"🚧"},
+  {key:"motor_grader",     label:"Motor Grader",       icon:"🛣️"},
+  {key:"wheel_loader",     label:"Wheel Loader",       icon:"🏗️"},
+  {key:"backhoe_loader",   label:"Backhoe Loader",     icon:"⚙️"},
+  {key:"skid_steer",       label:"Skid Steer Loader",  icon:"🔧"},
+  {key:"articulated_truck",label:"Articulated Truck",  icon:"🚚"},
+  {key:"compactor",        label:"Compactor",          icon:"🛞"},
+  {key:"crane",            label:"Crane",              icon:"🏗️"},
+  {key:"fuel_truck",       label:"Fuel Truck",         icon:"⛽"},
+  {key:"water_truck",      label:"Water Truck",        icon:"💧"},
+  {key:"service_truck",    label:"Service Truck",      icon:"🔩"},
+  {key:"tower_lamp",       label:"Tower Lamp",         icon:"💡"},
+  {key:"compressor",       label:"Compressor",         icon:"🌬️"},
+  {key:"genset",           label:"Genset",             icon:"🔋"},
+  {key:"light_vehicle",    label:"Light Vehicle",      icon:"🚗"},
+  {key:"manitou",          label:"Manitou",            icon:"🏗️"},
+  {key:"lowboy",           label:"Lowboy",             icon:"🚛"},
+  {key:"lainnya",          label:"Lainnya",            icon:"⋯"}
+];
+function iconFor(key){
+  const f = ICON_LIBRARY.find(i=>i.key===key);
+  return f ? f.icon : "⋯";
+}
 
 /* =====================================================================
    HELPERS
@@ -997,6 +1175,377 @@ function renderWaitingSticker(){
 }
 
 /* =====================================================================
+   RENDER: PENGATURAN (SETTINGS)
+===================================================================== */
+const SETTINGS_TABS = [
+  {key:"umum", label:"Umum"},
+  {key:"reminder", label:"Reminder"},
+  {key:"uploadFoto", label:"Upload & Foto"},
+  {key:"dokumen", label:"Dokumen"},
+  {key:"workflow", label:"Workflow"},
+  {key:"akses", label:"Akses & Role"},
+  {key:"integrasi", label:"Integrasi"},
+  {key:"backup", label:"Backup & Restore"}
+];
+let settingsActiveTab = "umum";
+let unitTypeSubtab = "tambah";
+let unitTypeEditIndex = null;
+let unitTypeFormIcon = "motor_grader";
+let unitTypePage = 1;
+
+function switchSettingsTab(key){
+  settingsActiveTab = key;
+  renderPengaturan();
+}
+function renderPengaturan(){
+  document.getElementById('settingsTabs').innerHTML = SETTINGS_TABS.map(t=>`
+    <div class="tab-item ${settingsActiveTab===t.key?'active':''}" onclick="switchSettingsTab('${t.key}')">${t.label}</div>`).join('');
+
+  if(settingsActiveTab==='umum') renderSettingsUmum();
+  else if(settingsActiveTab==='reminder') renderSettingsReminder();
+  else renderSettingsComingSoon(settingsActiveTab);
+}
+
+/* ---------- TAB: UMUM (Master Jenis Unit + Icon) ---------- */
+function resetUnitTypeForm(){
+  unitTypeSubtab = "tambah";
+  unitTypeEditIndex = null;
+  unitTypeFormIcon = "motor_grader";
+  renderSettingsUmum();
+}
+function editUnitType(idx){
+  unitTypeEditIndex = idx;
+  unitTypeSubtab = "edit";
+  const row = DB.unitTypes[idx];
+  unitTypeFormIcon = row.icon;
+  renderSettingsUmum();
+  setTimeout(()=>{
+    const n = document.getElementById('utNama'); if(n) n.value = row.jenis;
+    const d = document.getElementById('utDeskripsi'); if(d) d.value = row.deskripsi;
+    const s = document.getElementById('utStatus'); if(s) s.value = row.status;
+  },0);
+}
+function deleteUnitType(idx){
+  const row = DB.unitTypes[idx];
+  if(confirm(`Hapus jenis unit "${row.jenis}"?`)){
+    DB.unitTypes.splice(idx,1);
+    renderSettingsUmum();
+  }
+}
+function selectUnitTypeIcon(key){
+  unitTypeFormIcon = key;
+  renderSettingsUmum(true);
+}
+function saveUnitType(){
+  const nama = document.getElementById('utNama').value.trim();
+  const deskripsi = document.getElementById('utDeskripsi').value.trim();
+  const status = document.getElementById('utStatus').value;
+  if(!nama){ alert('Nama Jenis Unit wajib diisi.'); return; }
+  const data = {icon:unitTypeFormIcon, jenis:nama, deskripsi:deskripsi, status:status};
+  if(unitTypeSubtab==='edit' && unitTypeEditIndex!==null){
+    DB.unitTypes[unitTypeEditIndex] = data;
+  }else{
+    DB.unitTypes.unshift(data);
+  }
+  resetUnitTypeForm();
+}
+function renderSettingsUmum(keepScroll){
+  const rows = DB.unitTypes;
+  const total = rows.length;
+  const perPage = 10;
+  buildPagination('utPagination', total, perPage, unitTypePage, 'window.__utSetPage');
+  window.__utSetPage = (p)=>{ unitTypePage=p; renderSettingsUmum(); };
+  const pageRows = paginate(rows, unitTypePage, perPage);
+
+  const listHtml = `
+    <div class="panel">
+      <div class="panel-title">MASTER JENIS UNIT</div>
+      <p style="color:var(--text-400); font-size:12.5px; margin:-8px 0 14px;">Kelola data jenis unit yang digunakan dalam sistem.</p>
+      <div class="toolbar">
+        <select style="max-width:140px" id="utPerPage" onchange="unitTypePage=1;renderSettingsUmum()"><option>10</option><option>25</option><option>50</option></select>
+        <span style="font-size:12.5px;color:var(--text-400);white-space:nowrap;">data per halaman</span>
+        <input type="text" id="utSearch" placeholder="Cari jenis unit..." style="max-width:220px;margin-left:auto" oninput="renderSettingsUmum()">
+        <button class="btn btn-primary" onclick="unitTypeSubtab='tambah';unitTypeEditIndex=null;unitTypeFormIcon='motor_grader';renderSettingsUmum();">+ Tambah Jenis Unit</button>
+      </div>
+      <div style="overflow-x:auto">
+        <table id="utTable">
+          <thead><tr><th>No</th><th>Icon</th><th>Jenis Unit</th><th>Deskripsi</th><th>Status</th><th>Aksi</th></tr></thead>
+          <tbody id="utTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination" id="utPagination"></div>
+    </div>
+    <div class="info-box" style="background:#fff8e6;border-color:#ffe8a3;">
+      <div>ℹ️</div>
+      <div><b>Catatan</b><br>Perubahan data jenis unit (termasuk icon) akan berlaku di seluruh halaman sistem seperti form, dashboard, dan laporan.</div>
+    </div>`;
+
+  const formHtml = `
+    <div class="panel">
+      <div class="panel-title">TAMBAH / EDIT JENIS UNIT</div>
+      <div class="subtab-bar">
+        <div class="subtab-item ${unitTypeSubtab==='tambah'?'active':''}" onclick="unitTypeSubtab='tambah';unitTypeEditIndex=null;unitTypeFormIcon='motor_grader';renderSettingsUmum();">Tambah Baru</div>
+        <div class="subtab-item ${unitTypeSubtab==='edit'?'active':''}" onclick="if(unitTypeEditIndex===null){alert('Pilih data pada tabel untuk diedit.');}else{renderSettingsUmum();}">Edit Data</div>
+      </div>
+      <div class="form-group">
+        <label>Nama Jenis Unit <span class="req">*</span></label>
+        <input type="text" id="utNama" placeholder="Contoh: Motor Grader">
+      </div>
+      <div class="form-group">
+        <label>Deskripsi</label>
+        <input type="text" id="utDeskripsi" placeholder="Deskripsi singkat jenis unit">
+      </div>
+      <div class="form-group">
+        <label>Status <span class="req">*</span></label>
+        <select id="utStatus"><option>Aktif</option><option>Non Aktif</option></select>
+      </div>
+      <div class="form-group">
+        <label>Pilih Icon Unit <span class="req">*</span></label>
+        <div class="icon-grid">
+          ${ICON_LIBRARY.map(ic=>`
+            <div class="icon-option ${unitTypeFormIcon===ic.key?'sel':''}" onclick="selectUnitTypeIcon('${ic.key}')">
+              <div class="chk">✓</div>
+              <div class="ic">${ic.icon}</div>
+              <span class="lb">${ic.label}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;">
+        <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="resetUnitTypeForm()">Batal</button>
+        <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="saveUnitType()">💾 Simpan</button>
+      </div>
+    </div>`;
+
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="info-box" style="margin-bottom:16px;">ℹ️ <div><b>Informasi</b><br>Kelola data jenis unit yang digunakan dalam sistem. Icon digunakan untuk menampilkan jenis unit di semua halaman.</div></div>
+    <div class="settings-two">
+      <div>${listHtml}</div>
+      <div>${formHtml}</div>
+    </div>`;
+
+  const term = (document.getElementById('utSearch')||{}).value || '';
+  const filtered = filterRows(rows, term, ['jenis','deskripsi']);
+  document.getElementById('utTableBody').innerHTML = paginate(filtered, unitTypePage, perPage).map((r,i)=>{
+    const realIdx = DB.unitTypes.indexOf(r);
+    return `<tr>
+      <td>${(unitTypePage-1)*perPage+i+1}</td>
+      <td><div class="unit-icon-cell">${iconFor(r.icon)}</div></td>
+      <td><b>${r.jenis}</b></td>
+      <td>${r.deskripsi}</td>
+      <td>${pillFor(r.status)}</td>
+      <td>
+        <button class="icon-btn blue" title="Lihat">👁</button>
+        <button class="icon-btn blue" title="Edit" onclick="editUnitType(${realIdx})">✏️</button>
+        <button class="icon-btn red" title="Hapus" onclick="deleteUnitType(${realIdx})">🗑</button>
+      </td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="6" class="empty-state">Tidak ada data</td></tr>`;
+}
+
+/* ---------- TAB: REMINDER ---------- */
+function toggleReminderFlag(path){
+  const rs = DB.reminderSettings;
+  const parts = path.split('.');
+  let obj = rs;
+  for(let i=0;i<parts.length-1;i++) obj = obj[parts[i]];
+  const key = parts[parts.length-1];
+  obj[key] = !obj[key];
+  renderSettingsReminder();
+}
+function toggleJadwalItem(idx){
+  DB.reminderSettings.jadwal[idx].checked = !DB.reminderSettings.jadwal[idx].checked;
+  renderSettingsReminder();
+}
+function updateJadwalValue(idx, val){
+  DB.reminderSettings.jadwal[idx].value = parseInt(val)||0;
+}
+function togglePenerimaItem(idx){
+  DB.reminderSettings.penerima[idx].checked = !DB.reminderSettings.penerima[idx].checked;
+  renderSettingsReminder();
+}
+function toggleAllPenerima(){
+  const rs = DB.reminderSettings;
+  const allChecked = rs.penerima.every(p=>p.checked);
+  rs.penerima.forEach(p=> p.checked = !allChecked);
+  renderSettingsReminder();
+}
+function toggleJadwalPengiriman(idx){
+  DB.reminderSettings.jadwalPengiriman[idx].checked = !DB.reminderSettings.jadwalPengiriman[idx].checked;
+  renderSettingsReminder();
+}
+function saveReminderSettings(){
+  alert('Perubahan pengaturan reminder berhasil disimpan (demo mode - belum tersambung ke spreadsheet).');
+}
+function renderSettingsReminder(){
+  const rs = DB.reminderSettings;
+  const allChecked = rs.penerima.every(p=>p.checked);
+
+  const col1 = `
+    <div class="panel">
+      <div class="panel-title">🔔 REMINDER COMMISSIONING</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 12px;">Atur pengingat otomatis untuk masa berlaku commissioning unit.</p>
+      <div class="status-banner-green">
+        <div class="l">✅ Aktifkan Reminder Otomatis</div>
+        <div class="s">Reminder akan dikirim setiap hari sesuai jadwal yang ditentukan.</div>
+      </div>
+      <div class="toggle-row" style="margin-top:-6px;justify-content:flex-end;">
+        <div class="toggle ${rs.autoReminder?'on':''}" onclick="toggleReminderFlag('autoReminder')"></div>
+      </div>
+      <div class="kv-row"><span>Status</span><b>${pillFor(rs.status)}</b></div>
+      <div class="kv-row"><span>Terakhir Dikirim</span><b>${rs.terakhirDikirim}</b></div>
+      <div class="kv-row"><span>Berikutnya</span><b>${rs.berikutnya}</b></div>
+    </div>`;
+
+  const col2 = `
+    <div class="panel">
+      <div class="panel-title">🕐 JADWAL REMINDER</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 12px;">Pilih waktu pengingat sebelum masa berlaku habis (H-).</p>
+      ${rs.jadwal.map((j,idx)=>`
+        <div class="jadwal-row ${j.checked?'':'disabled'}">
+          <input type="checkbox" ${j.checked?'checked':''} onchange="toggleJadwalItem(${idx})">
+          <label onclick="toggleJadwalItem(${idx})">${j.label}</label>
+          <input type="number" value="${j.value}" onchange="updateJadwalValue(${idx}, this.value)"> <span style="font-size:11.5px;color:var(--text-400)">Hari</span>
+        </div>`).join('')}
+      <div class="jadwal-row" style="margin-top:6px;">
+        <input type="checkbox" ${rs.setiapHariSetelahExpired?'checked':''} onchange="toggleReminderFlag('setiapHariSetelahExpired')">
+        <label onclick="toggleReminderFlag('setiapHariSetelahExpired')">Setiap hari setelah expired</label>
+        <span title="Reminder akan terus dikirim setiap hari selama unit berstatus expired" style="color:var(--text-400);cursor:help;">ⓘ</span>
+      </div>
+    </div>`;
+
+  const col3 = `
+    <div class="panel">
+      <div class="panel-title">👥 PENERIMA REMINDER</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Pilih penerima reminder. Semua PIC area yang dipilih akan menerima notifikasi.</p>
+      <label style="font-size:11.5px;font-weight:700;color:var(--text-600);">Berdasarkan Area</label>
+      <select class="area-select">
+        <option>${rs.areaFilter}</option>
+      </select>
+      ${rs.penerima.map((p,idx)=>`
+        <div class="penerima-item">
+          <input type="checkbox" ${p.checked?'checked':''} onchange="togglePenerimaItem(${idx})">
+          <div><span class="nm">${p.nama}</span><span class="role-pill">${p.role}</span></div>
+          <span class="em">${p.email}</span>
+        </div>`).join('')}
+      <div class="penerima-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px;">
+        <input type="checkbox" ${allChecked?'checked':''} onchange="toggleAllPenerima()">
+        <b>Pilih Semua</b>
+      </div>
+    </div>`;
+
+  const col4 = `
+    <div class="panel">
+      <div class="panel-title">📢 CHANNEL REMINDER</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 8px;">Pilih channel untuk mengirim reminder.</p>
+      <div class="toggle-row"><div class="t-label">📧 Email</div><div class="toggle ${rs.channels.email?'on':''}" onclick="toggleReminderFlag('channels.email')"></div></div>
+      <div class="toggle-row"><div class="t-label">📨 Telegram</div><div class="toggle ${rs.channels.telegram?'on':''}" onclick="toggleReminderFlag('channels.telegram')"></div></div>
+      <div class="toggle-row"><div class="t-label" style="color:var(--text-400)">💬 WhatsApp (Coming Soon)</div><div class="toggle disabled"></div></div>
+      <div class="toggle-row"><div class="t-label">🔔 Notifikasi Dashboard</div><div class="toggle ${rs.channels.dashboard?'on':''}" onclick="toggleReminderFlag('channels.dashboard')"></div></div>
+    </div>`;
+
+  const col5 = `
+    <div class="panel">
+      <div class="panel-title">✉️ TEMPLATE PESAN REMINDER <span class="link" onclick="if(confirm('Reset template ke default?')){renderSettingsReminder();}">Reset ke Default</span></div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Edit template pesan reminder yang akan dikirim.</p>
+      <textarea class="reminder-template" id="reminderTemplate">${rs.template}</textarea>
+      <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end;">
+        <button class="btn btn-outline" onclick="alert('Preview:\\n\\n'+document.getElementById('reminderTemplate').value)">👁 Preview</button>
+        <button class="btn btn-primary" onclick="alert('Test reminder terkirim ke channel yang aktif (demo).')">📨 Kirim Test</button>
+      </div>
+    </div>`;
+
+  const col6 = `
+    <div class="panel">
+      <div class="panel-title">⚠️ REMINDER EXPIRED</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Atur pengingat khusus untuk unit yang sudah expired.</p>
+      <div class="status-banner-green">
+        <div class="l">✅ Aktifkan Reminder Expired</div>
+      </div>
+      <div class="toggle-row" style="margin-top:-6px;justify-content:flex-end;">
+        <div class="toggle ${rs.expiredReminder?'on':''}" onclick="toggleReminderFlag('expiredReminder')"></div>
+      </div>
+      <label style="font-size:11.5px;font-weight:700;color:var(--text-600);">Jadwal Pengiriman</label>
+      ${rs.jadwalPengiriman.map((j,idx)=>`
+        <div class="jadwal-row"><input type="checkbox" ${j.checked?'checked':''} onchange="toggleJadwalPengiriman(${idx})"><label onclick="toggleJadwalPengiriman(${idx})">${j.label}</label></div>`).join('')}
+      <div class="jadwal-row">
+        <input type="checkbox" ${rs.customizeOn?'checked':''} onchange="toggleReminderFlag('customizeOn')">
+        <label onclick="toggleReminderFlag('customizeOn')">Customize</label>
+        <input type="text" value="${rs.customizeTime}" style="width:70px" onchange="DB.reminderSettings.customizeTime=this.value">
+      </div>
+      <div class="info-box" style="margin-top:10px;">ℹ️ <div>Reminder akan dikirim setiap hari sampai status commissioning selesai.</div></div>
+    </div>`;
+
+  const summaryPanel = `
+    <div class="panel">
+      <div class="panel-title">📈 REMINDER SUMMARY HARI INI</div>
+      <div class="mini-stat-grid">
+        <div class="mini-stat blue"><div class="v">${rs.summary.totalTerkirim}</div><div class="l">Total Terkirim<br>pengingat</div></div>
+        <div class="mini-stat green"><div class="v">${rs.summary.berhasil}</div><div class="l">Berhasil<br>(${rs.summary.berhasilPct}%)</div></div>
+        <div class="mini-stat red"><div class="v">${rs.summary.gagal}</div><div class="l">Gagal<br>(${rs.summary.gagalPct}%)</div></div>
+        <div class="mini-stat purple"><div class="v">${rs.summary.lastSend}</div><div class="l">Last Send<br>${rs.summary.lastSendDate}</div></div>
+      </div>
+    </div>
+    <div class="panel">
+      <div class="panel-title">📶 ESCALATION REMINDER</div>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Atur eskalasi penerima jika pengajuan belum dilakukan sesuai waktu.</p>
+      <div class="escalation-row">
+        ${rs.escalation.map((e,idx)=>`
+          ${idx>0?'<div class="escalation-arrow">→</div>':''}
+          <div class="escalation-step"><b>${e.range}</b><div class="tgt">${e.target}</div><div class="nt">${e.note}</div></div>
+        `).join('')}
+      </div>
+      <div class="info-box" style="margin-top:10px;">ℹ️ <div>Sistem akan otomatis menambahkan penerima sesuai level eskalasi jika pengajuan belum disubmit.</div></div>
+    </div>`;
+
+  const logPanel = `
+    <div class="panel">
+      <div class="panel-title">🕓 RIWAYAT PENGIRIMAN REMINDER <span class="link" onclick="exportTableCSV('reminderLogTable','riwayat_reminder')">⬇ Export Log</span></div>
+      <div style="overflow-x:auto">
+        <table id="reminderLogTable">
+          <thead><tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Unit ID</th><th>PIC</th><th>Jenis Reminder</th><th>Channel</th><th>Status</th><th>Keterangan</th></tr></thead>
+          <tbody>
+            ${DB.reminderLog.map((r,i)=>`
+              <tr><td>${i+1}</td><td>${r.tanggal}</td><td>${r.jam}</td><td class="unit-id">${r.unitId}</td><td>${r.pic}</td><td>${r.jenis}</td><td>${r.channel}</td><td>${pillFor(r.status)}</td><td>${r.ket}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      <div class="pagination">
+        <div class="info">Menampilkan 1 - ${DB.reminderLog.length} dari 58 data</div>
+        <div class="pages">
+          <button disabled>‹</button>
+          <button class="active">1</button><button>2</button><button>3</button><button>…</button><button>12</button>
+          <button>›</button>
+        </div>
+      </div>
+    </div>`;
+
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="settings-grid3">${col1}${col2}${col3}</div>
+    <div class="settings-grid3">${col4}${col5}${col6}</div>
+    <div class="settings-two-rev">
+      <div>${summaryPanel}</div>
+      <div>${logPanel}</div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+      <button class="btn btn-primary" onclick="saveReminderSettings()">💾 SIMPAN PERUBAHAN</button>
+    </div>`;
+}
+
+/* ---------- OTHER TABS: COMING SOON ---------- */
+const SETTINGS_TAB_LABELS = {uploadFoto:"Upload & Foto", dokumen:"Dokumen", workflow:"Workflow", akses:"Akses & Role", integrasi:"Integrasi", backup:"Backup & Restore"};
+function renderSettingsComingSoon(key){
+  const label = SETTINGS_TAB_LABELS[key] || key;
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="panel">
+      <div class="coming-soon-box">
+        <div class="ic">🚧</div>
+        <div class="t">${label} - Segera Hadir</div>
+        <div class="d">Pengaturan ${label} sedang dalam pengembangan dan akan tersedia pada update berikutnya.</div>
+      </div>
+    </div>`;
+}
+
+/* =====================================================================
    RENDER: EXPIRED / NEAR EXPIRED
 ===================================================================== */
 let expPage=1;
@@ -1197,7 +1746,7 @@ function renderPage(key){
     dashboard:renderDashboard, masterUnit:renderMasterUnit, jenisUnit:renderJenisUnit,
     area:renderArea, commissioning:renderCommissioning, waitingSticker:renderWaitingSticker,
     expired:renderExpired, laporan:renderLaporan, exportData:renderExportData, userManagement:renderUsers,
-    pengaturan:()=>{}
+    pengaturan:renderPengaturan
   };
   if(map[key]) map[key]();
 }
