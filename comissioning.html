@@ -829,7 +829,15 @@ function iconFor(key){
 /* =====================================================================
    HELPERS
 ===================================================================== */
-function pillFor(status){
+  function pick(obj, keys){
+  if(!obj) return '';
+  for(const k of keys){
+    if(obj[k] !== undefined && obj[k] !== null && obj[k] !== '') return obj[k];
+  }
+  return '';
+}
+  
+  function pillFor(status){
   const s = (status||"").toLowerCase();
   if(s.includes("expired") && !s.includes("near")) return `<span class="pill red">${status}</span>`;
   if(s.includes("near")) return `<span class="pill orange">${status}</span>`;
@@ -948,16 +956,16 @@ setInterval(updateClock,1000*30); updateClock();
 let dashPage=1;
 function renderDashboard(){
   const rows = DB.commissioning.map(r=>{
-  const mu = DB.masterUnit.find(m=>m.Unit_ID===r.Unit_ID);
+  const unitId = pick(r,['Unit_ID']);
+  const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
   return {
-    unitId: r.Unit_ID,
-    model2: mu ? mu.Model_Unit : '',
-    area: r.Area,
-    site: r.Site,
-    reg: r.Registration_No,
-    selesai: r.Masa_Berlaku,
-    sisa: r.Sisa_Hari,
-    status: r.Status
+    unitId: unitId,
+    model2: mu ? pick(mu,['Model_Unit']) : '',
+    area: pick(r,['Area']),
+    site: pick(r,['Site']),
+    reg: pick(r,['Registration_No']),
+    selesai: pick(r,['Masa_Berlaku']),
+    status: pick(r,['Status'])
   };
 });
   const total = DB.masterUnit.length;
@@ -1018,25 +1026,35 @@ let muPage=1;
 function renderMasterUnit(){
   const rows = DB.masterUnit;
   const total = rows.length;
-  const active = rows.filter(r=>r.status==="Active"||r.status==="Aktif").length;
+  const active = rows.filter(r=>{
+    const s = pick(r,['Status']);
+    return s==="Active"||s==="Aktif";
+  }).length;
   document.getElementById('muStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "100% dari total unit", "blue","🚚"),
     statCard("UNIT AKTIF", active, "Unit", `${Math.round(active/total*1000)/10}% dari total unit`, "green","✅"),
     statCard("UNIT NON AKTIF", total-active, "Unit", `${Math.round((total-active)/total*1000)/10}% dari total unit`, "orange","⏸️"),
-    statCard("TOTAL KOMISIONING (BIB+TIA)", rows.reduce((a,r)=>a+r.bib+r.tia,0), "Data", "", "blue","📄")
+    statCard("TOTAL KOMISIONING (BIB+TIA)", DB.commissioning.length, "Data", "", "blue","📄")
   ].join('');
 
   const term = document.getElementById('muSearch').value;
-  const filtered = filterRows(rows, term, ['unitId','model','sn']);
+  const filtered = rows.filter(r=>{
+    if(!term) return true;
+    const t = term.toLowerCase();
+    return [pick(r,['Unit_ID']),pick(r,['Model_Unit','Model']),pick(r,['Serial_Number'])].some(v=>String(v||'').toLowerCase().includes(t));
+  });
   const perPage=10;
   buildPagination('muPagination', filtered.length, perPage, muPage, 'window.__muSetPage');
   window.__muSetPage=(p)=>{muPage=p; renderMasterUnit();};
   const pageRows = paginate(filtered, muPage, perPage);
-  document.getElementById('muTableBody').innerHTML = pageRows.map((r,i)=>`
-    <tr><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${r.unitId}</td><td>${r.model}</td><td>${r.jenis}</td>
-    <td>${r.sn}</td><td>${r.tahun}</td><td>${pillFor(r.status)}</td><td>${r.bib}</td><td>${r.tia}</td><td>${r.bib+r.tia}</td>
-    <td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>
-  `).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
+  document.getElementById('muTableBody').innerHTML = pageRows.map((r,i)=>{
+    const unitId = pick(r,['Unit_ID']);
+    const bibCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='BIB').length;
+    const tiaCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='TIA').length;
+    return `<tr><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${pick(r,['Model_Unit','Model'])}</td><td>${pick(r,['Jenis_Unit'])}</td>
+    <td>${pick(r,['Serial_Number'])}</td><td>${pick(r,['Tahun'])}</td><td>${pillFor(pick(r,['Status']))}</td><td>${bibCount}</td><td>${tiaCount}</td><td>${bibCount+tiaCount}</td>
+    <td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+  }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
 /* =====================================================================
@@ -1044,16 +1062,19 @@ function renderMasterUnit(){
 ===================================================================== */
 function renderJenisUnit(){
   const rows = DB.jenisUnit;
-  const aktif = rows.filter(r=>r.status==="Aktif").length;
+  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
   document.getElementById('juStats').innerHTML = [
     statCard("TOTAL JENIS UNIT", rows.length, "Jenis", "", "blue","🚚"),
     statCard("AKTIF", aktif, "Jenis", `${Math.round(aktif/rows.length*1000)/10}% dari total jenis unit`, "green","✅"),
     statCard("NON AKTIF", rows.length-aktif, "Jenis", "", "orange","⏸️"),
-    statCard("TOTAL UNIT (SEMUA JENIS)", rows.reduce((a,r)=>a+r.total,0), "Unit", "", "blue","📄")
+    statCard("TOTAL UNIT (SEMUA JENIS)", DB.masterUnit.length, "Unit", "", "blue","📄")
   ].join('');
-  document.getElementById('juTableBody').innerHTML = rows.map((r,i)=>`
-    <tr><td>${i+1}</td><td class="unit-id">${r.kode}</td><td>${r.jenis}</td><td>${r.kategori}</td><td>${r.deskripsi}</td>
-    <td>${r.total}</td><td>${r.aktif}</td><td>${pillFor(r.status)}</td></tr>`).join('');
+  document.getElementById('juTableBody').innerHTML = rows.map((r,i)=>{
+    const jenis = pick(r,['Jenis_Unit']);
+    const totalUnit = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis).length;
+    return `<tr><td>${i+1}</td><td class="unit-id">${pick(r,['Kode'])}</td><td>${jenis}</td><td>${pick(r,['Kategori'])}</td><td>${pick(r,['Deskripsi'])}</td>
+    <td>${totalUnit}</td><td>${totalUnit}</td><td>${pillFor(pick(r,['Status']))}</td></tr>`;
+  }).join('');
 }
 
 /* =====================================================================
@@ -1061,7 +1082,7 @@ function renderJenisUnit(){
 ===================================================================== */
 function renderArea(){
   const rows = DB.area;
-  const aktif = rows.filter(r=>r.status==="Aktif").length;
+  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
   document.getElementById('areaStats').innerHTML = [
     statCard("TOTAL AREA", rows.length, "Area", "", "blue","📍"),
     statCard("AREA AKTIF", aktif, "Area", `${Math.round(aktif/rows.length*1000)/10}% dari total area`, "green","✅"),
@@ -1069,8 +1090,8 @@ function renderArea(){
     statCard("TOTAL AREA (SEMUA SITE)", rows.length, "Area", "Tersebar di semua site", "blue","📄")
   ].join('');
   document.getElementById('areaTableBody').innerHTML = rows.map((r,i)=>`
-    <tr><td>${i+1}</td><td class="unit-id">${r.kode}</td><td>${r.nama}</td><td><span class="pill blue">${r.site}</span></td>
-    <td>${r.group}</td><td>${r.deskripsi}</td><td>${pillFor(r.status)}</td></tr>`).join('');
+    <tr><td>${i+1}</td><td class="unit-id">${pick(r,['Kode_Area','Kode'])}</td><td>${pick(r,['Nama_Area','Area_Nama'])}</td><td><span class="pill blue">${pick(r,['Site','Site_Code'])}</span></td>
+    <td>${pick(r,['Area_Group'])}</td><td>${pick(r,['Deskripsi'])}</td><td>${pillFor(pick(r,['Status']))}</td></tr>`).join('');
 }
 
 /* =====================================================================
@@ -1080,9 +1101,9 @@ let comPage=1;
 function renderCommissioning(){
   const rows = DB.commissioning;
   const total = rows.length;
-  const aktif = rows.filter(r=>r.status==="Aktif").length;
-  const near = rows.filter(r=>r.status==="Near Expired").length;
-  const exp = rows.filter(r=>r.status==="Expired").length;
+  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
+  const near = rows.filter(r=>pick(r,['Status'])==="Near Expired").length;
+  const exp = rows.filter(r=>pick(r,['Status'])==="Expired").length;
   document.getElementById('comStats').innerHTML = [
     statCard("TOTAL KOMISIONING", total, "Data", "Tersebar di semua site", "blue","🗂️"),
     statCard("AKTIF", aktif, "Data", `${Math.round(aktif/total*1000)/10}% dari total komisioning`, "green","✅"),
@@ -1090,16 +1111,22 @@ function renderCommissioning(){
     statCard("EXPIRED", exp, "Data", `${Math.round(exp/total*1000)/10}% dari total komisioning`, "red","❌")
   ].join('');
   const term = document.getElementById('comSearch').value;
-  const filtered = filterRows(rows, term, ['unitId','sn','reg']);
+  const filtered = rows.filter(r=>{
+    if(!term) return true;
+    const t = term.toLowerCase();
+    return [pick(r,['Unit_ID']),pick(r,['Registration_No'])].some(v=>String(v||'').toLowerCase().includes(t));
+  });
   const perPage=10;
   buildPagination('comPagination', filtered.length, perPage, comPage, 'window.__comSetPage');
   window.__comSetPage=(p)=>{comPage=p; renderCommissioning();};
   const pageRows = paginate(filtered, comPage, perPage);
-  document.getElementById('comTableBody').innerHTML = pageRows.map((r,i)=>`
-    <tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${r.unitId}</td><td>${r.model}</td><td>${r.sn}</td>
-    <td><span class="pill blue">${r.site}</span></td><td>${r.area}</td><td>${r.reg}</td><td>${r.mulai}</td><td>${r.selesai}</td>
-    <td>${pillFor(r.status)}</td><td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>
-  `).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
+  document.getElementById('comTableBody').innerHTML = pageRows.map((r,i)=>{
+    const unitId = pick(r,['Unit_ID']);
+    const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
+    return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
+    <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td><td>${pick(r,['Registration_No'])}</td><td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
+    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+  }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
 /* =====================================================================
@@ -1116,18 +1143,21 @@ function resetPrepFilters(){
   renderWaitingSticker();
 }
 function renderWaitingSticker(){
-  const rows = DB.waitingSticker;
-  const total = rows.length;
-  const waitingDok = rows.filter(r=>r.status==="Waiting Admin"||r.status==="Waiting History").length;
-  const readyZip = rows.filter(r=>r.status==="Ready ZIP").length;
-  const belumLengkap = rows.filter(r=>r.status==="Belum Lengkap").length;
-
-  document.getElementById('prepStats').innerHTML = [
-    prepStatCard("TOTAL PREPARATION", total, "Unit", "Semua unit dalam proses preparation", "#eaf0ff", "var(--blue-600)", "📋", "var(--blue-600)", 100),
-    prepStatCard("WAITING DOKUMEN", waitingDok, "Unit", "Menunggu upload BAST / History", "var(--orange-bg)", "var(--orange)", "📄", "var(--orange)", total?Math.round(waitingDok/total*100):0),
-    prepStatCard("READY GENERATE ZIP", readyZip, "Unit", "Siap generate ZIP dan upload portal", "var(--green-bg)", "var(--green)", "🗜️", "var(--green)", total?Math.round(readyZip/total*100):0),
-    prepStatCard("BELUM LENGKAP", belumLengkap, "Unit", "Foto / Checklist belum lengkap", "var(--red-bg)", "var(--red)", "⚠️", "var(--red)", total?Math.round(belumLengkap/total*100):0)
-  ].join('');
+  const rows = DB.waitingSticker.map(r=>({
+  unitId: pick(r,['Unit_ID (FK)','Unit_ID']),
+  model: pick(r,['Model_Type']),
+  sn: pick(r,['Serial_Number']),
+  site: pick(r,['Site']),
+  area: pick(r,['Area']),
+  foto: pick(r,['Foto_4_Sisi'])==='Lengkap',
+  checklist: pick(r,['Checklist'])==='Lengkap',
+  bast: pick(r,['BAST'])==='Sudah',
+  history: pick(r,['History_Maintenance'])==='Sudah',
+  progress: Math.round((Number(pick(r,['Progress_Percent']))||0)*100),
+  status: pick(r,['Status_Preparation']),
+  prioritas: pick(r,['Prioritas']),
+  hari: pick(r,['Hari_di_Preparation'])
+}));
 
   const term = document.getElementById('prepSearch').value;
   let filtered = filterRows(rows, term, ['unitId','model','sn']);
@@ -1549,18 +1579,22 @@ function renderSettingsComingSoon(key){
 ===================================================================== */
 let expPage=1;
 function renderExpired(){
-  const rows = DB.expired;
-  const total = rows.length;
-  const expiredN = rows.filter(r=>r.status==="Expired").length;
-  const near30 = rows.filter(r=>r.status==="Near Expired" && r.sisa<=30).length;
-  const near6030 = rows.filter(r=>r.status==="Near Expired" && r.sisa>30).length;
-  const aman = DB.masterUnit.length - total;
-  document.getElementById('expStats').innerHTML = [
-    statCard("EXPIRED", expiredN, "Unit", `${Math.round(expiredN/total*1000)/10}% dari total unit`, "red","❌"),
-    statCard("NEAR EXPIRED (≤30 hari)", near30, "Unit", "", "orange","⚠️"),
-    statCard("NEAR EXPIRED (31-60 hari)", near6030, "Unit", "", "orange","⏰"),
-    statCard("AMAN (>60 hari)", Math.max(aman,0), "Unit", "", "green","✅")
-  ].join('');
+  const rows = DB.expired.map(r=>{
+  const unitId = pick(r,['Unit_ID']);
+  const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
+  return {
+    unitId: unitId,
+    model: mu ? pick(mu,['Model_Unit']) : '',
+    sn: mu ? pick(mu,['Serial_Number']) : '',
+    site: pick(r,['Site']),
+    area: pick(r,['Area']),
+    idbibtia: pick(r,['Registration_No']),
+    selesai: pick(r,['Masa_Berlaku']),
+    sisa: Number(pick(r,['Sisa_Hari'])) || 0,
+    status: pick(r,['Status']),
+    prioritas: pick(r,['Prioritas'])
+  };
+});
 
   const term = document.getElementById('expSearch').value;
   let filtered = filterRows(rows, term, ['unitId','model','sn']);
@@ -1715,8 +1749,8 @@ function renderUsers(){
    FILTER TOP BAR
 ===================================================================== */
 function populateTopFilters(){
-  const sites = [...new Set(DB.area.map(a=>a.site))];
-  const areas = [...new Set(DB.area.map(a=>a.nama))];
+  const sites = [...new Set(DB.area.map(a=>pick(a,['Site'])))];
+const areas = [...new Set(DB.area.map(a=>pick(a,['Nama_Area'])))];
   const siteSel = document.getElementById('filterSite');
   const areaSel = document.getElementById('filterArea');
   siteSel.innerHTML = '<option value="ALL">ALL SITE</option>' + sites.map(s=>`<option>${s}</option>`).join('');
