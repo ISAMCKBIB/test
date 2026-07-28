@@ -1,13 +1,103 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
-import {
-  Home, ClipboardList, Truck, MapPin, FolderOpen, FileEdit, AlarmClock,
-  BarChart3, Download, Users as UsersIcon, Settings, Menu, Bell, Search,
-  RotateCcw, Filter, ChevronLeft, ChevronRight, Wifi, WifiOff, CheckCircle2,
-  XCircle, Clock, AlertTriangle, TrendingUp, Plus, Pencil, Trash2, X, Loader2
-} from "lucide-react";
-import {
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip, Legend
-} from "recharts";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ISAM CK BIB - Commissioning Monitoring</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
+<style>
+  html, body { margin:0; padding:0; background:#f4f6fb; }
+  #root { min-height:100vh; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react" data-type="module">
+const { useState, useEffect, useMemo, useCallback } = React;
+
+/* =====================================================================
+   ICON SHIMS (pengganti lucide-react supaya jalan tanpa build step,
+   cukup React + Babel standalone dari CDN)
+===================================================================== */
+function makeIcon(glyph) {
+  return function Icon({ size = 16, style, ...rest }) {
+    return (
+      <span aria-hidden="true" style={{
+        fontSize: size, lineHeight: 1, display: "inline-block", ...style
+      }} {...rest}>{glyph}</span>
+    );
+  };
+}
+const Home = makeIcon("\u{1F3E0}");
+const ClipboardList = makeIcon("\u{1F4CB}");
+const Truck = makeIcon("\u{1F69A}");
+const MapPin = makeIcon("\u{1F4CD}");
+const FolderOpen = makeIcon("\u{1F5C2}\u{FE0F}");
+const FileEdit = makeIcon("\u{1F4DD}");
+const AlarmClock = makeIcon("\u23F0");
+const BarChart3 = makeIcon("\u{1F4CA}");
+const Download = makeIcon("\u2B07\u{FE0F}");
+const UsersIcon = makeIcon("\u{1F464}");
+const Settings = makeIcon("\u2699\u{FE0F}");
+const Menu = makeIcon("\u2630");
+const Bell = makeIcon("\u{1F514}");
+const Search = makeIcon("\u{1F50E}");
+const RotateCcw = makeIcon("\u21BB");
+const Filter = makeIcon("\u{1F9F0}");
+const ChevronLeft = makeIcon("\u2039");
+const ChevronRight = makeIcon("\u203A");
+const Wifi = makeIcon("\u{1F4F6}");
+const WifiOff = makeIcon("\u{1F4F4}");
+const CheckCircle2 = makeIcon("\u2705");
+const XCircle = makeIcon("\u274C");
+const Clock = makeIcon("\u{1F552}");
+const AlertTriangle = makeIcon("\u26A0\u{FE0F}");
+const TrendingUp = makeIcon("\u{1F4C8}");
+const Plus = makeIcon("\u2795");
+const Pencil = makeIcon("\u270F\u{FE0F}");
+const Trash2 = makeIcon("\u{1F5D1}\u{FE0F}");
+const X = makeIcon("\u2716");
+const Loader2 = makeIcon("\u23F3");
+
+/* =====================================================================
+   DONUT CHART (pengganti recharts, SVG murni supaya tidak butuh library
+   tambahan di versi HTML standalone ini)
+===================================================================== */
+function DonutChart({ data }) {
+  const total = data.reduce((s, d) => s + d.value, 0) || 1;
+  const r = 42, cx = 60, cy = 60, stroke = 16;
+  const circumference = 2 * Math.PI * r;
+  let offsetAcc = 0;
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+      <svg width={120} height={120} viewBox="0 0 120 120" style={{ transform: "rotate(-90deg)", flex: "none" }}>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#eef0f5" strokeWidth={stroke} />
+        {data.map((d, i) => {
+          const frac = d.value / total;
+          const segLen = frac * circumference;
+          const dasharray = `${segLen} ${circumference - segLen}`;
+          const dashoffset = -offsetAcc;
+          offsetAcc += segLen;
+          return (
+            <circle key={i} cx={cx} cy={cy} r={r} fill="none" stroke={d.color} strokeWidth={stroke}
+              strokeDasharray={dasharray} strokeDashoffset={dashoffset} />
+          );
+        })}
+      </svg>
+      <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        {data.map((d, i) => (
+          <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12.5, color: "#54607a" }}>
+            <span style={{ width: 10, height: 10, borderRadius: "50%", background: d.color, flex: "none" }} />
+            {d.name} <b style={{ color: "#151b2e" }}>{d.value}</b>
+          </div>
+        ))}
+        {data.length === 0 && <div style={{ fontSize: 12, color: "#8890a6" }}>Belum ada data</div>}
+      </div>
+    </div>
+  );
+}
 
 /* =====================================================================
    CONFIG - sama seperti CONFIG.API_URL di comissioning.html asli
@@ -481,7 +571,7 @@ const PAGE_META = {
   pengaturan: { title: "Pengaturan", crumb: "Settings > Pengaturan" }
 };
 
-export default function App() {
+function App() {
   const [page, setPage] = useState("dashboard");
   const [collapsed, setCollapsed] = useState(false);
   const [DB, setDB] = useState(null);
@@ -808,17 +898,7 @@ function DashboardPage({ DB, setPage }) {
 
         <div>
           <Panel title="STATUS DISTRIBUSI">
-            <div style={{ height: 190 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={2}>
-                    {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
-                  </Pie>
-                  <RTooltip />
-                  <Legend wrapperStyle={{ fontSize: 12 }} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
+            <DonutChart data={pieData} />
           </Panel>
           <Panel title="PERLU PERHATIAN" right={<span onClick={() => setPage("expired")} style={{ fontSize: 12, color: "#2b5bd7", cursor: "pointer", fontWeight: 600 }}>Lihat semua</span>}>
             {nearList.length === 0 && <div style={{ color: "#8890a6", fontSize: 12.5 }}>Tidak ada unit mendekati expired.</div>}
@@ -1604,3 +1684,12 @@ function PengaturanPage({ isLive, dataMode }) {
     </div>
   );
 }
+
+
+const rootEl = document.getElementById("root");
+const root = ReactDOM.createRoot(rootEl);
+root.render(<App />);
+
+</script>
+</body>
+</html>
