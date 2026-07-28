@@ -1,0 +1,1606 @@
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import {
+  Home, ClipboardList, Truck, MapPin, FolderOpen, FileEdit, AlarmClock,
+  BarChart3, Download, Users as UsersIcon, Settings, Menu, Bell, Search,
+  RotateCcw, Filter, ChevronLeft, ChevronRight, Wifi, WifiOff, CheckCircle2,
+  XCircle, Clock, AlertTriangle, TrendingUp, Plus, Pencil, Trash2, X, Loader2
+} from "lucide-react";
+import {
+  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RTooltip, Legend
+} from "recharts";
+
+/* =====================================================================
+   CONFIG - sama seperti CONFIG.API_URL di comissioning.html asli
+===================================================================== */
+const API_URL = "https://script.google.com/macros/s/AKfycbwNX8mg4p64OlekGpTsK55AeuPW4MDNpu8lEBuf6CUJi40Wmcdhr0-ZGkY8-ayvXGqQaQ/exec";
+
+const SHEET_KEYS = {
+  masterUnit: "Master_Unit",
+  jenisUnit: "Master_Jenis_Unit",
+  area: "Master_Area",
+  site: "Master_Site",
+  commissioning: "Commissioning",
+  preparation: "Preparation_Tracking",
+  users: "Users"
+};
+
+/* =====================================================================
+   FALLBACK DATA (sample nyata dari Data_COM.xlsx, dipakai kalau live
+   fetch ke Apps Script gagal / diblokir sandbox jaringan)
+===================================================================== */
+const FALLBACK_DATA = {"Master_Jenis_Unit": [{"ID": 1.0, "Jenis_Unit": "Heavy Dump Truck", "Code_ID_Unit": "CO", "ICON": null}, {"ID": 2.0, "Jenis_Unit": "Dozer", "Code_ID_Unit": "CD", "ICON": null}, {"ID": 3.0, "Jenis_Unit": "Dozer Rental", "Code_ID_Unit": "XCD", "ICON": null}, {"ID": 4.0, "Jenis_Unit": "Excavator", "Code_ID_Unit": "CE", "ICON": null}, {"ID": 5.0, "Jenis_Unit": "Excavator Rental", "Code_ID_Unit": "XCE", "ICON": null}, {"ID": 6.0, "Jenis_Unit": "Greder Rental", "Code_ID_Unit": "XCG", "ICON": null}, {"ID": 7.0, "Jenis_Unit": "Greder", "Code_ID_Unit": "CG", "ICON": null}, {"ID": 8.0, "Jenis_Unit": "Dump Truck", "Code_ID_Unit": "CT", "ICON": null}, {"ID": 9.0, "Jenis_Unit": "Dump Truck Rental", "Code_ID_Unit": "XCT", "ICON": null}, {"ID": 10.0, "Jenis_Unit": "Compactor", "Code_ID_Unit": "CC", "ICON": null}, {"ID": 11.0, "Jenis_Unit": "Compactor Rental", "Code_ID_Unit": "XCC", "ICON": null}, {"ID": 12.0, "Jenis_Unit": "Service Truck", "Code_ID_Unit": "ST", "ICON": null}, {"ID": 13.0, "Jenis_Unit": "Fuel Truck", "Code_ID_Unit": "FT", "ICON": null}, {"ID": 14.0, "Jenis_Unit": "Tower Lamp", "Code_ID_Unit": "LS", "ICON": null}, {"ID": 15.0, "Jenis_Unit": "Crane", "Code_ID_Unit": "MC", "ICON": null}, {"ID": 16.0, "Jenis_Unit": "Compresor", "Code_ID_Unit": null, "ICON": null}, {"ID": 17.0, "Jenis_Unit": "Water Truck", "Code_ID_Unit": "WT", "ICON": null}, {"ID": 18.0, "Jenis_Unit": "Welding Machine", "Code_ID_Unit": "GWM", "ICON": null}, {"ID": 19.0, "Jenis_Unit": "Genset", "Code_ID_Unit": "PP", "ICON": null}, {"ID": 20.0, "Jenis_Unit": "Light Vehicle", "Code_ID_Unit": "LV", "ICON": null}, {"ID": 21.0, "Jenis_Unit": "Manitou", "Code_ID_Unit": "FH", "ICON": null}, {"ID": 22.0, "Jenis_Unit": "Lowboy", "Code_ID_Unit": "LT", "ICON": null}, {"ID": 23.0, "Jenis_Unit": "Pompa", "Code_ID_Unit": "DP", "ICON": null}, {"ID": 24.0, "Jenis_Unit": "Mobile Maintenance & Service", "Code_ID_Unit": "MS", "ICON": null}, {"ID": 25.0, "Jenis_Unit": "Tyretruck", "Code_ID_Unit": "TT", "ICON": null}, {"ID": 26.0, "Jenis_Unit": null, "Code_ID_Unit": null, "ICON": null}], "Master_Site": [{"ID": 1.0, "Site_Code": "BIB", "Site_Nama": "PT Boneo Indobara"}, {"ID": 2.0, "Site_Code": "TIA", "Site_Nama": "PT Tunas Inti Abadi"}], "Master_Area": [{"ID": 1.0, "Area_Code": "GRB", "Area_Nama": "Girimulya Bawah", "Site_Code": "BIB"}, {"ID": 2.0, "Area_Code": "KGB", "Area_Nama": "Kusan Girimulya Bawah", "Site_Code": "BIB"}, {"ID": 3.0, "Area_Code": "GRB", "Area_Nama": "Girimulya Bawah", "Site_Code": "TIA"}, {"ID": 4.0, "Area_Code": "KGB", "Area_Nama": "Kusan Girimulya Bawah", "Site_Code": "TIA"}], "Users": [{"User_ID": "USR-001", "Nama_Lengkap": "Abdul Azis", "Username": "abdul.azis", "Email": "abdul.azis@ck.co.id", "Role": "Administrator", "Site": "Semua Site", "Area": "Semua Area", "Status": "Aktif", "Last_Login": "2026-07-28"}, {"User_ID": "Catatan: contoh 1 baris di atas. Tambahkan baris baru dengan format User_ID = USR-XXX.", "Nama_Lengkap": null, "Username": null, "Email": null, "Role": null, "Site": null, "Area": null, "Status": null, "Last_Login": null}], "Preparation_Tracking": [{"No": 1.0, "Unit_ID (FK)": "CO4536", "Submission_ID (FK)": "SUB-20260722-001", "Model_Type": "CAT 777G", "Serial_Number": "CATOOHD78S4536", "Site": "BIB", "Area": "GRB", "Foto_4_Sisi": "Lengkap", "Checklist": "Lengkap", "BAST": "Belum", "History_Maintenance": "Belum", "Progress_Percent": 0.5, "Status_Preparation": "Waiting Admin", "Prioritas": "Tinggi", "Tgl_Mulai_Preparation": "2026-07-22", "Hari_di_Preparation": 6.0}, {"No": 2.0, "Unit_ID (FK)": "EX1021", "Submission_ID (FK)": "SUB-20260722-002", "Model_Type": "EX 1021", "Serial_Number": "CAT0336GCL1021", "Site": "BIB", "Area": "KGB", "Foto_4_Sisi": "Lengkap", "Checklist": "Lengkap", "BAST": "Sudah", "History_Maintenance": "Belum", "Progress_Percent": 0.75, "Status_Preparation": "Waiting History", "Prioritas": "Sedang", "Tgl_Mulai_Preparation": "2026-07-22", "Hari_di_Preparation": 6.0}, {"No": 3.0, "Unit_ID (FK)": "WT0213", "Submission_ID (FK)": "SUB-20260721-003", "Model_Type": "HINO 500", "Serial_Number": "HINO500WT0213", "Site": "BIB", "Area": "KGB", "Foto_4_Sisi": "Lengkap", "Checklist": "Lengkap", "BAST": "Sudah", "History_Maintenance": "Sudah", "Progress_Percent": 1.0, "Status_Preparation": "Ready ZIP", "Prioritas": "Sedang", "Tgl_Mulai_Preparation": "2026-07-21", "Hari_di_Preparation": 7.0}, {"No": 4.0, "Unit_ID (FK)": "DT045", "Submission_ID (FK)": "SUB-20260717-004", "Model_Type": "CAT D8T", "Serial_Number": "CATD8TDT045", "Site": "TIA", "Area": "STK", "Foto_4_Sisi": "Belum", "Checklist": "Belum", "BAST": "Belum", "History_Maintenance": "Belum", "Progress_Percent": 0.0, "Status_Preparation": "Belum Lengkap", "Prioritas": "Tinggi", "Tgl_Mulai_Preparation": "2026-07-17", "Hari_di_Preparation": 11.0}, {"No": 5.0, "Unit_ID (FK)": "CO4566", "Submission_ID (FK)": "SUB-20260728-008", "Model_Type": "CAT777E", "Serial_Number": null, "Site": "TIA", "Area": "Kusan Girimulya Bawah", "Foto_4_Sisi": "Lengkap", "Checklist": "Lengkap", "BAST": "Belum", "History_Maintenance": "Belum", "Progress_Percent": 0.5, "Status_Preparation": "Waiting Admin", "Prioritas": "Sedang", "Tgl_Mulai_Preparation": "2026-07-28", "Hari_di_Preparation": 0.0}], "Master_Unit": [{"Unit_ID": "CO2200", "Model_Unit": "773E", "Serial_Number": "ASK00124", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4585", "Model_Unit": 777.0, "Serial_Number": "7W803271", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4181", "Model_Unit": "777E", "Serial_Number": "KDP01355", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4570", "Model_Unit": 777.0, "Serial_Number": "7W803083", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2309", "Model_Unit": "773E", "Serial_Number": "ASK00574", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4182", "Model_Unit": "777E", "Serial_Number": "KDP01356", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2381", "Model_Unit": "773E", "Serial_Number": "PRB00685", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4179", "Model_Unit": "777E", "Serial_Number": "KDP01353", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4565", "Model_Unit": 777.0, "Serial_Number": "7W803066", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4316", "Model_Unit": "777D", "Serial_Number": "3PR77002", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4685", "Model_Unit": 777.0, "Serial_Number": "7W803396", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4553", "Model_Unit": 777.0, "Serial_Number": "7W803024", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4568", "Model_Unit": 777.0, "Serial_Number": "7W803081", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4548", "Model_Unit": 777.0, "Serial_Number": "7W802964", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4560", "Model_Unit": 777.0, "Serial_Number": "7W803046", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4175", "Model_Unit": "777E", "Serial_Number": "KDP01350", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2374", "Model_Unit": "773E", "Serial_Number": "PRB01002", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4546", "Model_Unit": 777.0, "Serial_Number": "7W802921", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4690", "Model_Unit": 777.0, "Serial_Number": "7W804061", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2379", "Model_Unit": "773E", "Serial_Number": "PRB00672", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4577", "Model_Unit": 777.0, "Serial_Number": "7W803135", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2244", "Model_Unit": "773E", "Serial_Number": "PRB00729", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2378", "Model_Unit": "773E", "Serial_Number": "PRB00671", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4177", "Model_Unit": "777E", "Serial_Number": "KDP01351", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4430", "Model_Unit": "777E", "Serial_Number": "KYD02748", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4557", "Model_Unit": 777.0, "Serial_Number": "7W803027", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4547", "Model_Unit": 777.0, "Serial_Number": "7W802963", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4421", "Model_Unit": "777E", "Serial_Number": "KYD02656", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO2370", "Model_Unit": "773E", "Serial_Number": "PRB00992", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4534", "Model_Unit": 777.0, "Serial_Number": "7W802906", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4549", "Model_Unit": 777.0, "Serial_Number": "7W802965", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4180", "Model_Unit": "777E", "Serial_Number": "KDP01354", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2380", "Model_Unit": "773E", "Serial_Number": "PRB00684", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2340", "Model_Unit": "773E", "Serial_Number": "ASK00813", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4495", "Model_Unit": 777.0, "Serial_Number": "7W802667", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4587", "Model_Unit": 777.0, "Serial_Number": "7W803287", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4598", "Model_Unit": 777.0, "Serial_Number": "7W803328", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4595", "Model_Unit": 777.0, "Serial_Number": "7W803315", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2371", "Model_Unit": "773E", "Serial_Number": "PRB00993", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4623", "Model_Unit": 777.0, "Serial_Number": "7W803284", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4599", "Model_Unit": 777.0, "Serial_Number": "7W803327", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4593", "Model_Unit": 777.0, "Serial_Number": "7W803312", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4167", "Model_Unit": "777E", "Serial_Number": "KDP01335", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4500", "Model_Unit": 777.0, "Serial_Number": "7W802716", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO2093", "Model_Unit": "773E", "Serial_Number": "BDA00972", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4493", "Model_Unit": 777.0, "Serial_Number": "7W802641", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4567", "Model_Unit": 777.0, "Serial_Number": "7W803068", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4442", "Model_Unit": "777E", "Serial_Number": "KYD02840", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4580", "Model_Unit": 777.0, "Serial_Number": "7W803172", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4494", "Model_Unit": 777.0, "Serial_Number": "7W802638", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4503", "Model_Unit": 777.0, "Serial_Number": "7W802739", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4502", "Model_Unit": 777.0, "Serial_Number": "7W802722", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4489", "Model_Unit": 777.0, "Serial_Number": "7W802640", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4586", "Model_Unit": 777.0, "Serial_Number": "7W803288", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4693", "Model_Unit": 777.0, "Serial_Number": "7W804060", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4492", "Model_Unit": 777.0, "Serial_Number": "7W802613", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4159", "Model_Unit": "777E", "Serial_Number": "KDP01163", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4596", "Model_Unit": 777.0, "Serial_Number": "7W803314", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2373", "Model_Unit": "773E", "Serial_Number": "PRB00995", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4445", "Model_Unit": "777E", "Serial_Number": "KYD02846", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4544", "Model_Unit": 777.0, "Serial_Number": "7W802916", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4437", "Model_Unit": "777E", "Serial_Number": "KYD02835", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO2047", "Model_Unit": "773E", "Serial_Number": "BDA00495", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4594", "Model_Unit": 777.0, "Serial_Number": "7W803313", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4491", "Model_Unit": 777.0, "Serial_Number": "7W802612", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4688", "Model_Unit": 777.0, "Serial_Number": "7W804052", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4590", "Model_Unit": 777.0, "Serial_Number": "7W803222", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4687", "Model_Unit": 777.0, "Serial_Number": "7W804051", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4694", "Model_Unit": 777.0, "Serial_Number": "7W804064", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2279", "Model_Unit": "773E", "Serial_Number": "ASK00521", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4582", "Model_Unit": 777.0, "Serial_Number": "7W803154", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4441", "Model_Unit": "777E", "Serial_Number": "KYD02839", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2243", "Model_Unit": "773E", "Serial_Number": "PRB00730", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4490", "Model_Unit": 777.0, "Serial_Number": "7W802600", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4431", "Model_Unit": "777E", "Serial_Number": "KYD02749", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4691", "Model_Unit": 777.0, "Serial_Number": "7W804059", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4551", "Model_Unit": 777.0, "Serial_Number": "7W802945", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2349", "Model_Unit": "773E", "Serial_Number": "ASK00850", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4589", "Model_Unit": 777.0, "Serial_Number": "7W803156", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4512", "Model_Unit": 777.0, "Serial_Number": "7W802768", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4545", "Model_Unit": 777.0, "Serial_Number": "7W802919", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4583", "Model_Unit": 777.0, "Serial_Number": "7W803143", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2240", "Model_Unit": "773E", "Serial_Number": "PRB00740", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4552", "Model_Unit": 777.0, "Serial_Number": "7W802948", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4173", "Model_Unit": "777E", "Serial_Number": "KDP01345", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2372", "Model_Unit": "773E", "Serial_Number": "PRB00994", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4632", "Model_Unit": 777.0, "Serial_Number": "7W803194", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4631", "Model_Unit": 777.0, "Serial_Number": "7W803196", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4604", "Model_Unit": 777.0, "Serial_Number": "7W803231", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4630", "Model_Unit": 777.0, "Serial_Number": "7W803197", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4564", "Model_Unit": 777.0, "Serial_Number": "7W803061", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4170", "Model_Unit": "777E", "Serial_Number": "KDP01338", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4619", "Model_Unit": 777.0, "Serial_Number": "7W803252", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4615", "Model_Unit": 777.0, "Serial_Number": "7W803233", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4592", "Model_Unit": 777.0, "Serial_Number": "7W803311", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4470", "Model_Unit": 777.0, "Serial_Number": "7W802557", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4689", "Model_Unit": 777.0, "Serial_Number": "7W804055", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4572", "Model_Unit": 777.0, "Serial_Number": "7W803088", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4627", "Model_Unit": 777.0, "Serial_Number": "7W803209", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4541", "Model_Unit": 777.0, "Serial_Number": "7W802914", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4676", "Model_Unit": 777.0, "Serial_Number": "7W803392", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4629", "Model_Unit": 777.0, "Serial_Number": "7W803198", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4467", "Model_Unit": 777.0, "Serial_Number": "7W802551", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4612", "Model_Unit": 777.0, "Serial_Number": "7W803225", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2238", "Model_Unit": "773E", "Serial_Number": "PRB00742", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4628", "Model_Unit": 777.0, "Serial_Number": "7W803208", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4624", "Model_Unit": 777.0, "Serial_Number": "7W803236", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4616", "Model_Unit": 777.0, "Serial_Number": "7W803234", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4566", "Model_Unit": 777.0, "Serial_Number": "7W803067", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4603", "Model_Unit": 777.0, "Serial_Number": "7W803200", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4633", "Model_Unit": 777.0, "Serial_Number": "7W803195", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4610", "Model_Unit": "777-CB", "Serial_Number": "7W803217", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4626", "Model_Unit": 777.0, "Serial_Number": "7W803211", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2241", "Model_Unit": "773E", "Serial_Number": "PRB00739", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4176", "Model_Unit": "777E", "Serial_Number": "KDP01299", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4505", "Model_Unit": 777.0, "Serial_Number": "7W802741", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4588", "Model_Unit": 777.0, "Serial_Number": "7W803157", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO2253", "Model_Unit": "773E", "Serial_Number": "PRB00984", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4692", "Model_Unit": 777.0, "Serial_Number": "7W804063", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4645", "Model_Unit": 777.0, "Serial_Number": "7W803335", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4579", "Model_Unit": 777.0, "Serial_Number": "7W803173", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4449", "Model_Unit": 777.0, "Serial_Number": "7W802518", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4625", "Model_Unit": 777.0, "Serial_Number": "7W803213", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4440", "Model_Unit": "777E", "Serial_Number": "KYD02838", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4617", "Model_Unit": 777.0, "Serial_Number": "7W803235", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4643", "Model_Unit": 777.0, "Serial_Number": "7W803286", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4542", "Model_Unit": 777.0, "Serial_Number": "7W802918", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4171", "Model_Unit": "777E", "Serial_Number": "KDP01343", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4183", "Model_Unit": "777E", "Serial_Number": "KDP01357", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4172", "Model_Unit": "777E", "Serial_Number": "KDP01344", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4652", "Model_Unit": "777-CB", "Serial_Number": "7W803266", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4550", "Model_Unit": 777.0, "Serial_Number": "7W802942", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4581", "Model_Unit": 777.0, "Serial_Number": "7W803219", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4507", "Model_Unit": 777.0, "Serial_Number": "7W802738", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4578", "Model_Unit": 777.0, "Serial_Number": "7W803174", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4653", "Model_Unit": "777-CB", "Serial_Number": "7W803277", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4597", "Model_Unit": 777.0, "Serial_Number": "7W803316", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4543", "Model_Unit": 777.0, "Serial_Number": "7W802917", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4649", "Model_Unit": "777-CB", "Serial_Number": "7W803256", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4636", "Model_Unit": 777.0, "Serial_Number": "7W803253", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4501", "Model_Unit": 777.0, "Serial_Number": "7W802714", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4605", "Model_Unit": 777.0, "Serial_Number": "7W803232", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4648", "Model_Unit": "777-CB", "Serial_Number": "7W803248", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 1}, {"Unit_ID": "CO4618", "Model_Unit": 777.0, "Serial_Number": "7W803251", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4174", "Model_Unit": "777E", "Serial_Number": "KDP01349", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4469", "Model_Unit": 777.0, "Serial_Number": "7W802556", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4668", "Model_Unit": 777.0, "Serial_Number": "7W803323", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4523", "Model_Unit": 777.0, "Serial_Number": "7W802847", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4526", "Model_Unit": 777.0, "Serial_Number": "7W802840", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}, {"Unit_ID": "CO4178", "Model_Unit": "777E", "Serial_Number": "KDP01352", "Jenis_Unit": "Heavy Dump Truck", "Tahun": 2024.0, "Status": "Active", "Total_Komisioning": 2}], "Commissioning": [{"Commissioning_ID": "CMS-00001", "Unit_ID": "CO2200", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2025/XI/114836", "Tanggal_Terbit": "2025-11-23", "Masa_Berlaku": "2026-05-26", "Sisa_Hari": -63, "Status": "Expired", "Prioritas": "Tinggi"}, {"Commissioning_ID": "CMS-00002", "Unit_ID": "CO2200", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00003", "Unit_ID": "CO4585", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116783", "Tanggal_Terbit": "2026-02-02", "Masa_Berlaku": "2026-08-04", "Sisa_Hari": 7, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00004", "Unit_ID": "CO4585", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00005", "Unit_ID": "CO4181", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116790", "Tanggal_Terbit": "2026-02-02", "Masa_Berlaku": "2026-08-04", "Sisa_Hari": 7, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00006", "Unit_ID": "CO4181", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00007", "Unit_ID": "CO4570", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116793", "Tanggal_Terbit": "2026-02-02", "Masa_Berlaku": "2026-08-04", "Sisa_Hari": 7, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00008", "Unit_ID": "CO4570", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00009", "Unit_ID": "CO2309", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/116760", "Tanggal_Terbit": "2026-02-01", "Masa_Berlaku": "2026-08-04", "Sisa_Hari": 7, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00010", "Unit_ID": "CO2309", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00011", "Unit_ID": "CO4182", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116870", "Tanggal_Terbit": "2026-02-05", "Masa_Berlaku": "2026-08-08", "Sisa_Hari": 11, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00012", "Unit_ID": "CO4182", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00013", "Unit_ID": "CO2381", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116938", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-11", "Sisa_Hari": 14, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00014", "Unit_ID": "CO2381", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00015", "Unit_ID": "CO4179", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116939", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-11", "Sisa_Hari": 14, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00016", "Unit_ID": "CO4179", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00017", "Unit_ID": "CO4565", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116942", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-11", "Sisa_Hari": 14, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00018", "Unit_ID": "CO4565", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00019", "Unit_ID": "CO4316", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116955", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-11", "Sisa_Hari": 14, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00020", "Unit_ID": "CO4316", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00021", "Unit_ID": "CO4685", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117036", "Tanggal_Terbit": "2026-02-10", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00022", "Unit_ID": "CO4685", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00023", "Unit_ID": "CO4553", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116986", "Tanggal_Terbit": "2026-02-09", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00024", "Unit_ID": "CO4553", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00025", "Unit_ID": "CO4568", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116965", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00026", "Unit_ID": "CO4568", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00027", "Unit_ID": "CO4548", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116964", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00028", "Unit_ID": "CO4548", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00029", "Unit_ID": "CO4560", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116987", "Tanggal_Terbit": "2026-02-09", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00030", "Unit_ID": "CO4560", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00031", "Unit_ID": "CO4175", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117033", "Tanggal_Terbit": "2026-02-10", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00032", "Unit_ID": "CO4175", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00033", "Unit_ID": "CO2374", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117067", "Tanggal_Terbit": "2026-02-11", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00034", "Unit_ID": "CO2374", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00035", "Unit_ID": "CO4546", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117070", "Tanggal_Terbit": "2026-02-12", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00036", "Unit_ID": "CO4690", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117040", "Tanggal_Terbit": "2026-02-10", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00037", "Unit_ID": "CO4690", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00038", "Unit_ID": "CO2379", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117030", "Tanggal_Terbit": "2026-02-10", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00039", "Unit_ID": "CO2379", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00040", "Unit_ID": "CO4577", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/116966", "Tanggal_Terbit": "2026-02-08", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00041", "Unit_ID": "CO4577", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00042", "Unit_ID": "CO2244", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117066", "Tanggal_Terbit": "2026-02-11", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00043", "Unit_ID": "CO2244", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00044", "Unit_ID": "CO2378", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117029", "Tanggal_Terbit": "2026-02-10", "Masa_Berlaku": "2026-08-12", "Sisa_Hari": 15, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00045", "Unit_ID": "CO2378", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00046", "Unit_ID": "CO4177", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117078", "Tanggal_Terbit": "18-Aug-25", "Masa_Berlaku": "2026-08-13", "Sisa_Hari": 16, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00047", "Unit_ID": "CO4177", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00048", "Unit_ID": "CO4430", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117082", "Tanggal_Terbit": "2026-02-12", "Masa_Berlaku": "2026-08-13", "Sisa_Hari": 16, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00049", "Unit_ID": "CO4430", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00050", "Unit_ID": "CO4557", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117079", "Tanggal_Terbit": "2026-02-11", "Masa_Berlaku": "2026-08-13", "Sisa_Hari": 16, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00051", "Unit_ID": "CO4557", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00052", "Unit_ID": "CO4547", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117108", "Tanggal_Terbit": "2026-02-12", "Masa_Berlaku": "2026-08-14", "Sisa_Hari": 17, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00053", "Unit_ID": "CO4547", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00054", "Unit_ID": "CO4421", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117107", "Tanggal_Terbit": "2026-02-12", "Masa_Berlaku": "2026-08-14", "Sisa_Hari": 17, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00055", "Unit_ID": "CO2370", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117106", "Tanggal_Terbit": "2026-02-12", "Masa_Berlaku": "2026-08-14", "Sisa_Hari": 17, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00056", "Unit_ID": "CO2370", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00057", "Unit_ID": "CO4534", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117213", "Tanggal_Terbit": "2026-02-13", "Masa_Berlaku": "2026-08-16", "Sisa_Hari": 19, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00058", "Unit_ID": "CO4534", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00059", "Unit_ID": "CO4549", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117225", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-16", "Sisa_Hari": 19, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00060", "Unit_ID": "CO4549", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00061", "Unit_ID": "CO4180", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117224", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-16", "Sisa_Hari": 19, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00062", "Unit_ID": "CO4180", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00063", "Unit_ID": "CO2380", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117215", "Tanggal_Terbit": "2026-02-13", "Masa_Berlaku": "2026-08-16", "Sisa_Hari": 19, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00064", "Unit_ID": "CO2380", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00065", "Unit_ID": "CO2340", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117232", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-16", "Sisa_Hari": 19, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00066", "Unit_ID": "CO2340", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00067", "Unit_ID": "CO4495", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117217", "Tanggal_Terbit": "2026-02-13", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00068", "Unit_ID": "CO4587", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117218", "Tanggal_Terbit": "2026-02-13", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00069", "Unit_ID": "CO4587", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00070", "Unit_ID": "CO4598", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117229", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00071", "Unit_ID": "CO4598", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00072", "Unit_ID": "CO4595", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117228", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00073", "Unit_ID": "CO4595", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00074", "Unit_ID": "CO2371", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117233", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00075", "Unit_ID": "CO2371", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00076", "Unit_ID": "CO4623", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117234", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00077", "Unit_ID": "CO4623", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00078", "Unit_ID": "CO4599", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117230", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00079", "Unit_ID": "CO4599", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00080", "Unit_ID": "CO4593", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117227", "Tanggal_Terbit": "2026-02-15", "Masa_Berlaku": "2026-08-17", "Sisa_Hari": 20, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00081", "Unit_ID": "CO4593", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00082", "Unit_ID": "CO4167", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117266", "Tanggal_Terbit": "2026-02-16", "Masa_Berlaku": "2026-08-19", "Sisa_Hari": 22, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00083", "Unit_ID": "CO4167", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00084", "Unit_ID": "CO4500", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117318", "Tanggal_Terbit": "2026-02-13", "Masa_Berlaku": "2026-08-19", "Sisa_Hari": 22, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00085", "Unit_ID": "CO2093", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117265", "Tanggal_Terbit": "2026-02-16", "Masa_Berlaku": "2026-08-20", "Sisa_Hari": 23, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00086", "Unit_ID": "CO2093", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00087", "Unit_ID": "CO4493", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117353", "Tanggal_Terbit": "2026-02-18", "Masa_Berlaku": "2026-08-20", "Sisa_Hari": 23, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00088", "Unit_ID": "CO4493", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00089", "Unit_ID": "CO4567", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117267", "Tanggal_Terbit": "2026-02-16", "Masa_Berlaku": "2026-08-20", "Sisa_Hari": 23, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00090", "Unit_ID": "CO4567", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00091", "Unit_ID": "CO4442", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117352", "Tanggal_Terbit": "2026-02-18", "Masa_Berlaku": "2026-08-20", "Sisa_Hari": 23, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00092", "Unit_ID": "CO4442", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00093", "Unit_ID": "CO4580", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117308", "Tanggal_Terbit": "2026-02-17", "Masa_Berlaku": "2026-08-20", "Sisa_Hari": 23, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00094", "Unit_ID": "CO4580", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00095", "Unit_ID": "CO4494", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117367", "Tanggal_Terbit": "2026-02-19", "Masa_Berlaku": "2026-08-23", "Sisa_Hari": 26, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00096", "Unit_ID": "CO4494", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00097", "Unit_ID": "CO4503", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117359", "Tanggal_Terbit": "2026-02-21", "Masa_Berlaku": "2026-08-23", "Sisa_Hari": 26, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00098", "Unit_ID": "CO4502", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117395", "Tanggal_Terbit": "2026-02-20", "Masa_Berlaku": "2026-08-23", "Sisa_Hari": 26, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00099", "Unit_ID": "CO4502", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00100", "Unit_ID": "CO4489", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117432", "Tanggal_Terbit": "2026-02-20", "Masa_Berlaku": "2026-08-24", "Sisa_Hari": 27, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00101", "Unit_ID": "CO4489", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00102", "Unit_ID": "CO4586", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117492", "Tanggal_Terbit": "2026-02-23", "Masa_Berlaku": "2026-08-24", "Sisa_Hari": 27, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00103", "Unit_ID": "CO4586", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00104", "Unit_ID": "CO4693", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117494", "Tanggal_Terbit": "2026-02-23", "Masa_Berlaku": "2026-08-24", "Sisa_Hari": 27, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00105", "Unit_ID": "CO4693", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00106", "Unit_ID": "CO4492", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117438", "Tanggal_Terbit": "2026-02-22", "Masa_Berlaku": "2026-08-24", "Sisa_Hari": 27, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00107", "Unit_ID": "CO4492", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00108", "Unit_ID": "CO4159", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117425", "Tanggal_Terbit": "2026-02-21", "Masa_Berlaku": "2026-08-25", "Sisa_Hari": 28, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00109", "Unit_ID": "CO4596", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117441", "Tanggal_Terbit": "2026-02-22", "Masa_Berlaku": "2026-08-25", "Sisa_Hari": 28, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00110", "Unit_ID": "CO4596", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00111", "Unit_ID": "CO2373", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117576", "Tanggal_Terbit": "2026-02-25", "Masa_Berlaku": "2026-08-26", "Sisa_Hari": 29, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00112", "Unit_ID": "CO2373", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00113", "Unit_ID": "CO4445", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/II/117577", "Tanggal_Terbit": "2026-02-25", "Masa_Berlaku": "2026-08-27", "Sisa_Hari": 30, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00114", "Unit_ID": "CO4445", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00115", "Unit_ID": "CO4544", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/II/117440", "Tanggal_Terbit": "2026-02-22", "Masa_Berlaku": "2026-08-27", "Sisa_Hari": 30, "Status": "Near Expired", "Prioritas": "Sedang"}, {"Commissioning_ID": "CMS-00116", "Unit_ID": "CO4544", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00117", "Unit_ID": "CO4437", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117692", "Tanggal_Terbit": "2026-03-01", "Masa_Berlaku": "2026-09-03", "Sisa_Hari": 37, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00118", "Unit_ID": "CO2047", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117855", "Tanggal_Terbit": "2026-03-03", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00119", "Unit_ID": "CO2047", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00120", "Unit_ID": "CO4594", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/117810", "Tanggal_Terbit": "2026-03-04", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00121", "Unit_ID": "CO4594", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00122", "Unit_ID": "CO4491", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117811", "Tanggal_Terbit": "2026-03-04", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00123", "Unit_ID": "CO4491", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-03-06", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00124", "Unit_ID": "CO4688", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117856", "Tanggal_Terbit": "2026-03-03", "Masa_Berlaku": "2026-09-06", "Sisa_Hari": 40, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00125", "Unit_ID": "CO4688", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00126", "Unit_ID": "CO4590", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/117887", "Tanggal_Terbit": "2026-03-05", "Masa_Berlaku": "2026-09-08", "Sisa_Hari": 42, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00127", "Unit_ID": "CO4590", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00128", "Unit_ID": "CO4687", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117925", "Tanggal_Terbit": "2026-03-08", "Masa_Berlaku": "2026-09-10", "Sisa_Hari": 44, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00129", "Unit_ID": "CO4687", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00130", "Unit_ID": "CO4694", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117927", "Tanggal_Terbit": "2026-03-08", "Masa_Berlaku": "2026-09-10", "Sisa_Hari": 44, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00131", "Unit_ID": "CO4694", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00132", "Unit_ID": "CO2279", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/117935", "Tanggal_Terbit": "2026-03-08", "Masa_Berlaku": "2026-09-10", "Sisa_Hari": 44, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00133", "Unit_ID": "CO2279", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00134", "Unit_ID": "CO4582", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118056", "Tanggal_Terbit": "2026-03-11", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00135", "Unit_ID": "CO4582", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00136", "Unit_ID": "CO4441", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118101", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00137", "Unit_ID": "CO4441", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00138", "Unit_ID": "CO2243", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118055", "Tanggal_Terbit": "2026-03-11", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00139", "Unit_ID": "CO2243", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00140", "Unit_ID": "CO4490", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118102", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00141", "Unit_ID": "CO4490", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00142", "Unit_ID": "CO4431", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118100", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00143", "Unit_ID": "CO4691", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118105", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00144", "Unit_ID": "CO4691", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00145", "Unit_ID": "CO4551", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118103", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00146", "Unit_ID": "CO4551", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00147", "Unit_ID": "CO2349", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118080", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-13", "Sisa_Hari": 47, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00148", "Unit_ID": "CO2349", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00149", "Unit_ID": "CO4589", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118089", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00150", "Unit_ID": "CO4589", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00151", "Unit_ID": "CO4512", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118087", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00152", "Unit_ID": "CO4512", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00153", "Unit_ID": "CO4545", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118088", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00154", "Unit_ID": "CO4545", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00155", "Unit_ID": "CO4583", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118084", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00156", "Unit_ID": "CO4583", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00157", "Unit_ID": "CO2240", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118079", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00158", "Unit_ID": "CO2240", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00159", "Unit_ID": "CO4552", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118083", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00160", "Unit_ID": "CO4552", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00161", "Unit_ID": "CO4173", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118082", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00162", "Unit_ID": "CO4173", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00163", "Unit_ID": "CO2372", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118081", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00164", "Unit_ID": "CO2372", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00165", "Unit_ID": "CO4632", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118129", "Tanggal_Terbit": "2026-03-13", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00166", "Unit_ID": "CO4632", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00167", "Unit_ID": "CO4631", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118128", "Tanggal_Terbit": "2026-03-13", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00168", "Unit_ID": "CO4631", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00169", "Unit_ID": "CO4604", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118085", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-15", "Sisa_Hari": 49, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00170", "Unit_ID": "CO4604", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00171", "Unit_ID": "CO4630", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118098", "Tanggal_Terbit": "2026-03-10", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00172", "Unit_ID": "CO4630", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00173", "Unit_ID": "CO4564", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118177", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00174", "Unit_ID": "CO4564", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00175", "Unit_ID": "CO4170", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118172", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00176", "Unit_ID": "CO4170", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00177", "Unit_ID": "CO4619", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118181", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00178", "Unit_ID": "CO4619", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00179", "Unit_ID": "CO4615", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118180", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00180", "Unit_ID": "CO4615", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00181", "Unit_ID": "CO4592", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118178", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-16", "Sisa_Hari": 50, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00182", "Unit_ID": "CO4592", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00183", "Unit_ID": "CO4470", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118175", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00184", "Unit_ID": "CO4470", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00185", "Unit_ID": "CO4689", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118185", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00186", "Unit_ID": "CO4689", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00187", "Unit_ID": "CO4572", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118209", "Tanggal_Terbit": "2026-03-16", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00188", "Unit_ID": "CO4572", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00189", "Unit_ID": "CO4627", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118182", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00190", "Unit_ID": "CO4627", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00191", "Unit_ID": "CO4541", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118176", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00192", "Unit_ID": "CO4541", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00193", "Unit_ID": "CO4676", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118184", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00194", "Unit_ID": "CO4676", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00195", "Unit_ID": "CO4629", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118183", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-17", "Sisa_Hari": 51, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00196", "Unit_ID": "CO4629", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00197", "Unit_ID": "CO4467", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118208", "Tanggal_Terbit": "2026-03-16", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00198", "Unit_ID": "CO4467", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00199", "Unit_ID": "CO4612", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118211", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00200", "Unit_ID": "CO4612", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00201", "Unit_ID": "CO2238", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118212", "Tanggal_Terbit": "2026-03-12", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00202", "Unit_ID": "CO2238", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00203", "Unit_ID": "CO4628", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118190", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00204", "Unit_ID": "CO4628", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00205", "Unit_ID": "CO4624", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118191", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00206", "Unit_ID": "CO4624", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00207", "Unit_ID": "CO4616", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118192", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00208", "Unit_ID": "CO4616", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00209", "Unit_ID": "CO4566", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118194", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00210", "Unit_ID": "CO4566", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00211", "Unit_ID": "CO4603", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118197", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00212", "Unit_ID": "CO4603", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00213", "Unit_ID": "CO4633", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118202", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00214", "Unit_ID": "CO4633", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00215", "Unit_ID": "CO4610", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118203", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-18", "Sisa_Hari": 52, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00216", "Unit_ID": "CO4626", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118199", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-19", "Sisa_Hari": 53, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00217", "Unit_ID": "CO4626", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00218", "Unit_ID": "CO2241", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118201", "Tanggal_Terbit": "2026-03-15", "Masa_Berlaku": "2026-09-20", "Sisa_Hari": 54, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00219", "Unit_ID": "CO2241", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-05", "Masa_Berlaku": "2026-11-05", "Sisa_Hari": 100, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00220", "Unit_ID": "CO4176", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118292", "Tanggal_Terbit": "2026-03-20", "Masa_Berlaku": "2026-09-22", "Sisa_Hari": 56, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00221", "Unit_ID": "CO4176", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00222", "Unit_ID": "CO4505", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118299", "Tanggal_Terbit": "2026-03-20", "Masa_Berlaku": "2026-09-22", "Sisa_Hari": 56, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00223", "Unit_ID": "CO4505", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00224", "Unit_ID": "CO4588", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118313", "Tanggal_Terbit": "2026-03-22", "Masa_Berlaku": "2026-09-25", "Sisa_Hari": 59, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00225", "Unit_ID": "CO4588", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00226", "Unit_ID": "CO2253", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118328", "Tanggal_Terbit": "2026-03-23", "Masa_Berlaku": "2026-09-25", "Sisa_Hari": 59, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00227", "Unit_ID": "CO2253", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00228", "Unit_ID": "CO4692", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118327", "Tanggal_Terbit": "2026-03-23", "Masa_Berlaku": "2026-09-25", "Sisa_Hari": 59, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00229", "Unit_ID": "CO4692", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00230", "Unit_ID": "CO4645", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118358", "Tanggal_Terbit": "2026-03-25", "Masa_Berlaku": "2026-09-27", "Sisa_Hari": 61, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00231", "Unit_ID": "CO4579", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118414", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-28", "Sisa_Hari": 62, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00232", "Unit_ID": "CO4579", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00233", "Unit_ID": "CO4449", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118413", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-28", "Sisa_Hari": 62, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00234", "Unit_ID": "CO4625", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118415", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-28", "Sisa_Hari": 62, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00235", "Unit_ID": "CO4625", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00236", "Unit_ID": "CO4440", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118417", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-28", "Sisa_Hari": 62, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00237", "Unit_ID": "CO4440", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00238", "Unit_ID": "CO4617", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118418", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-28", "Sisa_Hari": 62, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00239", "Unit_ID": "CO4617", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00240", "Unit_ID": "CO4643", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118420", "Tanggal_Terbit": "2026-03-27", "Masa_Berlaku": "2026-09-30", "Sisa_Hari": 64, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00241", "Unit_ID": "CO4542", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118491", "Tanggal_Terbit": "2026-03-31", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00242", "Unit_ID": "CO4542", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00243", "Unit_ID": "CO4171", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118517", "Tanggal_Terbit": "2026-03-31", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00244", "Unit_ID": "CO4171", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00245", "Unit_ID": "CO4183", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118493", "Tanggal_Terbit": "2026-03-31", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00246", "Unit_ID": "CO4183", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00247", "Unit_ID": "CO4172", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118419", "Tanggal_Terbit": "2026-03-30", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00248", "Unit_ID": "CO4172", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00249", "Unit_ID": "CO4652", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118496", "Tanggal_Terbit": "2026-03-31", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00250", "Unit_ID": "CO4550", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118456", "Tanggal_Terbit": "2026-03-29", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00251", "Unit_ID": "CO4550", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00252", "Unit_ID": "CO4581", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118462", "Tanggal_Terbit": "2026-03-29", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00253", "Unit_ID": "CO4581", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00254", "Unit_ID": "CO4507", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118470", "Tanggal_Terbit": "2026-03-30", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00255", "Unit_ID": "CO4507", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00256", "Unit_ID": "CO4578", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118459", "Tanggal_Terbit": "2026-03-29", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00257", "Unit_ID": "CO4578", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00258", "Unit_ID": "CO4653", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/III/118460", "Tanggal_Terbit": "2026-03-29", "Masa_Berlaku": "2026-10-01", "Sisa_Hari": 65, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00259", "Unit_ID": "CO4597", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/III/118518", "Tanggal_Terbit": "2026-03-31", "Masa_Berlaku": "2026-10-03", "Sisa_Hari": 67, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00260", "Unit_ID": "CO4597", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00261", "Unit_ID": "CO4543", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118571", "Tanggal_Terbit": "2026-04-03", "Masa_Berlaku": "2026-10-04", "Sisa_Hari": 68, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00262", "Unit_ID": "CO4543", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00263", "Unit_ID": "CO4649", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118572", "Tanggal_Terbit": "2026-04-03", "Masa_Berlaku": "2026-10-05", "Sisa_Hari": 69, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00264", "Unit_ID": "CO4636", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118574", "Tanggal_Terbit": "2026-04-03", "Masa_Berlaku": "2026-10-05", "Sisa_Hari": 69, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00265", "Unit_ID": "CO4636", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00266", "Unit_ID": "CO4501", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118573", "Tanggal_Terbit": "2026-04-03", "Masa_Berlaku": "2026-10-06", "Sisa_Hari": 70, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00267", "Unit_ID": "CO4501", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-13", "Masa_Berlaku": "2026-11-13", "Sisa_Hari": 108, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00268", "Unit_ID": "CO4605", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118610", "Tanggal_Terbit": "2026-04-03", "Masa_Berlaku": "2026-10-06", "Sisa_Hari": 70, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00269", "Unit_ID": "CO4605", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00270", "Unit_ID": "CO4648", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118611", "Tanggal_Terbit": "2026-04-05", "Masa_Berlaku": "2026-10-06", "Sisa_Hari": 70, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00271", "Unit_ID": "CO4618", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118614", "Tanggal_Terbit": "2026-04-05", "Masa_Berlaku": "2026-10-06", "Sisa_Hari": 70, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00272", "Unit_ID": "CO4618", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-05-06", "Masa_Berlaku": "2026-11-06", "Sisa_Hari": 101, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00273", "Unit_ID": "CO4174", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118684", "Tanggal_Terbit": "2026-04-06", "Masa_Berlaku": "2026-10-08", "Sisa_Hari": 72, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00274", "Unit_ID": "CO4174", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00275", "Unit_ID": "CO4469", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118685", "Tanggal_Terbit": "2026-04-06", "Masa_Berlaku": "2026-10-08", "Sisa_Hari": 72, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00276", "Unit_ID": "CO4469", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-06-08", "Masa_Berlaku": "2026-12-08", "Sisa_Hari": 133, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00277", "Unit_ID": "CO4668", "Site": "BIB", "Area": "KGB", "Registration_No": "BIB/CKT/2026/IV/118691", "Tanggal_Terbit": "2026-04-07", "Masa_Berlaku": "2026-10-08", "Sisa_Hari": 72, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00278", "Unit_ID": "CO4668", "Site": "TIA", "Area": "KGB", "Registration_No": null, "Tanggal_Terbit": "2026-06-25", "Masa_Berlaku": "2026-12-25", "Sisa_Hari": 150, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00279", "Unit_ID": "CO4523", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118676", "Tanggal_Terbit": "2026-04-06", "Masa_Berlaku": "2026-10-08", "Sisa_Hari": 72, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00280", "Unit_ID": "CO4523", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00281", "Unit_ID": "CO4526", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118731", "Tanggal_Terbit": "2026-04-08", "Masa_Berlaku": "2026-10-09", "Sisa_Hari": 73, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00282", "Unit_ID": "CO4526", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00283", "Unit_ID": "CO4178", "Site": "BIB", "Area": "GRB", "Registration_No": "BIB/CKT/2026/IV/118755", "Tanggal_Terbit": "2026-04-09", "Masa_Berlaku": "2026-10-11", "Sisa_Hari": 75, "Status": "Aktif", "Prioritas": "Rendah"}, {"Commissioning_ID": "CMS-00284", "Unit_ID": "CO4178", "Site": "TIA", "Area": "GRB", "Registration_No": null, "Tanggal_Terbit": "2026-05-09", "Masa_Berlaku": "2026-11-09", "Sisa_Hari": 104, "Status": "Aktif", "Prioritas": "Rendah"}]};
+
+/* =====================================================================
+   FETCH HELPERS
+===================================================================== */
+function withTimeout(promise, ms) {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), ms))
+  ]);
+}
+
+async function fetchSheet(sheetName) {
+  const url = `${API_URL}?sheet=${encodeURIComponent(sheetName)}`;
+  const res = await withTimeout(fetch(url), 7000);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  if (!json || json.success === false) throw new Error(json && json.message ? json.message : "bad response");
+  return json.data || [];
+}
+
+/* =====================================================================
+   CRUD: sama seperti PK_FIELD & doPost (addRow/updateRow/deleteRow) di
+   appscript.js. Content-Type text/plain dipakai supaya browser TIDAK
+   melakukan CORS preflight (OPTIONS), sama seperti pola form.html asli.
+===================================================================== */
+const PK_FIELD = {
+  Master_Unit: "Unit_ID",
+  Master_Jenis_Unit: "ID",
+  Master_Area: "ID",
+  Commissioning: "Commissioning_ID",
+  Users: "User_ID",
+  Preparation_Tracking: "Unit_ID"
+};
+
+async function apiPost(action, payload) {
+  const res = await withTimeout(fetch(API_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({ action, payload })
+  }), 7000);
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const json = await res.json();
+  if (!json || json.success === false) throw new Error(json && json.message ? json.message : "gagal menyimpan");
+  return json;
+}
+
+function nextId(rows, pkField, prefix, pad) {
+  let max = 0;
+  rows.forEach((r) => {
+    const v = String(r[pkField] || "");
+    const num = parseInt(v.replace(prefix, ""), 10);
+    if (!isNaN(num) && num > max) max = num;
+  });
+  const n = max + 1;
+  return prefix + String(n).padStart(pad, "0");
+}
+
+function nextNumericId(rows, pkField) {
+  let max = 0;
+  rows.forEach((r) => {
+    const n = Number(r[pkField]);
+    if (!isNaN(n) && n > max) max = n;
+  });
+  return max + 1;
+}
+
+// Sisa_Hari / Status / Prioritas di sheet Commissioning aslinya FORMULA
+// (ikut tanggal hari ini). Ambang yang dipakai (dari data asli):
+//  Sisa_Hari < 0        -> Expired / Prioritas Tinggi
+//  0 <= Sisa_Hari <= 30  -> Near Expired / Prioritas Sedang
+//  Sisa_Hari > 30        -> Aktif / Prioritas Rendah
+function computeCommissioningDerived(masaBerlaku) {
+  if (!masaBerlaku) return { Sisa_Hari: "", Status: "", Prioritas: "" };
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const target = new Date(masaBerlaku);
+  target.setHours(0, 0, 0, 0);
+  const sisa = Math.round((target - today) / 86400000);
+  let Status, Prioritas;
+  if (sisa < 0) { Status = "Expired"; Prioritas = "Tinggi"; }
+  else if (sisa <= 30) { Status = "Near Expired"; Prioritas = "Sedang"; }
+  else { Status = "Aktif"; Prioritas = "Rendah"; }
+  return { Sisa_Hari: sisa, Status, Prioritas };
+}
+
+/* =====================================================================
+   SMALL UI PRIMITIVES
+===================================================================== */
+function Pill({ children, tone = "gray" }) {
+  const tones = {
+    green: { bg: "#e7f7ee", fg: "#1a7a45" },
+    orange: { bg: "#fff3e0", fg: "#b5620a" },
+    red: { bg: "#fdeaea", fg: "#b3261e" },
+    gray: { bg: "#eef0f5", fg: "#54607a" },
+    blue: { bg: "#eaf0ff", fg: "#2b5bd7" }
+  };
+  const t = tones[tone] || tones.gray;
+  return (
+    <span style={{
+      display: "inline-block", padding: "3px 10px", borderRadius: 20,
+      fontSize: 11.5, fontWeight: 700, background: t.bg, color: t.fg, whiteSpace: "nowrap"
+    }}>{children}</span>
+  );
+}
+
+function StatCard({ icon, label, value, unit, sub, tone = "blue" }) {
+  const tones = {
+    blue: "#2b5bd7", green: "#1a7a45", orange: "#b5620a", red: "#b3261e", gray: "#54607a"
+  };
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #e6e8ef", borderRadius: 14, padding: "16px 18px"
+    }}>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, fontWeight: 700,
+        letterSpacing: 0.4, color: tones[tone], textTransform: "uppercase"
+      }}>
+        {icon}{label}
+      </div>
+      <div style={{ fontSize: 28, fontWeight: 800, marginTop: 6, color: "#151b2e" }}>
+        {value} {unit && <span style={{ fontSize: 12, color: "#8890a6", fontWeight: 600 }}>{unit}</span>}
+      </div>
+      {sub && <div style={{ fontSize: 11.5, marginTop: 6, color: "#8890a6" }}>{sub}</div>}
+    </div>
+  );
+}
+
+function Panel({ title, right, children }) {
+  return (
+    <div style={{
+      background: "#fff", border: "1px solid #e6e8ef", borderRadius: 14, padding: 18, marginBottom: 16
+    }}>
+      {title && (
+        <div style={{
+          fontSize: 13.5, fontWeight: 800, color: "#151b2e", marginBottom: 14,
+          display: "flex", alignItems: "center", justifyContent: "space-between"
+        }}>
+          <span>{title}</span>{right}
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
+function Toolbar({ children }) {
+  return (
+    <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginBottom: 16, alignItems: "center" }}>
+      {children}
+    </div>
+  );
+}
+
+function TextInput(props) {
+  return (
+    <input
+      {...props}
+      style={{
+        border: "1px solid #e0e3ec", borderRadius: 8, padding: "9px 12px", fontSize: 13,
+        flex: 1, minWidth: 180, ...(props.style || {})
+      }}
+    />
+  );
+}
+
+function Select({ value, onChange, options, placeholder }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      style={{ border: "1px solid #e0e3ec", borderRadius: 8, padding: "9px 10px", fontSize: 13, background: "#fff" }}
+    >
+      <option value="">{placeholder}</option>
+      {options.map((o) => <option key={o} value={o}>{o}</option>)}
+    </select>
+  );
+}
+
+function Btn({ children, onClick, variant = "outline", style }) {
+  const base = {
+    border: "none", borderRadius: 8, padding: "9px 16px", fontSize: 13, fontWeight: 600,
+    cursor: "pointer", display: "flex", alignItems: "center", gap: 6
+  };
+  const variants = {
+    primary: { background: "#2b5bd7", color: "#fff" },
+    outline: { background: "#fff", border: "1px solid #e0e3ec", color: "#54607a" }
+  };
+  return <button onClick={onClick} style={{ ...base, ...variants[variant], ...style }}>{children}</button>;
+}
+
+function Table({ columns, rows, emptyLabel = "Tidak ada data" }) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.8 }}>
+        <thead>
+          <tr>
+            {columns.map((c) => (
+              <th key={c.key} style={{
+                background: "#f7f8fb", textAlign: "left", padding: "10px 12px", color: "#54607a",
+                fontWeight: 700, whiteSpace: "nowrap", borderBottom: "1px solid #e6e8ef"
+              }}>{c.label}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.length === 0 && (
+            <tr><td colSpan={columns.length} style={{ textAlign: "center", padding: 40, color: "#8890a6" }}>{emptyLabel}</td></tr>
+          )}
+          {rows.map((r, i) => (
+            <tr key={i}>
+              {columns.map((c) => (
+                <td key={c.key} style={{
+                  padding: "10px 12px", borderBottom: "1px solid #f0f1f5", whiteSpace: "nowrap", color: "#151b2e"
+                }}>{c.render ? c.render(r, i) : r[c.key]}</td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Pagination({ total, perPage, page, onPage }) {
+  const totalPages = Math.max(1, Math.ceil(total / perPage));
+  const pages = [];
+  for (let p = 1; p <= Math.min(totalPages, 5); p++) pages.push(p);
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, justifyContent: "space-between", marginTop: 14, flexWrap: "wrap" }}>
+      <div style={{ fontSize: 12, color: "#8890a6" }}>
+        Menampilkan {total === 0 ? 0 : Math.min((page - 1) * perPage + 1, total)}-{Math.min(page * perPage, total)} dari {total} data
+      </div>
+      <div style={{ display: "flex", gap: 4 }}>
+        <button onClick={() => onPage(Math.max(1, page - 1))} disabled={page <= 1}
+          style={{ border: "1px solid #e0e3ec", background: "#fff", borderRadius: 6, width: 30, height: 30, cursor: "pointer" }}>
+          <ChevronLeft size={14} style={{ margin: "auto" }} />
+        </button>
+        {pages.map((p) => (
+          <button key={p} onClick={() => onPage(p)} style={{
+            border: "1px solid #e0e3ec", borderRadius: 6, width: 30, height: 30, cursor: "pointer", fontSize: 12.5,
+            background: p === page ? "#2b5bd7" : "#fff", color: p === page ? "#fff" : "#151b2e", borderColor: p === page ? "#2b5bd7" : "#e0e3ec"
+          }}>{p}</button>
+        ))}
+        <button onClick={() => onPage(Math.min(totalPages, page + 1))} disabled={page >= totalPages}
+          style={{ border: "1px solid #e0e3ec", background: "#fff", borderRadius: 6, width: 30, height: 30, cursor: "pointer" }}>
+          <ChevronRight size={14} style={{ margin: "auto" }} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   TOAST
+===================================================================== */
+function Toast({ toast, onClose }) {
+  if (!toast) return null;
+  const tones = {
+    success: { bg: "#e7f7ee", fg: "#1a7a45", border: "#bfe8cf" },
+    warning: { bg: "#fff3e0", fg: "#8a6d1e", border: "#ffe0a3" },
+    error: { bg: "#fdeaea", fg: "#b3261e", border: "#f3c2c2" }
+  };
+  const t = tones[toast.tone] || tones.success;
+  return (
+    <div style={{
+      position: "fixed", bottom: 24, right: 24, zIndex: 300, maxWidth: 340,
+      background: t.bg, color: t.fg, border: `1px solid ${t.border}`, borderRadius: 10,
+      padding: "12px 14px", fontSize: 12.5, display: "flex", gap: 10, alignItems: "flex-start",
+      boxShadow: "0 4px 16px rgba(0,0,0,0.08)"
+    }}>
+      <div style={{ flex: 1 }}>{toast.message}</div>
+      <X size={14} style={{ cursor: "pointer", flex: "none", marginTop: 2 }} onClick={onClose} />
+    </div>
+  );
+}
+
+/* =====================================================================
+   MODAL (form generik tambah/edit)
+===================================================================== */
+function Modal({ title, onClose, children, width = 480 }) {
+  return (
+    <div style={{
+      position: "fixed", inset: 0, background: "rgba(16,24,51,0.45)", zIndex: 200,
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 20
+    }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{
+        background: "#fff", borderRadius: 14, width: "100%", maxWidth: width,
+        maxHeight: "85vh", overflowY: "auto", padding: 22
+      }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: "#151b2e" }}>{title}</div>
+          <X size={18} style={{ cursor: "pointer", color: "#8890a6" }} onClick={onClose} />
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function FormField({ field, value, onChange }) {
+  const common = {
+    width: "100%", border: "1px solid #e0e3ec", borderRadius: 8, padding: "9px 12px",
+    fontSize: 13, fontFamily: "inherit", boxSizing: "border-box"
+  };
+  return (
+    <div style={{ marginBottom: 14 }}>
+      <label style={{ display: "block", fontSize: 12.5, fontWeight: 700, color: "#151b2e", marginBottom: 6 }}>
+        {field.label} {field.required && <span style={{ color: "#b3261e" }}>*</span>}
+      </label>
+      {field.type === "select" ? (
+        <select style={common} value={value ?? ""} disabled={field.disabled}
+          onChange={(e) => onChange(field.name, e.target.value)}>
+          <option value="">Pilih {field.label}</option>
+          {(field.options || []).map((o) => <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>)}
+        </select>
+      ) : field.type === "date" ? (
+        <input type="date" style={common} value={value || ""} disabled={field.disabled}
+          onChange={(e) => onChange(field.name, e.target.value)} />
+      ) : field.type === "number" ? (
+        <input type="number" style={common} value={value ?? ""} disabled={field.disabled}
+          onChange={(e) => onChange(field.name, e.target.value)} />
+      ) : (
+        <input type="text" style={common} value={value ?? ""} disabled={field.disabled}
+          placeholder={field.placeholder} onChange={(e) => onChange(field.name, e.target.value)} />
+      )}
+    </div>
+  );
+}
+
+// fields: [{name,label,type,options,required,disabled,placeholder}]
+function RecordForm({ fields, initialValues, onCancel, onSubmit, submitLabel = "Simpan", saving }) {
+  const [values, setValues] = useState(initialValues || {});
+  const handleChange = (name, val) => setValues((v) => ({ ...v, [name]: val }));
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    const missing = fields.find((f) => f.required && !values[f.name]);
+    if (missing) return;
+    onSubmit(values);
+  };
+  return (
+    <form onSubmit={handleSubmit}>
+      {fields.map((f) => (
+        <FormField key={f.name} field={f} value={values[f.name]} onChange={handleChange} />
+      ))}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 6 }}>
+        <Btn variant="outline" onClick={onCancel}>Batal</Btn>
+        <Btn variant="primary" style={{ opacity: saving ? 0.7 : 1 }}>
+          {saving && <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />}
+          {submitLabel}
+        </Btn>
+      </div>
+      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+    </form>
+  );
+}
+
+function ConfirmDialog({ title, message, onCancel, onConfirm, saving }) {
+  return (
+    <Modal title={title} onClose={onCancel} width={380}>
+      <div style={{ fontSize: 13, color: "#54607a", marginBottom: 18 }}>{message}</div>
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <Btn variant="outline" onClick={onCancel}>Batal</Btn>
+        <Btn onClick={onConfirm} style={{ background: "#b3261e", color: "#fff", opacity: saving ? 0.7 : 1 }}>
+          {saving && <Loader2 size={13} style={{ animation: "spin 0.8s linear infinite" }} />}
+          Hapus
+        </Btn>
+      </div>
+    </Modal>
+  );
+}
+
+function RowActions({ onEdit, onDelete }) {
+  return (
+    <div style={{ display: "flex", gap: 6 }}>
+      <button onClick={onEdit} aria-label="Edit" style={{
+        border: "none", background: "#eaf0ff", color: "#2b5bd7", borderRadius: 6, width: 28, height: 28,
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
+      }}><Pencil size={13} /></button>
+      <button onClick={onDelete} aria-label="Hapus" style={{
+        border: "none", background: "#fdeaea", color: "#b3261e", borderRadius: 6, width: 28, height: 28,
+        display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer"
+      }}><Trash2 size={13} /></button>
+    </div>
+  );
+}
+
+/* =====================================================================
+   HELPERS: STATUS -> PILL TONE
+===================================================================== */
+function statusTone(status) {
+  if (status === "Aktif") return "green";
+  if (status === "Near Expired") return "orange";
+  if (status === "Expired") return "red";
+  return "gray";
+}
+function prioTone(p) {
+  if (p === "Tinggi") return "red";
+  if (p === "Sedang") return "orange";
+  if (p === "Rendah") return "gray";
+  return "gray";
+}
+function prepStatusTone(s) {
+  if (s === "Ready ZIP") return "green";
+  if (s === "Waiting Admin" || s === "Waiting History") return "orange";
+  if (s === "Belum Lengkap") return "red";
+  return "gray";
+}
+function exportCSV(filename, columns, rows) {
+  const header = columns.map((c) => `"${c.label}"`).join(",");
+  const lines = rows.map((r) => columns.map((c) => {
+    const v = c.csv ? c.csv(r) : (r[c.key] ?? "");
+    return `"${String(v).replace(/"/g, '""')}"`;
+  }).join(","));
+  const csv = [header, ...lines].join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename + ".csv"; a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* =====================================================================
+   MAIN APP
+===================================================================== */
+const NAV = [
+  { group: null, key: "dashboard", label: "Dashboard", icon: Home },
+  { group: "DATA MASTER", key: "masterUnit", label: "Master Unit", icon: ClipboardList },
+  { group: "DATA MASTER", key: "jenisUnit", label: "Jenis Unit", icon: Truck },
+  { group: "DATA MASTER", key: "area", label: "Area", icon: MapPin },
+  { group: "COMMISSIONING", key: "commissioning", label: "Commissioning", icon: FolderOpen },
+  { group: "COMMISSIONING", key: "preparation", label: "Preparation", icon: FileEdit },
+  { group: "COMMISSIONING", key: "expired", label: "Expired / Near Expired", icon: AlarmClock },
+  { group: "REPORT", key: "laporan", label: "Laporan", icon: BarChart3 },
+  { group: "REPORT", key: "exportData", label: "Export Data", icon: Download },
+  { group: "SETTINGS", key: "userManagement", label: "User Management", icon: UsersIcon },
+  { group: "SETTINGS", key: "pengaturan", label: "Pengaturan", icon: Settings }
+];
+
+const PAGE_META = {
+  dashboard: { title: "Commissioning Monitoring", crumb: "Dashboard > Commissioning Monitoring" },
+  masterUnit: { title: "Master Unit", crumb: "Data Master > Master Unit" },
+  jenisUnit: { title: "Jenis Unit", crumb: "Data Master > Jenis Unit" },
+  area: { title: "Area", crumb: "Data Master > Area" },
+  commissioning: { title: "Commissioning", crumb: "Commissioning > Daftar Commissioning" },
+  preparation: { title: "Preparation", crumb: "Commissioning > Preparation" },
+  expired: { title: "Expired / Near Expired", crumb: "Commissioning > Expired / Near Expired" },
+  laporan: { title: "Laporan", crumb: "Report > Laporan" },
+  exportData: { title: "Export Data", crumb: "Report > Export Data" },
+  userManagement: { title: "User Management", crumb: "Settings > User Management" },
+  pengaturan: { title: "Pengaturan", crumb: "Settings > Pengaturan" }
+};
+
+export default function App() {
+  const [page, setPage] = useState("dashboard");
+  const [collapsed, setCollapsed] = useState(false);
+  const [DB, setDB] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [dataMode, setDataMode] = useState({});
+  const [now, setNow] = useState(new Date());
+  const [toast, setToast] = useState(null);
+  const [savingKey, setSavingKey] = useState(null);
+
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 3500);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  const showToast = useCallback((tone, message) => setToast({ tone, message }), []);
+
+  // key: kunci di SHEET_KEYS/DB (mis. "masterUnit"), sheetName: nama sheet asli
+  const addRecord = useCallback(async (key, sheetName, data) => {
+    setSavingKey(key);
+    setDB((prev) => ({ ...prev, [key]: [...(prev[key] || []), data] }));
+    try {
+      await apiPost("addRow", { sheet: sheetName, data });
+      showToast("success", "Data berhasil ditambahkan dan tersimpan ke Apps Script.");
+    } catch (err) {
+      showToast("warning", "Data ditambahkan secara lokal saja (koneksi ke Apps Script tidak tersedia dari sandbox ini).");
+    } finally {
+      setSavingKey(null);
+    }
+  }, [showToast]);
+
+  const updateRecord = useCallback(async (key, sheetName, pkField, pkValue, data) => {
+    setSavingKey(key);
+    setDB((prev) => ({
+      ...prev,
+      [key]: (prev[key] || []).map((r) => (String(r[pkField]) === String(pkValue) ? { ...r, ...data } : r))
+    }));
+    try {
+      await apiPost("updateRow", { sheet: sheetName, pk: pkValue, data });
+      showToast("success", "Perubahan tersimpan ke Apps Script.");
+    } catch (err) {
+      showToast("warning", "Perubahan tersimpan lokal saja (koneksi ke Apps Script tidak tersedia dari sandbox ini).");
+    } finally {
+      setSavingKey(null);
+    }
+  }, [showToast]);
+
+  const deleteRecord = useCallback(async (key, sheetName, pkField, pkValue) => {
+    setSavingKey(key);
+    setDB((prev) => ({
+      ...prev,
+      [key]: (prev[key] || []).filter((r) => String(r[pkField]) !== String(pkValue))
+    }));
+    try {
+      await apiPost("deleteRow", { sheet: sheetName, pk: pkValue });
+      showToast("success", "Data berhasil dihapus dari Apps Script.");
+    } catch (err) {
+      showToast("warning", "Data dihapus dari tampilan lokal saja (koneksi ke Apps Script tidak tersedia dari sandbox ini).");
+    } finally {
+      setSavingKey(null);
+    }
+  }, [showToast]);
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadAll() {
+      const out = {};
+      const modes = {};
+      for (const [key, sheetName] of Object.entries(SHEET_KEYS)) {
+        try {
+          const data = await fetchSheet(sheetName);
+          out[key] = data && data.length ? data : (FALLBACK_DATA[sheetName] || []);
+          modes[key] = data && data.length ? "live" : "demo";
+        } catch (err) {
+          out[key] = FALLBACK_DATA[sheetName] || [];
+          modes[key] = "demo";
+        }
+      }
+      if (!cancelled) {
+        setDB(out);
+        setDataMode(modes);
+        setLoading(false);
+      }
+    }
+    loadAll();
+    return () => { cancelled = true; };
+  }, []);
+
+  const isLive = Object.values(dataMode).some((m) => m === "live");
+
+  if (loading || !DB) {
+    return (
+      <div style={{
+        minHeight: 500, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+        fontFamily: "system-ui, sans-serif", color: "#54607a", gap: 14
+      }}>
+        <div style={{
+          width: 40, height: 40, borderRadius: "50%", border: "3px solid #e0e3ec",
+          borderTopColor: "#2b5bd7", animation: "spin 0.9s linear infinite"
+        }} />
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+        <div style={{ fontSize: 13 }}>Memuat data ISAM CK BIB...</div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ fontFamily: "system-ui, -apple-system, sans-serif", background: "#f4f6fb", minHeight: 600, display: "flex" }}>
+      <Sidebar collapsed={collapsed} page={page} setPage={setPage} />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <Topbar
+          collapsed={collapsed} setCollapsed={setCollapsed}
+          meta={PAGE_META[page]} now={now} isLive={isLive}
+          DB={DB}
+        />
+        <div style={{ padding: "20px 22px 40px" }}>
+          {page === "dashboard" && <DashboardPage DB={DB} setPage={setPage} />}
+          {page === "masterUnit" && <MasterUnitPage DB={DB} onAdd={addRecord} onUpdate={updateRecord} onDelete={deleteRecord} savingKey={savingKey} />}
+          {page === "jenisUnit" && <JenisUnitPage DB={DB} onAdd={addRecord} onUpdate={updateRecord} onDelete={deleteRecord} savingKey={savingKey} />}
+          {page === "area" && <AreaPage DB={DB} onAdd={addRecord} onUpdate={updateRecord} onDelete={deleteRecord} savingKey={savingKey} />}
+          {page === "commissioning" && <CommissioningPage DB={DB} onAdd={addRecord} onUpdate={updateRecord} onDelete={deleteRecord} savingKey={savingKey} />}
+          {page === "preparation" && <PreparationPage DB={DB} onUpdate={updateRecord} savingKey={savingKey} />}
+          {page === "expired" && <ExpiredPage DB={DB} />}
+          {page === "laporan" && <LaporanPage DB={DB} />}
+          {page === "exportData" && <ExportDataPage DB={DB} />}
+          {page === "userManagement" && <UserManagementPage DB={DB} onAdd={addRecord} onUpdate={updateRecord} onDelete={deleteRecord} savingKey={savingKey} />}
+          {page === "pengaturan" && <PengaturanPage isLive={isLive} dataMode={dataMode} />}
+        </div>
+      </div>
+      <Toast toast={toast} onClose={() => setToast(null)} />
+    </div>
+  );
+}
+
+/* =====================================================================
+   SIDEBAR + TOPBAR
+===================================================================== */
+function Sidebar({ collapsed, page, setPage }) {
+  let lastGroup = null;
+  return (
+    <div style={{
+      width: collapsed ? 68 : 230, background: "#101833", color: "#fff", flex: "none",
+      display: "flex", flexDirection: "column", transition: "width .2s", overflow: "hidden"
+    }}>
+      <div style={{ padding: "18px 16px", display: "flex", alignItems: "center", gap: 10, borderBottom: "1px solid #232c4d" }}>
+        <div style={{
+          width: 32, height: 32, borderRadius: 8, background: "#2b5bd7", display: "flex",
+          alignItems: "center", justifyContent: "center", fontWeight: 800, fontSize: 13, flex: "none"
+        }}>CK</div>
+        {!collapsed && (
+          <div>
+            <div style={{ fontWeight: 800, fontSize: 13 }}>ISAM CK BIB</div>
+            <div style={{ fontSize: 10.5, color: "#8b93b8" }}>Inspeksi K3 System</div>
+          </div>
+        )}
+      </div>
+      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+        {NAV.map((item) => {
+          const showGroup = item.group && item.group !== lastGroup && !collapsed;
+          lastGroup = item.group;
+          const Icon = item.icon;
+          return (
+            <div key={item.key}>
+              {showGroup && (
+                <div style={{ fontSize: 10.5, fontWeight: 700, color: "#5c6690", letterSpacing: 0.6, margin: "14px 8px 6px" }}>
+                  {item.group}
+                </div>
+              )}
+              <div
+                onClick={() => setPage(item.key)}
+                title={collapsed ? item.label : undefined}
+                style={{
+                  display: "flex", alignItems: "center", gap: 10, padding: "9px 10px", borderRadius: 8,
+                  cursor: "pointer", marginBottom: 2, fontSize: 13,
+                  background: page === item.key ? "#1c2650" : "transparent",
+                  color: page === item.key ? "#fff" : "#b6bcd9"
+                }}>
+                <Icon size={17} style={{ flex: "none" }} />
+                {!collapsed && <span>{item.label}</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function Topbar({ collapsed, setCollapsed, meta, now, isLive, DB }) {
+  const dateStr = now.toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" });
+  const timeStr = now.toTimeString().slice(0, 5) + " WIB";
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 14, padding: "12px 22px", background: "#fff",
+      borderBottom: "1px solid #e6e8ef", flexWrap: "wrap"
+    }}>
+      <div onClick={() => setCollapsed(!collapsed)} style={{ cursor: "pointer", color: "#54607a" }}>
+        <Menu size={20} />
+      </div>
+      <div style={{ flex: "1 1 220px" }}>
+        <div style={{ fontSize: 17, fontWeight: 800, color: "#151b2e" }}>{meta.title}</div>
+        <div style={{ fontSize: 12, color: "#8890a6" }}>{meta.crumb}</div>
+      </div>
+      <div style={{
+        display: "flex", alignItems: "center", gap: 6, fontSize: 12, fontWeight: 600,
+        color: isLive ? "#1a7a45" : "#b5620a", background: isLive ? "#e7f7ee" : "#fff3e0",
+        padding: "6px 10px", borderRadius: 8
+      }}>
+        {isLive ? <Wifi size={14} /> : <WifiOff size={14} />}
+        {isLive ? "Live data" : "Data demo"}
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, color: "#54607a" }}>
+        <Clock size={14} />{dateStr} · {timeStr}
+      </div>
+      <div style={{ position: "relative", color: "#54607a" }}>
+        <Bell size={19} />
+        <span style={{
+          position: "absolute", top: -4, right: -6, background: "#e24b4a", color: "#fff", fontSize: 9,
+          borderRadius: "50%", width: 15, height: 15, display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700
+        }}>{(DB.expired || []).filter ? "" : ""}</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{
+          width: 30, height: 30, borderRadius: "50%", background: "#2b5bd7", color: "#fff",
+          display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 13
+        }}>A</div>
+        <div style={{ fontSize: 12 }}>
+          <b style={{ display: "block", color: "#151b2e" }}>Abdul Azis</b>
+          <small style={{ color: "#8890a6" }}>Administrator</small>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   DASHBOARD PAGE
+===================================================================== */
+function DashboardPage({ DB, setPage }) {
+  const [search, setSearch] = useState("");
+  const [page, setLocalPage] = useState(1);
+  const perPage = 8;
+
+  const commissioning = DB.commissioning || [];
+  const masterUnit = DB.masterUnit || [];
+
+  const totalUnit = masterUnit.length;
+  const aktif = commissioning.filter((r) => r.Status === "Aktif").length;
+  const near = commissioning.filter((r) => r.Status === "Near Expired").length;
+  const exp = commissioning.filter((r) => r.Status === "Expired").length;
+
+  const pieData = [
+    { name: "Aktif", value: aktif, color: "#1a7a45" },
+    { name: "Near Expired", value: near, color: "#b5620a" },
+    { name: "Expired", value: exp, color: "#b3261e" }
+  ].filter((d) => d.value > 0);
+
+  const unitByModel = useMemo(() => {
+    const map = {};
+    masterUnit.forEach((u) => { map[u.Unit_ID] = u.Model_Unit; });
+    return map;
+  }, [masterUnit]);
+
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return commissioning.filter((r) =>
+      !term ||
+      String(r.Unit_ID || "").toLowerCase().includes(term) ||
+      String(unitByModel[r.Unit_ID] || "").toLowerCase().includes(term) ||
+      String(r.Registration_No || "").toLowerCase().includes(term)
+    );
+  }, [commissioning, search, unitByModel]);
+
+  const pageRows = filtered.slice((page - 1) * perPage, page * perPage);
+
+  const nearList = commissioning
+    .filter((r) => r.Status === "Near Expired" || r.Status === "Expired")
+    .sort((a, b) => Number(a.Sisa_Hari) - Number(b.Sisa_Hari))
+    .slice(0, 6);
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<Truck size={14} />} label="Total Unit" value={totalUnit} unit="Unit" sub="Seluruh unit terdaftar" tone="blue" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Aktif" value={aktif} unit="Komisioning" sub={`${totalUnit ? Math.round(aktif / (aktif + near + exp || 1) * 1000) / 10 : 0}% dari total`} tone="green" />
+        <StatCard icon={<AlertTriangle size={14} />} label="Near expired" value={near} unit="Komisioning" sub="≤60 hari lagi" tone="orange" />
+        <StatCard icon={<XCircle size={14} />} label="Expired" value={exp} unit="Komisioning" sub="Perlu tindakan segera" tone="red" />
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
+        <Panel title="DAFTAR KOMISIONING (PER SITE)">
+          <Toolbar>
+            <TextInput placeholder="Cari Unit, Model, atau Registration No..." value={search}
+              onChange={(e) => { setSearch(e.target.value); setLocalPage(1); }} />
+            <Btn variant="outline" onClick={() => { setSearch(""); setLocalPage(1); }}><RotateCcw size={13} />Reset</Btn>
+            <Btn variant="outline" style={{ marginLeft: "auto" }}
+              onClick={() => exportCSV("commissioning_monitoring",
+                [{ key: "Unit_ID", label: "Unit ID" }, { key: "model", label: "Model", csv: (r) => unitByModel[r.Unit_ID] || "-" },
+                { key: "Site", label: "Site" }, { key: "Area", label: "Area" }, { key: "Status", label: "Status" }],
+                filtered)}>
+              <Download size={13} />Export CSV
+            </Btn>
+          </Toolbar>
+          <Table
+            columns={[
+              { key: "no", label: "No", render: (_, i) => (page - 1) * perPage + i + 1 },
+              { key: "Unit_ID", label: "Unit ID", render: (r) => <span style={{ color: "#2b5bd7", fontWeight: 700 }}>{r.Unit_ID}</span> },
+              { key: "model", label: "Model", render: (r) => unitByModel[r.Unit_ID] || "-" },
+              { key: "Site", label: "Site" },
+              { key: "Area", label: "Area" },
+              { key: "Registration_No", label: "Registration No", render: (r) => r.Registration_No || "-" },
+              { key: "Sisa_Hari", label: "Sisa Hari", render: (r) => r.Sisa_Hari ?? "-" },
+              { key: "Status", label: "Status", render: (r) => <Pill tone={statusTone(r.Status)}>{r.Status || "-"}</Pill> }
+            ]}
+            rows={pageRows}
+          />
+          <Pagination total={filtered.length} perPage={perPage} page={page} onPage={setLocalPage} />
+        </Panel>
+
+        <div>
+          <Panel title="STATUS DISTRIBUSI">
+            <div style={{ height: 190 }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={pieData} dataKey="value" nameKey="name" innerRadius={45} outerRadius={70} paddingAngle={2}>
+                    {pieData.map((d, i) => <Cell key={i} fill={d.color} />)}
+                  </Pie>
+                  <RTooltip />
+                  <Legend wrapperStyle={{ fontSize: 12 }} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </Panel>
+          <Panel title="PERLU PERHATIAN" right={<span onClick={() => setPage("expired")} style={{ fontSize: 12, color: "#2b5bd7", cursor: "pointer", fontWeight: 600 }}>Lihat semua</span>}>
+            {nearList.length === 0 && <div style={{ color: "#8890a6", fontSize: 12.5 }}>Tidak ada unit mendekati expired.</div>}
+            {nearList.map((r, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 10, padding: "9px 0", borderBottom: i < nearList.length - 1 ? "1px solid #f0f1f5" : "none" }}>
+                <div style={{
+                  width: 32, height: 32, borderRadius: 9, display: "flex", alignItems: "center", justifyContent: "center",
+                  background: r.Status === "Expired" ? "#fdeaea" : "#fff3e0", color: r.Status === "Expired" ? "#b3261e" : "#b5620a", flex: "none"
+                }}><AlarmClock size={15} /></div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: "#151b2e" }}>{r.Unit_ID} · {r.Site}</div>
+                  <div style={{ fontSize: 11, color: "#8890a6" }}>{r.Area} · Sisa {r.Sisa_Hari} hari</div>
+                </div>
+                <Pill tone={prioTone(r.Prioritas)}>{r.Prioritas || "-"}</Pill>
+              </div>
+            ))}
+          </Panel>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================================
+   MASTER UNIT PAGE
+===================================================================== */
+function MasterUnitPage({ DB, onAdd, onUpdate, onDelete, savingKey }) {
+  const [search, setSearch] = useState("");
+  const [pageN, setPageN] = useState(1);
+  const [modal, setModal] = useState(null); // { mode: 'add'|'edit', row }
+  const [confirmDel, setConfirmDel] = useState(null);
+  const perPage = 10;
+  const rows = DB.masterUnit || [];
+  const jenisOptions = (DB.jenisUnit || []).map((j) => j.Jenis_Unit);
+
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return rows.filter((r) => !term ||
+      String(r.Unit_ID || "").toLowerCase().includes(term) ||
+      String(r.Model_Unit || "").toLowerCase().includes(term) ||
+      String(r.Serial_Number || "").toLowerCase().includes(term));
+  }, [rows, search]);
+
+  const active = rows.filter((r) => r.Status === "Active").length;
+  const jenisCount = new Set(rows.map((r) => r.Jenis_Unit)).size;
+  const pageRows = filtered.slice((pageN - 1) * perPage, pageN * perPage);
+
+  const fields = [
+    { name: "Unit_ID", label: "Unit ID", required: true, disabled: modal && modal.mode === "edit", placeholder: "mis. CO2201" },
+    { name: "Model_Unit", label: "Model Unit", required: true, placeholder: "mis. 773E" },
+    { name: "Serial_Number", label: "Serial Number", required: true },
+    { name: "Jenis_Unit", label: "Jenis Unit", type: "select", options: jenisOptions, required: true },
+    { name: "Tahun", label: "Tahun", type: "number", required: true },
+    { name: "Status", label: "Status", type: "select", options: ["Active", "Inactive"], required: true }
+  ];
+
+  const handleSubmit = (values) => {
+    const data = { ...values, Tahun: Number(values.Tahun), Total_Komisioning: modal.row ? modal.row.Total_Komisioning : 0 };
+    if (modal.mode === "add") onAdd("masterUnit", "Master_Unit", data);
+    else onUpdate("masterUnit", "Master_Unit", "Unit_ID", modal.row.Unit_ID, data);
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<Truck size={14} />} label="Total Unit" value={rows.length} unit="Unit" tone="blue" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Aktif" value={active} unit="Unit" tone="green" />
+        <StatCard icon={<ClipboardList size={14} />} label="Jenis Unit" value={jenisCount} unit="Kategori" tone="gray" />
+      </div>
+      <Panel title="DAFTAR UNIT">
+        <Toolbar>
+          <TextInput placeholder="Cari Unit ID, Model, atau Serial Number..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPageN(1); }} />
+          <Btn variant="outline" onClick={() => { setSearch(""); setPageN(1); }}><RotateCcw size={13} />Reset</Btn>
+          <Btn variant="outline"
+            onClick={() => exportCSV("master_unit",
+              [{ key: "Unit_ID", label: "Unit ID" }, { key: "Model_Unit", label: "Model" }, { key: "Serial_Number", label: "SN" },
+              { key: "Jenis_Unit", label: "Jenis" }, { key: "Tahun", label: "Tahun" }, { key: "Status", label: "Status" },
+              { key: "Total_Komisioning", label: "Total Komisioning" }], filtered)}>
+            <Download size={13} />Export CSV
+          </Btn>
+          <Btn variant="primary" style={{ marginLeft: "auto" }} onClick={() => setModal({ mode: "add", row: null })}>
+            <Plus size={13} />Tambah Unit
+          </Btn>
+        </Toolbar>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => (pageN - 1) * perPage + i + 1 },
+            { key: "Unit_ID", label: "Unit ID", render: (r) => <span style={{ color: "#2b5bd7", fontWeight: 700 }}>{r.Unit_ID}</span> },
+            { key: "Model_Unit", label: "Model" },
+            { key: "Serial_Number", label: "SN" },
+            { key: "Jenis_Unit", label: "Jenis" },
+            { key: "Tahun", label: "Tahun" },
+            { key: "Status", label: "Status", render: (r) => <Pill tone={r.Status === "Active" ? "green" : "gray"}>{r.Status}</Pill> },
+            { key: "Total_Komisioning", label: "Total Komisioning" },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <RowActions
+                  onEdit={() => setModal({ mode: "edit", row: r })}
+                  onDelete={() => setConfirmDel(r)}
+                />
+              )
+            }
+          ]}
+          rows={pageRows}
+        />
+        <Pagination total={filtered.length} perPage={perPage} page={pageN} onPage={setPageN} />
+      </Panel>
+
+      {modal && (
+        <Modal title={modal.mode === "add" ? "Tambah Unit" : `Edit Unit ${modal.row.Unit_ID}`} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row || {}} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "masterUnit"}
+            submitLabel={modal.mode === "add" ? "Tambah" : "Simpan Perubahan"} />
+        </Modal>
+      )}
+      {confirmDel && (
+        <ConfirmDialog title="Hapus Unit"
+          message={`Yakin ingin menghapus unit ${confirmDel.Unit_ID}? Tindakan ini tidak bisa dibatalkan.`}
+          onCancel={() => setConfirmDel(null)}
+          saving={savingKey === "masterUnit"}
+          onConfirm={() => { onDelete("masterUnit", "Master_Unit", "Unit_ID", confirmDel.Unit_ID); setConfirmDel(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   JENIS UNIT PAGE
+===================================================================== */
+function JenisUnitPage({ DB, onAdd, onUpdate, onDelete, savingKey }) {
+  const rows = DB.jenisUnit || [];
+  const [modal, setModal] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const fields = [
+    { name: "Jenis_Unit", label: "Jenis Unit", required: true, placeholder: "mis. Excavator" },
+    { name: "Code_ID_Unit", label: "Kode ID", required: true, placeholder: "mis. EX" }
+  ];
+
+  const handleSubmit = (values) => {
+    if (modal.mode === "add") {
+      const ID = nextNumericId(rows, "ID");
+      onAdd("jenisUnit", "Master_Jenis_Unit", { ID, ...values });
+    } else {
+      onUpdate("jenisUnit", "Master_Jenis_Unit", "ID", modal.row.ID, values);
+    }
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <Panel title="DAFTAR JENIS UNIT" right={
+        <Btn variant="primary" onClick={() => setModal({ mode: "add", row: null })}><Plus size={13} />Tambah Jenis</Btn>
+      }>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "Jenis_Unit", label: "Jenis Unit" },
+            { key: "Code_ID_Unit", label: "Kode ID" },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <RowActions onEdit={() => setModal({ mode: "edit", row: r })} onDelete={() => setConfirmDel(r)} />
+              )
+            }
+          ]}
+          rows={rows}
+        />
+      </Panel>
+      {modal && (
+        <Modal title={modal.mode === "add" ? "Tambah Jenis Unit" : `Edit Jenis Unit`} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row || {}} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "jenisUnit"}
+            submitLabel={modal.mode === "add" ? "Tambah" : "Simpan Perubahan"} />
+        </Modal>
+      )}
+      {confirmDel && (
+        <ConfirmDialog title="Hapus Jenis Unit"
+          message={`Yakin ingin menghapus jenis unit "${confirmDel.Jenis_Unit}"?`}
+          onCancel={() => setConfirmDel(null)} saving={savingKey === "jenisUnit"}
+          onConfirm={() => { onDelete("jenisUnit", "Master_Jenis_Unit", "ID", confirmDel.ID); setConfirmDel(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   AREA PAGE
+===================================================================== */
+function AreaPage({ DB, onAdd, onUpdate, onDelete, savingKey }) {
+  const rows = DB.area || [];
+  const sites = DB.site || [];
+  const siteName = (code) => (sites.find((s) => s.Site_Code === code) || {}).Site_Nama || code;
+  const [modal, setModal] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+
+  const fields = [
+    { name: "Area_Code", label: "Kode Area", required: true, placeholder: "mis. GRB" },
+    { name: "Area_Nama", label: "Nama Area", required: true },
+    { name: "Site_Code", label: "Site", type: "select", required: true, options: sites.map((s) => ({ value: s.Site_Code, label: `${s.Site_Nama} (${s.Site_Code})` })) }
+  ];
+
+  const handleSubmit = (values) => {
+    if (modal.mode === "add") {
+      const ID = nextNumericId(rows, "ID");
+      onAdd("area", "Master_Area", { ID, ...values });
+    } else {
+      onUpdate("area", "Master_Area", "ID", modal.row.ID, values);
+    }
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<MapPin size={14} />} label="Total Area" value={rows.length} unit="Area" tone="blue" />
+        <StatCard icon={<TrendingUp size={14} />} label="Total Site" value={sites.length} unit="Site" tone="green" />
+      </div>
+      <Panel title="DAFTAR AREA" right={
+        <Btn variant="primary" onClick={() => setModal({ mode: "add", row: null })}><Plus size={13} />Tambah Area</Btn>
+      }>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "Area_Code", label: "Kode Area" },
+            { key: "Area_Nama", label: "Nama Area" },
+            { key: "Site_Code", label: "Site", render: (r) => `${siteName(r.Site_Code)} (${r.Site_Code})` },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <RowActions onEdit={() => setModal({ mode: "edit", row: r })} onDelete={() => setConfirmDel(r)} />
+              )
+            }
+          ]}
+          rows={rows}
+        />
+      </Panel>
+      {modal && (
+        <Modal title={modal.mode === "add" ? "Tambah Area" : "Edit Area"} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row || {}} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "area"}
+            submitLabel={modal.mode === "add" ? "Tambah" : "Simpan Perubahan"} />
+        </Modal>
+      )}
+      {confirmDel && (
+        <ConfirmDialog title="Hapus Area"
+          message={`Yakin ingin menghapus area "${confirmDel.Area_Nama}"?`}
+          onCancel={() => setConfirmDel(null)} saving={savingKey === "area"}
+          onConfirm={() => { onDelete("area", "Master_Area", "ID", confirmDel.ID); setConfirmDel(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   COMMISSIONING PAGE
+===================================================================== */
+function CommissioningPage({ DB, onAdd, onUpdate, onDelete, savingKey }) {
+  const [search, setSearch] = useState("");
+  const [site, setSite] = useState("");
+  const [status, setStatus] = useState("");
+  const [pageN, setPageN] = useState(1);
+  const [modal, setModal] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const perPage = 10;
+
+  const rows = DB.commissioning || [];
+  const masterUnit = DB.masterUnit || [];
+  const unitByModel = useMemo(() => {
+    const map = {};
+    masterUnit.forEach((u) => { map[u.Unit_ID] = { model: u.Model_Unit, sn: u.Serial_Number }; });
+    return map;
+  }, [masterUnit]);
+
+  const sites = useMemo(() => [...new Set(rows.map((r) => r.Site).filter(Boolean))], [rows]);
+  const statuses = useMemo(() => [...new Set(rows.map((r) => r.Status).filter(Boolean))], [rows]);
+
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return rows.filter((r) => {
+      const u = unitByModel[r.Unit_ID] || {};
+      const matchTerm = !term ||
+        String(r.Unit_ID || "").toLowerCase().includes(term) ||
+        String(u.sn || "").toLowerCase().includes(term) ||
+        String(r.Registration_No || "").toLowerCase().includes(term);
+      const matchSite = !site || r.Site === site;
+      const matchStatus = !status || r.Status === status;
+      return matchTerm && matchSite && matchStatus;
+    });
+  }, [rows, search, site, status, unitByModel]);
+
+  const pageRows = filtered.slice((pageN - 1) * perPage, pageN * perPage);
+
+  const total = rows.length;
+  const aktif = rows.filter((r) => r.Status === "Aktif").length;
+  const near = rows.filter((r) => r.Status === "Near Expired").length;
+  const exp = rows.filter((r) => r.Status === "Expired").length;
+
+  const areas = DB.area || [];
+  const fields = [
+    { name: "Unit_ID", label: "Unit ID", type: "select", required: true, options: masterUnit.map((u) => u.Unit_ID) },
+    { name: "Site", label: "Site", type: "select", required: true, options: (DB.site || []).map((s) => s.Site_Code) },
+    { name: "Area", label: "Area", type: "select", required: true, options: [...new Set(areas.map((a) => a.Area_Code))] },
+    { name: "Registration_No", label: "Registration No", placeholder: "mis. BIB/CKT/2026/XI/000001" },
+    { name: "Tanggal_Terbit", label: "Tanggal Terbit", type: "date", required: true },
+    { name: "Masa_Berlaku", label: "Masa Berlaku s/d", type: "date", required: true }
+  ];
+
+  const handleSubmit = (values) => {
+    const derived = computeCommissioningDerived(values.Masa_Berlaku);
+    const data = { ...values, ...derived };
+    if (modal.mode === "add") {
+      const Commissioning_ID = nextId(rows, "Commissioning_ID", "CMS-", 5);
+      onAdd("commissioning", "Commissioning", { Commissioning_ID, ...data });
+    } else {
+      onUpdate("commissioning", "Commissioning", "Commissioning_ID", modal.row.Commissioning_ID, data);
+    }
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<FolderOpen size={14} />} label="Total Komisioning" value={total} tone="blue" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Aktif" value={aktif} tone="green" />
+        <StatCard icon={<AlertTriangle size={14} />} label="Near Expired" value={near} tone="orange" />
+        <StatCard icon={<XCircle size={14} />} label="Expired" value={exp} tone="red" />
+      </div>
+      <Panel title="DAFTAR KOMISIONING">
+        <Toolbar>
+          <TextInput placeholder="Cari Unit ID, SN, atau Registration No..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPageN(1); }} />
+          <Select value={site} onChange={(v) => { setSite(v); setPageN(1); }} options={sites} placeholder="Semua Site" />
+          <Select value={status} onChange={(v) => { setStatus(v); setPageN(1); }} options={statuses} placeholder="Semua Status" />
+          <Btn variant="outline" onClick={() => { setSearch(""); setSite(""); setStatus(""); setPageN(1); }}><RotateCcw size={13} />Reset</Btn>
+          <Btn variant="primary" style={{ marginLeft: "auto" }} onClick={() => setModal({ mode: "add", row: null })}>
+            <Plus size={13} />Tambah Komisioning
+          </Btn>
+        </Toolbar>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => (pageN - 1) * perPage + i + 1 },
+            { key: "Unit_ID", label: "Unit ID", render: (r) => <span style={{ color: "#2b5bd7", fontWeight: 700 }}>{r.Unit_ID}</span> },
+            { key: "model", label: "Model", render: (r) => (unitByModel[r.Unit_ID] || {}).model || "-" },
+            { key: "Site", label: "Site" },
+            { key: "Area", label: "Area" },
+            { key: "Registration_No", label: "Registration No", render: (r) => r.Registration_No || "-" },
+            { key: "Tanggal_Terbit", label: "Terbit" },
+            { key: "Masa_Berlaku", label: "Berlaku s/d" },
+            { key: "Sisa_Hari", label: "Sisa Hari", render: (r) => r.Sisa_Hari ?? "-" },
+            { key: "Status", label: "Status", render: (r) => <Pill tone={statusTone(r.Status)}>{r.Status || "-"}</Pill> },
+            { key: "Prioritas", label: "Prioritas", render: (r) => <Pill tone={prioTone(r.Prioritas)}>{r.Prioritas || "-"}</Pill> },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <RowActions onEdit={() => setModal({ mode: "edit", row: r })} onDelete={() => setConfirmDel(r)} />
+              )
+            }
+          ]}
+          rows={pageRows}
+        />
+        <Pagination total={filtered.length} perPage={perPage} page={pageN} onPage={setPageN} />
+      </Panel>
+
+      {modal && (
+        <Modal title={modal.mode === "add" ? "Tambah Komisioning" : `Edit Komisioning ${modal.row.Commissioning_ID}`} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row || {}} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "commissioning"}
+            submitLabel={modal.mode === "add" ? "Tambah" : "Simpan Perubahan"} />
+          <div style={{ fontSize: 11.5, color: "#8890a6", marginTop: -6 }}>
+            Sisa hari, status, dan prioritas akan dihitung otomatis dari tanggal masa berlaku.
+          </div>
+        </Modal>
+      )}
+      {confirmDel && (
+        <ConfirmDialog title="Hapus Komisioning"
+          message={`Yakin ingin menghapus data komisioning ${confirmDel.Unit_ID} (${confirmDel.Site})?`}
+          onCancel={() => setConfirmDel(null)} saving={savingKey === "commissioning"}
+          onConfirm={() => { onDelete("commissioning", "Commissioning", "Commissioning_ID", confirmDel.Commissioning_ID); setConfirmDel(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   PREPARATION PAGE
+===================================================================== */
+function PreparationPage({ DB, onUpdate, savingKey }) {
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("");
+  const [modal, setModal] = useState(null);
+  const rows = DB.preparation || [];
+
+  const fields = [
+    { name: "BAST", label: "BAST", type: "select", required: true, options: ["Sudah", "Belum"] },
+    { name: "History_Maintenance", label: "History Maintenance", type: "select", required: true, options: ["Sudah", "Belum"] },
+    { name: "Status_Preparation", label: "Status Preparation", type: "select", required: true, options: ["Waiting Admin", "Waiting History", "Ready ZIP", "Belum Lengkap", "Selesai"] },
+    { name: "Prioritas", label: "Prioritas", type: "select", required: true, options: ["Tinggi", "Sedang", "Rendah"] }
+  ];
+
+  const handleSubmit = (values) => {
+    const unitId = modal.row["Unit_ID (FK)"] || modal.row.Unit_ID;
+    onUpdate("preparation", "Preparation_Tracking", "Unit_ID (FK)", unitId, values);
+    setModal(null);
+  };
+
+  const statuses = useMemo(() => [...new Set(rows.map((r) => r.Status_Preparation).filter(Boolean))], [rows]);
+
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return rows.filter((r) => {
+      const matchTerm = !term ||
+        String(r["Unit_ID (FK)"] || r.Unit_ID || "").toLowerCase().includes(term) ||
+        String(r.Model_Type || "").toLowerCase().includes(term) ||
+        String(r.Serial_Number || "").toLowerCase().includes(term);
+      const matchStatus = !status || r.Status_Preparation === status;
+      return matchTerm && matchStatus;
+    });
+  }, [rows, search, status]);
+
+  const readyZip = rows.filter((r) => r.Status_Preparation === "Ready ZIP").length;
+  const waiting = rows.filter((r) => r.Status_Preparation && r.Status_Preparation.startsWith("Waiting")).length;
+
+  const check = (v) => v === "Lengkap" || v === "Sudah"
+    ? <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#e7f7ee", color: "#1a7a45", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>✓</span>
+    : <span style={{ width: 20, height: 20, borderRadius: "50%", background: "#fdeaea", color: "#b3261e", display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 800 }}>✗</span>;
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<FileEdit size={14} />} label="Total Preparation" value={rows.length} tone="blue" />
+        <StatCard icon={<Clock size={14} />} label="Menunggu" value={waiting} tone="orange" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Ready ZIP" value={readyZip} tone="green" />
+      </div>
+      <Panel title="DAFTAR PREPARATION">
+        <Toolbar>
+          <TextInput placeholder="Cari Unit ID, Model, atau Serial Number..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Select value={status} onChange={setStatus} options={statuses} placeholder="Semua Status" />
+          <Btn variant="outline" onClick={() => { setSearch(""); setStatus(""); }}><RotateCcw size={13} />Reset</Btn>
+        </Toolbar>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "unit", label: "Unit ID", render: (r) => <span style={{ color: "#2b5bd7", fontWeight: 700 }}>{r["Unit_ID (FK)"] || r.Unit_ID}</span> },
+            { key: "Model_Type", label: "Model" },
+            { key: "Site", label: "Site" },
+            { key: "Area", label: "Area" },
+            { key: "Foto_4_Sisi", label: "Foto", render: (r) => check(r.Foto_4_Sisi) },
+            { key: "Checklist", label: "Checklist", render: (r) => check(r.Checklist) },
+            { key: "BAST", label: "BAST", render: (r) => check(r.BAST) },
+            { key: "History_Maintenance", label: "History", render: (r) => check(r.History_Maintenance) },
+            {
+              key: "Progress_Percent", label: "Progress", render: (r) => {
+                const pct = Math.round((Number(r.Progress_Percent) || 0) * 100);
+                return (
+                  <div style={{ width: 80 }}>
+                    <div style={{ fontSize: 11.5, color: "#54607a", marginBottom: 2 }}>{pct}%</div>
+                    <div style={{ background: "#eef0f5", height: 6, borderRadius: 4, overflow: "hidden" }}>
+                      <div style={{ width: pct + "%", height: "100%", background: "#2b5bd7" }} />
+                    </div>
+                  </div>
+                );
+              }
+            },
+            { key: "Status_Preparation", label: "Status", render: (r) => <Pill tone={prepStatusTone(r.Status_Preparation)}>{r.Status_Preparation || "-"}</Pill> },
+            { key: "Prioritas", label: "Prioritas", render: (r) => <Pill tone={prioTone(r.Prioritas)}>{r.Prioritas || "-"}</Pill> },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <button onClick={() => setModal({ row: r })} style={{
+                  border: "1px solid #e0e3ec", background: "#fff", borderRadius: 6, padding: "5px 10px",
+                  fontSize: 11.5, cursor: "pointer", color: "#2b5bd7", display: "flex", alignItems: "center", gap: 4
+                }}><Pencil size={12} />Update</button>
+              )
+            }
+          ]}
+          rows={filtered}
+        />
+      </Panel>
+      {modal && (
+        <Modal title={`Update Preparation - ${modal.row["Unit_ID (FK)"] || modal.row.Unit_ID}`} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "preparation"} submitLabel="Simpan Perubahan" />
+        </Modal>
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   EXPIRED / NEAR EXPIRED PAGE
+===================================================================== */
+function ExpiredPage({ DB }) {
+  const rows = DB.commissioning || [];
+  const masterUnit = DB.masterUnit || [];
+  const unitByModel = useMemo(() => {
+    const map = {};
+    masterUnit.forEach((u) => { map[u.Unit_ID] = u.Model_Unit; });
+    return map;
+  }, [masterUnit]);
+
+  const list = useMemo(() =>
+    rows.filter((r) => r.Status === "Expired" || r.Status === "Near Expired")
+      .sort((a, b) => Number(a.Sisa_Hari) - Number(b.Sisa_Hari)),
+    [rows]);
+
+  const expCount = list.filter((r) => r.Status === "Expired").length;
+  const nearCount = list.filter((r) => r.Status === "Near Expired").length;
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<XCircle size={14} />} label="Expired" value={expCount} tone="red" />
+        <StatCard icon={<AlertTriangle size={14} />} label="Near Expired (≤60 hari)" value={nearCount} tone="orange" />
+      </div>
+      <Panel title="DAFTAR EXPIRED / NEAR EXPIRED (URUT PALING MENDESAK)">
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "Unit_ID", label: "Unit ID", render: (r) => <span style={{ color: "#2b5bd7", fontWeight: 700 }}>{r.Unit_ID}</span> },
+            { key: "model", label: "Model", render: (r) => unitByModel[r.Unit_ID] || "-" },
+            { key: "Site", label: "Site" },
+            { key: "Area", label: "Area" },
+            { key: "Masa_Berlaku", label: "Berlaku s/d" },
+            {
+              key: "Sisa_Hari", label: "Sisa Hari", render: (r) => (
+                <span style={{ fontWeight: 700, color: r.Status === "Expired" ? "#b3261e" : "#b5620a" }}>
+                  {r.Sisa_Hari < 0 ? `Lewat ${Math.abs(r.Sisa_Hari)} hari` : `${r.Sisa_Hari} hari`}
+                </span>
+              )
+            },
+            { key: "Status", label: "Status", render: (r) => <Pill tone={statusTone(r.Status)}>{r.Status}</Pill> },
+            { key: "Prioritas", label: "Prioritas", render: (r) => <Pill tone={prioTone(r.Prioritas)}>{r.Prioritas || "-"}</Pill> }
+          ]}
+          rows={list}
+          emptyLabel="Tidak ada unit expired / near expired"
+        />
+      </Panel>
+    </div>
+  );
+}
+
+/* =====================================================================
+   LAPORAN PAGE
+===================================================================== */
+function LaporanPage({ DB }) {
+  const masterUnit = DB.masterUnit || [];
+  const commissioning = DB.commissioning || [];
+  const preparation = DB.preparation || [];
+
+  const totalUnit = masterUnit.length || 1;
+  const aktifUnit = masterUnit.filter((r) => r.Status === "Active").length;
+  const near = commissioning.filter((r) => r.Status === "Near Expired").length;
+  const exp = commissioning.filter((r) => r.Status === "Expired").length;
+  const readyZip = preparation.filter((r) => r.Status_Preparation === "Ready ZIP").length;
+
+  const rowsDetail = [
+    { ket: "Total Unit Keseluruhan", jml: masterUnit.length, pct: 100 },
+    { ket: "Unit Aktif", jml: aktifUnit, pct: Math.round((aktifUnit / totalUnit) * 1000) / 10 },
+    { ket: "Komisioning Near Expired", jml: near, pct: Math.round((near / (commissioning.length || 1)) * 1000) / 10 },
+    { ket: "Komisioning Expired", jml: exp, pct: Math.round((exp / (commissioning.length || 1)) * 1000) / 10 },
+    { ket: "Preparation Ready ZIP", jml: readyZip, pct: Math.round((readyZip / (preparation.length || 1)) * 1000) / 10 }
+  ];
+
+  const bySite = useMemo(() => {
+    const map = {};
+    commissioning.forEach((r) => {
+      if (!r.Site) return;
+      map[r.Site] = map[r.Site] || { total: 0, aktif: 0, near: 0, exp: 0 };
+      map[r.Site].total++;
+      if (r.Status === "Aktif") map[r.Site].aktif++;
+      if (r.Status === "Near Expired") map[r.Site].near++;
+      if (r.Status === "Expired") map[r.Site].exp++;
+    });
+    return map;
+  }, [commissioning]);
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<Truck size={14} />} label="Total Unit" value={masterUnit.length} unit="Unit" sub="100% dari total" tone="blue" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Aktif" value={aktifUnit} unit="Unit" sub={`${Math.round((aktifUnit / totalUnit) * 1000) / 10}% dari total`} tone="green" />
+        <StatCard icon={<AlertTriangle size={14} />} label="Near Expired" value={near} unit="Komisioning" tone="orange" />
+        <StatCard icon={<XCircle size={14} />} label="Expired" value={exp} unit="Komisioning" tone="red" />
+      </div>
+      <Panel title="RINGKASAN KESELURUHAN">
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "ket", label: "Keterangan" },
+            { key: "jml", label: "Jumlah" },
+            { key: "pct", label: "Persentase", render: (r) => `${r.pct}%` }
+          ]}
+          rows={rowsDetail}
+        />
+      </Panel>
+      <Panel title="LAPORAN PER SITE">
+        <Table
+          columns={[
+            { key: "site", label: "Site", render: (r) => r.site },
+            { key: "total", label: "Total Komisioning", render: (r) => r.data.total },
+            { key: "aktif", label: "Aktif", render: (r) => r.data.aktif },
+            { key: "near", label: "Near Expired", render: (r) => r.data.near },
+            { key: "exp", label: "Expired", render: (r) => r.data.exp }
+          ]}
+          rows={Object.entries(bySite).map(([site, data]) => ({ site, data }))}
+        />
+      </Panel>
+    </div>
+  );
+}
+
+/* =====================================================================
+   EXPORT DATA PAGE
+===================================================================== */
+function ExportDataPage({ DB }) {
+  const [selected, setSelected] = useState("masterUnit");
+  const [format, setFormat] = useState("csv");
+
+  const types = [
+    { key: "masterUnit", t: "Data Master Unit", d: "Data unit/alat berat secara keseluruhan", rows: DB.masterUnit || [] },
+    { key: "commissioning", t: "Data Commissioning", d: "Data unit yang telah selesai commissioning", rows: DB.commissioning || [] },
+    { key: "preparation", t: "Data Preparation", d: "Data unit yang sedang dalam proses preparation", rows: DB.preparation || [] },
+    { key: "users", t: "Data User", d: "Data akun pengguna dashboard", rows: DB.users || [] }
+  ];
+
+  const doExport = () => {
+    const type = types.find((t) => t.key === selected);
+    if (!type || !type.rows.length) return;
+    const columns = Object.keys(type.rows[0]).filter((k) => k !== "__row").map((k) => ({ key: k, label: k }));
+    exportCSV(type.key, columns, type.rows);
+  };
+
+  return (
+    <div>
+      <Panel title="PILIH JENIS DATA">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(190px,1fr))", gap: 12, marginBottom: 18 }}>
+          {types.map((t) => (
+            <div key={t.key} onClick={() => setSelected(t.key)} style={{
+              border: selected === t.key ? "1.5px solid #2b5bd7" : "1.5px solid #e6e8ef",
+              background: selected === t.key ? "#f3f7ff" : "#fff",
+              borderRadius: 12, padding: 14, cursor: "pointer", position: "relative"
+            }}>
+              <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 4, color: "#151b2e" }}>{t.t}</div>
+              <div style={{ fontSize: 11.5, color: "#8890a6" }}>{t.d}</div>
+              <div style={{ fontSize: 11, color: "#8890a6", marginTop: 8 }}>{t.rows.length} baris</div>
+            </div>
+          ))}
+        </div>
+        <Toolbar>
+          <Select value={format} onChange={setFormat} options={["csv"]} placeholder="Format" />
+          <Btn variant="primary" onClick={doExport}><Download size={13} />Export Sekarang</Btn>
+        </Toolbar>
+      </Panel>
+    </div>
+  );
+}
+
+/* =====================================================================
+   USER MANAGEMENT PAGE
+===================================================================== */
+function UserManagementPage({ DB, onAdd, onUpdate, onDelete, savingKey }) {
+  const [search, setSearch] = useState("");
+  const [modal, setModal] = useState(null);
+  const [confirmDel, setConfirmDel] = useState(null);
+  const rows = DB.users || [];
+  const filtered = useMemo(() => {
+    const term = search.toLowerCase();
+    return rows.filter((r) => !term ||
+      String(r.Nama_Lengkap || "").toLowerCase().includes(term) ||
+      String(r.Username || "").toLowerCase().includes(term) ||
+      String(r.Email || "").toLowerCase().includes(term));
+  }, [rows, search]);
+
+  const fields = [
+    { name: "Nama_Lengkap", label: "Nama Lengkap", required: true },
+    { name: "Username", label: "Username", required: true },
+    { name: "Email", label: "Email", required: true },
+    { name: "Role", label: "Role", type: "select", required: true, options: ["Administrator", "Supervisor", "Operator", "Viewer"] },
+    { name: "Site", label: "Site", placeholder: "mis. Semua Site" },
+    { name: "Area", label: "Area", placeholder: "mis. Semua Area" },
+    { name: "Status", label: "Status", type: "select", required: true, options: ["Aktif", "Nonaktif"] }
+  ];
+
+  const handleSubmit = (values) => {
+    if (modal.mode === "add") {
+      const User_ID = nextId(rows, "User_ID", "USR-", 3);
+      onAdd("users", "Users", { User_ID, ...values });
+    } else {
+      onUpdate("users", "Users", "User_ID", modal.row.User_ID, values);
+    }
+    setModal(null);
+  };
+
+  return (
+    <div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(180px,1fr))", gap: 14, marginBottom: 18 }}>
+        <StatCard icon={<UsersIcon size={14} />} label="Total User" value={rows.length} tone="blue" />
+        <StatCard icon={<CheckCircle2 size={14} />} label="Aktif" value={rows.filter((r) => r.Status === "Aktif").length} tone="green" />
+      </div>
+      <Panel title="DAFTAR USER">
+        <Toolbar>
+          <TextInput placeholder="Cari nama, username, atau email..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <Btn variant="outline" onClick={() => setSearch("")}><RotateCcw size={13} />Reset</Btn>
+          <Btn variant="primary" style={{ marginLeft: "auto" }} onClick={() => setModal({ mode: "add", row: null })}>
+            <Plus size={13} />Tambah User
+          </Btn>
+        </Toolbar>
+        <Table
+          columns={[
+            { key: "no", label: "No", render: (_, i) => i + 1 },
+            { key: "Nama_Lengkap", label: "Nama Lengkap" },
+            { key: "Username", label: "Username" },
+            { key: "Email", label: "Email" },
+            { key: "Role", label: "Role", render: (r) => <Pill tone="blue">{r.Role}</Pill> },
+            { key: "Site", label: "Site" },
+            { key: "Area", label: "Area" },
+            { key: "Status", label: "Status", render: (r) => <Pill tone={r.Status === "Aktif" ? "green" : "gray"}>{r.Status || "-"}</Pill> },
+            {
+              key: "aksi", label: "Aksi", render: (r) => (
+                <RowActions onEdit={() => setModal({ mode: "edit", row: r })} onDelete={() => setConfirmDel(r)} />
+              )
+            }
+          ]}
+          rows={filtered}
+        />
+      </Panel>
+      {modal && (
+        <Modal title={modal.mode === "add" ? "Tambah User" : `Edit User ${modal.row.Nama_Lengkap}`} onClose={() => setModal(null)}>
+          <RecordForm fields={fields} initialValues={modal.row || {}} onCancel={() => setModal(null)}
+            onSubmit={handleSubmit} saving={savingKey === "users"}
+            submitLabel={modal.mode === "add" ? "Tambah" : "Simpan Perubahan"} />
+        </Modal>
+      )}
+      {confirmDel && (
+        <ConfirmDialog title="Hapus User"
+          message={`Yakin ingin menghapus user "${confirmDel.Nama_Lengkap}"?`}
+          onCancel={() => setConfirmDel(null)} saving={savingKey === "users"}
+          onConfirm={() => { onDelete("users", "Users", "User_ID", confirmDel.User_ID); setConfirmDel(null); }} />
+      )}
+    </div>
+  );
+}
+
+/* =====================================================================
+   PENGATURAN PAGE
+===================================================================== */
+function PengaturanPage({ isLive, dataMode }) {
+  return (
+    <div>
+      <Panel title="KONEKSI SUMBER DATA">
+        <div style={{
+          display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", borderRadius: 10, marginBottom: 14,
+          background: isLive ? "#e7f7ee" : "#fff3e0", border: `1px solid ${isLive ? "#bfe8cf" : "#ffe0a3"}`
+        }}>
+          {isLive ? <Wifi size={16} color="#1a7a45" /> : <WifiOff size={16} color="#b5620a" />}
+          <div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: isLive ? "#1a7a45" : "#8a6d1e" }}>
+              {isLive ? "Terhubung ke Apps Script API" : "Menggunakan data demo (sample dari Data_COM.xlsx)"}
+            </div>
+            <div style={{ fontSize: 11.5, color: "#8890a6", marginTop: 2 }}>
+              {isLive
+                ? "Sebagian atau seluruh data berhasil diambil langsung dari Google Apps Script Web App."
+                : "Live fetch ke Apps Script gagal atau diblokir sandbox jaringan artifact ini. Data yang ditampilkan adalah sample nyata dari Data_COM.xlsx."}
+            </div>
+          </div>
+        </div>
+        <div style={{ fontSize: 12.5, color: "#54607a", marginBottom: 10 }}>Status per sheet:</div>
+        <Table
+          columns={[
+            { key: "sheet", label: "Sheet" },
+            { key: "status", label: "Status", render: (r) => <Pill tone={r.status === "live" ? "green" : "orange"}>{r.status === "live" ? "Live" : "Demo"}</Pill> }
+          ]}
+          rows={Object.entries(SHEET_KEYS).map(([key, sheet]) => ({ sheet, status: dataMode[key] }))}
+        />
+      </Panel>
+      <Panel title="CATATAN">
+        <div style={{ fontSize: 12.5, color: "#54607a", lineHeight: 1.7 }}>
+          API_URL yang dipakai sama dengan CONFIG.API_URL di comissioning.html asli. Kalau artifact ini dijalankan
+          dalam sandbox yang membatasi akses jaringan eksternal, dashboard otomatis pakai data demo supaya tetap
+          berfungsi. Setelah file ini di-download dan dihosting sendiri (misalnya di GitHub Pages seperti setup
+          aslinya), koneksi live ke Apps Script akan berjalan normal.
+        </div>
+      </Panel>
+    </div>
+  );
+}
