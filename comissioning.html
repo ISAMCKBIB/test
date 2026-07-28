@@ -619,15 +619,16 @@ tbody tr:hover{ background:#f9fbff; }
    KONFIGURASI SUMBER DATA (GOOGLE APPS SCRIPT WEB APP)
 ===================================================================== */
 const CONFIG = {
+  API_URL: "PASTE_URL_WEBAPP_DISINI",   // <-- 1 URL dari deploy Code.gs, isi di sini SAJA
   SCRIPTS: {
-    masterUnit:      { url: "https://script.google.com/macros/s/AKfycbyLfYSZcLk4uznpd_T69mROn_TsVMo2SSrlCf8GHLWhjIbv6YSMnh8q2t81oOhuI2fs/exec", sheet: "MasterUnit" },
-    jenisUnit:       { url: "https://script.google.com/macros/s/AKfycbyLfYSZcLk4uznpd_T69mROn_TsVMo2SSrlCf8GHLWhjIbv6YSMnh8q2t81oOhuI2fs/exec", sheet: "JenisUnit" },
-    area:            { url: "https://script.google.com/macros/s/AKfycbyLfYSZcLk4uznpd_T69mROn_TsVMo2SSrlCf8GHLWhjIbv6YSMnh8q2t81oOhuI2fs/exec", sheet: "Area" },
-    commissioning:   { url: "https://script.google.com/macros/s/AKfycbyNU-pRMPcmFBC0qzmcN2QxDa73K8JhkTTBsPcSi1kw8PyJMei5KJgqH25gdocyu_cB/exec", sheet: "Commissioning" },
-    waitingSticker:  { url: "PASTE_APPSCRIPT_URL_2_DISINI", sheet: "Preparation" },
-    expired:         { url: "https://script.google.com/macros/s/AKfycbyNU-pRMPcmFBC0qzmcN2QxDa73K8JhkTTBsPcSi1kw8PyJMei5KJgqH25gdocyu_cB/exec", sheet: "ExpiredNearExpired" },
-    users:           { url: "https://script.google.com/macros/s/AKfycbyNU-pRMPcmFBC0qzmcN2QxDa73K8JhkTTBsPcSi1kw8PyJMei5KJgqH25gdocyu_cB/exec", sheet: "Users" },
-    exportHistory:   { url: "PASTE_APPSCRIPT_URL_3_DISINI", sheet: "ExportHistory" }
+    masterUnit:      { sheet: "Master_Unit" },
+    jenisUnit:       { sheet: "Master_Jenis_Unit" },
+    area:            { sheet: "Master_Area" },
+    commissioning:   { sheet: "Commissioning" },
+    waitingSticker:  { sheet: "Preparation_Tracking" },
+    expired:         { sheet: "Commissioning" },   // difilter di FE (Status = Expired/Near Expired)
+    users:           { sheet: "Users" },
+    exportHistory:   { sheet: "Export_History" }
   }
 };
 
@@ -636,11 +637,11 @@ let DB = {};
 
 async function fetchSheetData(key){
   const cfg = CONFIG.SCRIPTS[key];
-  if(!cfg || !cfg.url || cfg.url.startsWith("PASTE_")){
+  if(!cfg || !CONFIG.API_URL || CONFIG.API_URL.startsWith("PASTE_")){
     return null;
   }
   try{
-    const res = await fetch(`${cfg.url}?sheet=${encodeURIComponent(cfg.sheet)}`);
+    const res = await fetch(`${CONFIG.API_URL}?sheet=${encodeURIComponent(cfg.sheet)}`);
     if(!res.ok) throw new Error("HTTP "+res.status);
     const json = await res.json();
     DEMO_MODE = false;
