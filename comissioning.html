@@ -181,6 +181,22 @@ tbody tr:hover{ background:#f9fbff; }
 
 ::-webkit-scrollbar{ height:8px; width:8px;}
 ::-webkit-scrollbar-thumb{ background:#c7d0e6; border-radius:4px;}
+
+/* ===== PREPARATION PAGE ===== */
+.prep-stat-card{ background:#fff; border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+.prep-stat-icon{ width:44px; height:44px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; margin-bottom:12px;}
+.prep-stat-lbl{ font-size:11.5px; font-weight:700; letter-spacing:.4px; color:var(--text-600);}
+.prep-stat-val{ font-size:26px; font-weight:800; margin-top:4px; color:var(--text-900);}
+.prep-stat-val .unit{ font-size:12px; color:var(--text-400); font-weight:600;}
+.prep-stat-sub{ font-size:11.5px; color:var(--text-400); margin-top:6px;}
+.prep-stat-bar{ height:5px; border-radius:4px; background:#eef0f5; margin-top:14px; overflow:hidden;}
+.prep-stat-bar div{ height:100%; border-radius:4px;}
+.check-badge{ width:20px; height:20px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:11px; font-weight:800;}
+.check-badge.yes{ background:var(--green-bg); color:var(--green);}
+.check-badge.no{ background:var(--red-bg); color:var(--red);}
+.progress-track{ background:#eef0f5; height:6px; border-radius:4px; width:80px; overflow:hidden;}
+.progress-fill{ height:100%; border-radius:4px; background:var(--blue-600);}
+.progress-pct{ font-size:11.5px; color:var(--text-600); margin-bottom:4px; display:block;}
 </style>
 </head>
 <body>
@@ -205,7 +221,7 @@ tbody tr:hover{ background:#f9fbff; }
 
       <div class="group-title">COMMISSIONING</div>
       <div class="nav-item" data-page="commissioning"><span class="ic">🗂️</span><span class="nav-label">Commissioning</span></div>
-      <div class="nav-item" data-page="waitingSticker"><span class="ic">⏳</span><span class="nav-label">Waiting Sticker</span></div>
+      <div class="nav-item" data-page="waitingSticker"><span class="ic">📝</span><span class="nav-label">Preparation</span></div>
       <div class="nav-item" data-page="expired"><span class="ic">⏰</span><span class="nav-label">Expired / Near Expired</span></div>
 
       <div class="group-title">REPORT</div>
@@ -360,16 +376,44 @@ tbody tr:hover{ background:#f9fbff; }
         </div>
       </div>
 
-      <!-- ============ WAITING STICKER ============ -->
+      <!-- ============ PREPARATION (was Waiting Sticker) ============ -->
       <div class="page" id="page-waitingSticker">
+        <div class="stat-grid" id="prepStats"></div>
         <div class="panel">
-          <div class="panel-title">DAFTAR UNIT MENUNGGU STICKER</div>
+          <div class="toolbar">
+            <input type="text" id="prepSearch" placeholder="Cari Unit ID, Model / Tipe, atau Serial Number...">
+            <select id="prepSite"><option value="">Semua Site</option></select>
+            <select id="prepArea"><option value="">Semua Area</option></select>
+            <select id="prepStatus">
+              <option value="">Semua Status</option>
+              <option>Waiting Admin</option>
+              <option>Waiting History</option>
+              <option>Ready ZIP</option>
+              <option>Belum Lengkap</option>
+            </select>
+            <select id="prepPrioritas"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
+            <button class="btn btn-primary" onclick="renderWaitingSticker()">🔎 Filter</button>
+            <button class="btn btn-outline" onclick="resetPrepFilters()">↻ Reset</button>
+            <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('wsTable','preparation_commissioning')">⬇ Export</button>
+          </div>
+          <div class="panel-title">DAFTAR PREPARATION COMMISSIONING</div>
           <div style="overflow-x:auto">
             <table id="wsTable">
-              <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>Site</th><th>Area</th><th>Registration No</th><th>Tanggal Pengajuan</th><th>Status</th></tr></thead>
+              <thead><tr>
+                <th>No</th><th>Unit ID</th><th>Model / Tipe</th><th>Serial Number</th><th>Site</th><th>Area</th>
+                <th>Foto (4 Sisi)</th><th>Checklist</th><th>BAST</th><th>History Maintenance</th>
+                <th>Progress</th><th>Status Preparation</th><th>Prioritas</th><th>Hari di Preparation</th><th>Aksi</th>
+              </tr></thead>
               <tbody id="wsTableBody"></tbody>
             </table>
           </div>
+          <div class="pagination" id="wsPagination"></div>
+        </div>
+        <div class="info-box">
+          <div>ℹ️</div>
+          <div><b>Informasi</b><br>
+          Halaman ini menampilkan progres kelengkapan data preparation commissioning.<br>
+          Pastikan seluruh data, foto, checklist, BAST, dan History Maintenance sudah lengkap sebelum generate ZIP untuk diupload ke portal resmi.</div>
         </div>
       </div>
 
@@ -502,7 +546,7 @@ const CONFIG = {
     jenisUnit:       { url: "PASTE_APPSCRIPT_URL_1_DISINI", sheet: "JenisUnit" },
     area:            { url: "PASTE_APPSCRIPT_URL_1_DISINI", sheet: "Area" },
     commissioning:   { url: "PASTE_APPSCRIPT_URL_2_DISINI", sheet: "Commissioning" },
-    waitingSticker:  { url: "PASTE_APPSCRIPT_URL_2_DISINI", sheet: "WaitingSticker" },
+    waitingSticker:  { url: "PASTE_APPSCRIPT_URL_2_DISINI", sheet: "Preparation" },
     expired:         { url: "PASTE_APPSCRIPT_URL_2_DISINI", sheet: "ExpiredNearExpired" },
     users:           { url: "PASTE_APPSCRIPT_URL_3_DISINI", sheet: "Users" },
     exportHistory:   { url: "PASTE_APPSCRIPT_URL_3_DISINI", sheet: "ExportHistory" }
@@ -578,8 +622,16 @@ const DEMO_DATA = {
     {unitId:"DT045",model:"CAT D8T",sn:"CATD8TDT045",site:"TIA",area:"STK",reg:"TIA/CKT/2026/VI/009884",mulai:"12 Jul 2025",selesai:"11 Jul 2026",status:"Aktif"}
   ],
   waitingSticker: [
-    {unitId:"EX1021",model:"EX 1021",site:"BIB",area:"GRB",reg:"BIB/CKT/2026/V/120431",tanggal:"20 Jul 2026",status:"Menunggu"},
-    {unitId:"GD060",model:"CAT 140K",site:"BIB",area:"KGB",reg:"BIB/CKT/2026/IV/119831",tanggal:"18 Jul 2026",status:"Menunggu"}
+    {unitId:"C04536",model:"HD 4536",sn:"CAT00HD78S4536",site:"BIB",area:"GRB",foto:true,checklist:true,bast:false,history:false,progress:60,status:"Waiting Admin",prioritas:"Tinggi",hari:3},
+    {unitId:"EX1021",model:"EX 1021",sn:"CAT0336GCL1021",site:"BIB",area:"KGB",foto:true,checklist:true,bast:true,history:false,progress:80,status:"Waiting History",prioritas:"Tinggi",hari:2},
+    {unitId:"WT0213",model:"HINO 500",sn:"HINO500WT0213",site:"BIB",area:"KGB",foto:true,checklist:true,bast:true,history:true,progress:100,status:"Ready ZIP",prioritas:"Sedang",hari:1},
+    {unitId:"FV100",model:"HINO 500",sn:"HINO500FV100",site:"TIA",area:"GRB",foto:true,checklist:true,bast:true,history:false,progress:80,status:"Waiting History",prioritas:"Sedang",hari:1},
+    {unitId:"PM120",model:"PUMP",sn:"PUMP120PM120",site:"BIB",area:"FUEL",foto:true,checklist:true,bast:true,history:true,progress:100,status:"Ready ZIP",prioritas:"Rendah",hari:0},
+    {unitId:"DT045",model:"CAT D8T",sn:"CATD8TDT045",site:"TIA",area:"STK",foto:true,checklist:false,bast:false,history:false,progress:25,status:"Belum Lengkap",prioritas:"Tinggi",hari:5},
+    {unitId:"GD060",model:"CAT 140K",sn:"CAT140KGD060",site:"BIB",area:"KGB",foto:true,checklist:true,bast:false,history:false,progress:50,status:"Waiting Admin",prioritas:"Tinggi",hari:4},
+    {unitId:"HD7857",model:"HD 785",sn:"CAT00HD78X57",site:"BIB",area:"KGB",foto:true,checklist:true,bast:true,history:false,progress:80,status:"Waiting History",prioritas:"Sedang",hari:2},
+    {unitId:"CO2314",model:"HD 785",sn:"CAT00HD78S2314",site:"TIA",area:"GRB",foto:true,checklist:true,bast:false,history:false,progress:50,status:"Waiting Admin",prioritas:"Rendah",hari:1},
+    {unitId:"TR100",model:"TRAILER",sn:"TRL000TR100",site:"TIA",area:"GRB",foto:true,checklist:true,bast:true,history:true,progress:100,status:"Ready ZIP",prioritas:"Rendah",hari:0}
   ],
   expired: [
     {unitId:"C04536",model:"HD 4536",sn:"CAT00HD7854536",site:"BIB",area:"GRB",idbibtia:"HD4556",selesai:"28 Agu 2026",sisa:-10,status:"Expired",prioritas:"Tinggi"},
@@ -614,6 +666,18 @@ function pillFor(status){
   if(s.includes("aktif")||s.includes("active")) return `<span class="pill green">${status}</span>`;
   if(s.includes("menunggu")) return `<span class="pill blue">${status}</span>`;
   return `<span class="pill gray">${status}</span>`;
+}
+function pillPrep(status){
+  if(status==="Ready ZIP") return `<span class="pill green">${status}</span>`;
+  if(status==="Belum Lengkap") return `<span class="pill red">${status}</span>`;
+  return `<span class="pill orange">${status}</span>`; // Waiting Admin / Waiting History
+}
+function pillPrioritas(p){
+  const cls = p==="Tinggi" ? "red" : p==="Sedang" ? "orange" : "green";
+  return `<span class="pill ${cls}">${p}</span>`;
+}
+function checkBadge(ok){
+  return ok ? `<span class="check-badge yes">✓</span>` : `<span class="check-badge no">✗</span>`;
 }
 function filterRows(rows, term, fields){
   if(!term) return rows;
@@ -655,6 +719,15 @@ function statCard(label, value, unit, sub, colorClass, icon){
     <div class="sub">${sub||''}</div>
   </div>`;
 }
+function prepStatCard(label, value, unit, sub, iconBg, iconColor, icon, barColor, barPct){
+  return `<div class="prep-stat-card">
+    <div class="prep-stat-icon" style="background:${iconBg};color:${iconColor}">${icon}</div>
+    <div class="prep-stat-lbl">${label}</div>
+    <div class="prep-stat-val">${value} <span class="unit">${unit||''}</span></div>
+    <div class="prep-stat-sub">${sub||''}</div>
+    <div class="prep-stat-bar"><div style="width:${barPct}%;background:${barColor}"></div></div>
+  </div>`;
+}
 
 /* =====================================================================
    NAVIGATION
@@ -665,7 +738,7 @@ const PAGE_META = {
   jenisUnit:{title:"Jenis Unit", crumb:"Data Master &gt; Jenis Unit"},
   area:{title:"Area", crumb:"Data Master &gt; Area"},
   commissioning:{title:"Commissioning", crumb:"Commissioning &gt; Daftar Commissioning"},
-  waitingSticker:{title:"Waiting Sticker", crumb:"Commissioning &gt; Waiting Sticker"},
+  waitingSticker:{title:"Preparation Commissioning", crumb:"Commissioning &gt; Preparation"},
   expired:{title:"Expired / Near Expired", crumb:"Commissioning &gt; Expired / Near Expired"},
   laporan:{title:"Laporan", crumb:"Report &gt; Laporan"},
   exportData:{title:"Export Data", crumb:"Report &gt; Export Data"},
@@ -854,14 +927,73 @@ function renderCommissioning(){
 }
 
 /* =====================================================================
-   RENDER: WAITING STICKER
+   RENDER: PREPARATION (was Waiting Sticker)
 ===================================================================== */
+let wsPage=1;
+function resetPrepFilters(){
+  document.getElementById('prepSearch').value='';
+  document.getElementById('prepSite').value='';
+  document.getElementById('prepArea').value='';
+  document.getElementById('prepStatus').value='';
+  document.getElementById('prepPrioritas').value='';
+  wsPage=1;
+  renderWaitingSticker();
+}
 function renderWaitingSticker(){
   const rows = DB.waitingSticker;
-  document.getElementById('wsTableBody').innerHTML = rows.map((r,i)=>`
-    <tr><td>${i+1}</td><td class="unit-id">${r.unitId}</td><td>${r.model}</td><td><span class="pill blue">${r.site}</span></td>
-    <td>${r.area}</td><td>${r.reg}</td><td>${r.tanggal}</td><td>${pillFor(r.status)}</td></tr>`).join('')
-    || `<tr><td colspan="8" class="empty-state">Tidak ada unit menunggu sticker</td></tr>`;
+  const total = rows.length;
+  const waitingDok = rows.filter(r=>r.status==="Waiting Admin"||r.status==="Waiting History").length;
+  const readyZip = rows.filter(r=>r.status==="Ready ZIP").length;
+  const belumLengkap = rows.filter(r=>r.status==="Belum Lengkap").length;
+
+  document.getElementById('prepStats').innerHTML = [
+    prepStatCard("TOTAL PREPARATION", total, "Unit", "Semua unit dalam proses preparation", "#eaf0ff", "var(--blue-600)", "📋", "var(--blue-600)", 100),
+    prepStatCard("WAITING DOKUMEN", waitingDok, "Unit", "Menunggu upload BAST / History", "var(--orange-bg)", "var(--orange)", "📄", "var(--orange)", total?Math.round(waitingDok/total*100):0),
+    prepStatCard("READY GENERATE ZIP", readyZip, "Unit", "Siap generate ZIP dan upload portal", "var(--green-bg)", "var(--green)", "🗜️", "var(--green)", total?Math.round(readyZip/total*100):0),
+    prepStatCard("BELUM LENGKAP", belumLengkap, "Unit", "Foto / Checklist belum lengkap", "var(--red-bg)", "var(--red)", "⚠️", "var(--red)", total?Math.round(belumLengkap/total*100):0)
+  ].join('');
+
+  const term = document.getElementById('prepSearch').value;
+  let filtered = filterRows(rows, term, ['unitId','model','sn']);
+  const site = document.getElementById('prepSite').value;
+  const area = document.getElementById('prepArea').value;
+  const status = document.getElementById('prepStatus').value;
+  const prioritas = document.getElementById('prepPrioritas').value;
+  if(site) filtered = filtered.filter(r=>r.site===site);
+  if(area) filtered = filtered.filter(r=>r.area===area);
+  if(status) filtered = filtered.filter(r=>r.status===status);
+  if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
+
+  const perPage=10;
+  buildPagination('wsPagination', filtered.length, perPage, wsPage, 'window.__wsSetPage');
+  window.__wsSetPage=(p)=>{wsPage=p; renderWaitingSticker();};
+  const pageRows = paginate(filtered, wsPage, perPage);
+
+  document.getElementById('wsTableBody').innerHTML = pageRows.map((r,i)=>`
+    <tr>
+      <td>${(wsPage-1)*perPage+i+1}</td>
+      <td class="unit-id">${r.unitId}</td>
+      <td>${r.model}</td>
+      <td>${r.sn}</td>
+      <td><span class="pill blue">${r.site}</span></td>
+      <td>${r.area}</td>
+      <td>${checkBadge(r.foto)}</td>
+      <td>${checkBadge(r.checklist)}</td>
+      <td>${checkBadge(r.bast)}</td>
+      <td>${checkBadge(r.history)}</td>
+      <td>
+        <span class="progress-pct">${r.progress}%</span>
+        <div class="progress-track"><div class="progress-fill" style="width:${r.progress}%"></div></div>
+      </td>
+      <td>${pillPrep(r.status)}</td>
+      <td>${pillPrioritas(r.prioritas)}</td>
+      <td>${r.hari} Hari</td>
+      <td>
+        <button class="icon-btn blue" title="Lihat Detail">👁</button>
+        <button class="icon-btn blue" title="Edit">✏️</button>
+        <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.status!=='Ready ZIP'?'disabled':''}>${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
+      </td>
+    </tr>`).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
 }
 
 /* =====================================================================
@@ -950,7 +1082,7 @@ function renderLaporan(){
   const cards = [
     {t:"Ringkasan Keseluruhan", d:"Ringkasan data commissioning secara keseluruhan"},
     {t:"Laporan Commissioning", d:"Laporan unit yang telah selesai commissioning"},
-    {t:"Laporan Sticker", d:"Laporan unit berdasarkan status sticker"},
+    {t:"Laporan Preparation", d:"Laporan unit berdasarkan status preparation"},
     {t:"Laporan Expired / Near Expired", d:"Laporan unit yang sudah atau akan expired"},
     {t:"Laporan Per Site", d:"Laporan data berdasarkan site"},
     {t:"Laporan Per Area", d:"Laporan data berdasarkan area"}
@@ -958,7 +1090,6 @@ function renderLaporan(){
   document.getElementById('laporanCards').innerHTML = cards.map((c,i)=>`
     <div class="export-card ${i===0?'sel':''}"><div class="t">${c.t}</div><div class="d">${c.d}</div><div class="chk">✓</div></div>`).join('');
 
-  const totalUnit = DB.masterUnit.length + 748; // gabungan demo agar mirip contoh (bisa disesuaikan)
   const aktif = DB.masterUnit.filter(r=>r.status==="Active"||r.status==="Aktif").length;
   const near = DB.expired.filter(r=>r.status==="Near Expired").length;
   const exp = DB.expired.filter(r=>r.status==="Expired").length;
@@ -989,7 +1120,7 @@ function renderExportData(){
   const types = [
     {key:'masterUnit', t:"Data Master Unit", d:"Data unit/alat berat secara keseluruhan"},
     {key:'commissioning', t:"Data Commissioning", d:"Data unit yang telah selesai commissioning"},
-    {key:'waitingSticker', t:"Data Waiting Sticker", d:"Data unit yang menunggu pemasangan sticker"},
+    {key:'waitingSticker', t:"Data Preparation", d:"Data unit yang sedang dalam proses preparation"},
     {key:'expired', t:"Data Expired / Near Expired", d:"Data unit yang sudah atau akan expired"}
   ];
   document.getElementById('exportTypeCards').innerHTML = types.map(t=>`
@@ -1050,6 +1181,10 @@ function populateTopFilters(){
   lapSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
   const exSite = document.getElementById('exSite');
   exSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
+  const prepSite = document.getElementById('prepSite');
+  prepSite.innerHTML = '<option value="">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
+  const prepArea = document.getElementById('prepArea');
+  prepArea.innerHTML = '<option value="">Semua Area</option>' + areas.map(a=>`<option>${a}</option>`).join('');
 }
 function applyFilters(){ renderDashboard(); }
 function resetFilters(){ document.getElementById('dashSearch').value=''; renderDashboard(); }
