@@ -617,12 +617,6 @@ tbody tr:hover{ background:#f9fbff; }
 <script>
 /* =====================================================================
    KONFIGURASI SUMBER DATA (GOOGLE APPS SCRIPT WEB APP)
-   ---------------------------------------------------------------------
-   Isi "url" di bawah ini dengan link Web App Apps Script kamu.
-   Boleh pakai lebih dari satu link (misal 1 untuk data master,
-   1 lagi untuk commissioning, dst). "sheet" adalah nama sheet/tab
-   pada spreadsheet yang akan diminta lewat query ?sheet=NamaSheet
-   Lihat contoh kode Code.gs yang aku kirim terpisah di chat.
 ===================================================================== */
 const CONFIG = {
   SCRIPTS: {
@@ -637,23 +631,20 @@ const CONFIG = {
   }
 };
 
-let DEMO_MODE = true; // otomatis jadi false kalau salah satu URL berhasil di-fetch
-let DB = {}; // tempat menyimpan seluruh data setelah diambil
+let DEMO_MODE = true;
+let DB = {};
 
-/* =====================================================================
-   FETCH GENERIK KE APPS SCRIPT
-===================================================================== */
 async function fetchSheetData(key){
   const cfg = CONFIG.SCRIPTS[key];
   if(!cfg || !cfg.url || cfg.url.startsWith("PASTE_")){
-    return null; // belum dikonfigurasi -> pakai demo data
+    return null;
   }
   try{
     const res = await fetch(`${cfg.url}?sheet=${encodeURIComponent(cfg.sheet)}`);
     if(!res.ok) throw new Error("HTTP "+res.status);
     const json = await res.json();
     DEMO_MODE = false;
-    return json.data || json; // fleksibel: menerima {data:[...]} atau langsung [...]
+    return json.data || json;
   }catch(err){
     console.warn("Gagal fetch", key, err);
     return null;
@@ -668,7 +659,7 @@ async function loadAllData(){
 }
 
 /* =====================================================================
-   DATA DEMO (dipakai jika Apps Script belum dikonfigurasi)
+   DATA DEMO
 ===================================================================== */
 const DEMO_DATA = {
   masterUnit: [
@@ -848,7 +839,7 @@ function pillFor(status){
 function pillPrep(status){
   if(status==="Ready ZIP") return `<span class="pill green">${status}</span>`;
   if(status==="Belum Lengkap") return `<span class="pill red">${status}</span>`;
-  return `<span class="pill orange">${status}</span>`; // Waiting Admin / Waiting History
+  return `<span class="pill orange">${status}</span>`;
 }
 function pillPrioritas(p){
   const cls = p==="Tinggi" ? "red" : p==="Sedang" ? "orange" : "green";
@@ -942,10 +933,8 @@ document.getElementById('cfgLink').addEventListener('click', ()=>{
   alert("Buka file HTML ini di editor kode, cari bagian:\n\nconst CONFIG = { SCRIPTS: { ... } }\n\nlalu ganti setiap 'PASTE_APPSCRIPT_URL_...' dengan URL Web App Apps Script kamu (format:\nhttps://script.google.com/macros/s/XXXXXXX/exec).\nSetiap sumber data bisa pakai URL Apps Script yang berbeda.");
 });
 
-/* clock */
 function updateClock(){
   const now = new Date();
-  const days=['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'];
   const months=['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
   document.getElementById('tbDate').innerText = `${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   document.getElementById('tbTime').innerText = now.toTimeString().slice(0,5)+" WIB";
@@ -1001,7 +990,6 @@ function renderDashboard(){
       <td><button class="icon-btn blue">👁</button></td>
     </tr>`).join('') || `<tr><td colspan="13" class="empty-state">Tidak ada data</td></tr>`;
 
-  // Alert center
   document.getElementById('alertCenter').innerHTML = `
     <div class="alert-item"><div class="alert-ic" style="background:var(--orange-bg);color:var(--orange)">⚠️</div><div><b>${nearExp} Unit</b><br><small>Near Expired (≤30 hari)</small></div></div>
     <div class="alert-item"><div class="alert-ic" style="background:var(--red-bg);color:var(--red)">❌</div><div><b>${expired} Unit</b><br><small>Expired</small></div></div>
@@ -1105,7 +1093,7 @@ function renderCommissioning(){
 }
 
 /* =====================================================================
-   RENDER: PREPARATION (was Waiting Sticker)
+   RENDER: PREPARATION
 ===================================================================== */
 let wsPage=1;
 function resetPrepFilters(){
@@ -1176,6 +1164,7 @@ function renderWaitingSticker(){
 
 /* =====================================================================
    RENDER: PENGATURAN (SETTINGS)
+   Hanya "Umum" & "Reminder" yang aktif. Tab lainnya tampil "Coming Soon".
 ===================================================================== */
 const SETTINGS_TABS = [
   {key:"umum", label:"Umum"},
@@ -1579,7 +1568,6 @@ function renderExpired(){
     <td><button class="icon-btn blue">👁</button><button class="icon-btn">🖨</button><button class="icon-btn blue">✏️</button></td></tr>
   `).join('') || `<tr><td colspan="12" class="empty-state">Tidak ada data</td></tr>`;
 
-  // donut chart
   const segs = [
     {label:"Expired", val:expiredN, color:"#e0473f"},
     {label:"Near Expired (≤30)", val:near30, color:"#f39c2b"},
@@ -1683,7 +1671,6 @@ function renderExportData(){
 function doExportNow(){
   const map = {masterUnit:'muTable', commissioning:'comTable', waitingSticker:'wsTable', expired:'expTable'};
   const tId = map[selectedExportType];
-  // pastikan tabel sumber sudah dirender
   if(selectedExportType==='masterUnit') renderMasterUnit();
   if(selectedExportType==='commissioning') renderCommissioning();
   if(selectedExportType==='waitingSticker') renderWaitingSticker();
@@ -1715,7 +1702,7 @@ function renderUsers(){
 }
 
 /* =====================================================================
-   FILTER TOP BAR (Site/Area) - mempengaruhi semua data
+   FILTER TOP BAR
 ===================================================================== */
 function populateTopFilters(){
   const sites = [...new Set(DB.area.map(a=>a.site))];
