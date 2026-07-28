@@ -948,9 +948,18 @@ setInterval(updateClock,1000*30); updateClock();
 let dashPage=1;
 function renderDashboard(){
   const rows = DB.commissioning.map(r=>{
-    const mu = DB.masterUnit.find(m=>m.unitId===r.unitId);
-    return {...r, model2: mu?mu.model:r.model};
-  });
+  const mu = DB.masterUnit.find(m=>m.Unit_ID===r.Unit_ID);
+  return {
+    unitId: r.Unit_ID,
+    model2: mu ? mu.Model_Unit : '',
+    area: r.Area,
+    site: r.Site,
+    reg: r.Registration_No,
+    selesai: r.Masa_Berlaku,
+    sisa: r.Sisa_Hari,
+    status: r.Status
+  };
+});
   const total = DB.masterUnit.length;
   const active = DB.masterUnit.filter(m=>m.status==="Active"||m.status==="Aktif").length;
   const nearExp = DB.expired.filter(e=>e.status==="Near Expired").length;
