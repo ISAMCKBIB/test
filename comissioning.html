@@ -1187,9 +1187,9 @@ let comPage=1;
 function renderCommissioning(){
   const rows = DB.commissioning;
   const total = rows.length;
-  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
-  const near = rows.filter(r=>pick(r,['Status'])==="Near Expired").length;
-  const exp = rows.filter(r=>pick(r,['Status'])==="Expired").length;
+  const aktif = rows.filter(r=>r.Status==="Aktif").length;
+  const near = rows.filter(r=>r.Status==="Near Expired").length;
+  const exp = rows.filter(r=>r.Status==="Expired").length;
   document.getElementById('comStats').innerHTML = [
     statCard("TOTAL KOMISIONING", total, "Data", "Tersebar di semua site", "blue","🗂️"),
     statCard("AKTIF", aktif, "Data", `${Math.round(aktif/total*1000)/10}% dari total komisioning`, "green","✅"),
@@ -1246,47 +1246,49 @@ function renderWaitingSticker(){
 }));
 
   const term = document.getElementById('prepSearch').value;
-  let filtered = filterRows(rows, term, ['unitId','model','sn']);
-  const site = document.getElementById('prepSite').value;
-  const area = document.getElementById('prepArea').value;
-  const status = document.getElementById('prepStatus').value;
-  const prioritas = document.getElementById('prepPrioritas').value;
-  if(site) filtered = filtered.filter(r=>r.site===site);
-  if(area) filtered = filtered.filter(r=>r.area===area);
-  if(status) filtered = filtered.filter(r=>r.status===status);
-  if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
+let filtered = filterRows(rows, term, ['Unit_ID (FK)','Model_Type','Serial_Number']);
+const site = document.getElementById('prepSite').value;
+const area = document.getElementById('prepArea').value;
+const status = document.getElementById('prepStatus').value;
+const prioritas = document.getElementById('prepPrioritas').value;
+if(site) filtered = filtered.filter(r=>r.Site===site);
+if(area) filtered = filtered.filter(r=>r.Area===area);
+if(status) filtered = filtered.filter(r=>r.Status_Preparation===status);
+if(prioritas) filtered = filtered.filter(r=>r.Prioritas===prioritas);
 
   const perPage=10;
   buildPagination('wsPagination', filtered.length, perPage, wsPage, 'window.__wsSetPage');
   window.__wsSetPage=(p)=>{wsPage=p; renderWaitingSticker();};
   const pageRows = paginate(filtered, wsPage, perPage);
 
-  document.getElementById('wsTableBody').innerHTML = pageRows.map((r,i)=>`
-    <tr>
-      <td>${(wsPage-1)*perPage+i+1}</td>
-      <td class="unit-id">${r.unitId}</td>
-      <td>${r.model}</td>
-      <td>${r.sn}</td>
-      <td><span class="pill blue">${r.site}</span></td>
-      <td>${r.area}</td>
-      <td>${checkBadge(r.foto)}</td>
-      <td>${checkBadge(r.checklist)}</td>
-      <td>${checkBadge(r.bast)}</td>
-      <td>${checkBadge(r.history)}</td>
-      <td>
-        <span class="progress-pct">${r.progress}%</span>
-        <div class="progress-track"><div class="progress-fill" style="width:${r.progress}%"></div></div>
-      </td>
-      <td>${pillPrep(r.status)}</td>
-      <td>${pillPrioritas(r.prioritas)}</td>
-      <td>${r.hari} Hari</td>
-      <td>
-        <button class="icon-btn blue" title="Lihat Detail">👁</button>
-        <button class="icon-btn blue" title="Edit">✏️</button>
-        <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.status!=='Ready ZIP'?'disabled':''}>${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
-      </td>
-    </tr>`).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
-}
+  document.getElementById('wsTableBody').innerHTML = pageRows.map((r,i)=>{
+  const progress = (Number(r.Progress_Percent)||0) * 100;
+  return `
+  <tr>
+    <td>${(wsPage-1)*perPage+i+1}</td>
+    <td class="unit-id">${r['Unit_ID (FK)']}</td>
+    <td>${r.Model_Type}</td>
+    <td>${r.Serial_Number}</td>
+    <td><span class="pill blue">${r.Site}</span></td>
+    <td>${r.Area}</td>
+    <td>${checkBadge(r.Foto_4_Sisi==='Lengkap')}</td>
+    <td>${checkBadge(r.Checklist==='Lengkap')}</td>
+    <td>${checkBadge(r.BAST==='Sudah')}</td>
+    <td>${checkBadge(r.History_Maintenance==='Sudah')}</td>
+    <td>
+      <span class="progress-pct">${Math.round(progress)}%</span>
+      <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
+    </td>
+    <td>${pillPrep(r.Status_Preparation)}</td>
+    <td>${pillPrioritas(r.Prioritas)}</td>
+    <td>${r.Hari_di_Preparation} Hari</td>
+    <td>
+      <button class="icon-btn blue" title="Lihat Detail">👁</button>
+      <button class="icon-btn blue" title="Edit">✏️</button>
+      <button class="icon-btn ${r.Status_Preparation==='Ready ZIP'?'blue':''}" title="${r.Status_Preparation==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.Status_Preparation!=='Ready ZIP'?'disabled':''}>${r.Status_Preparation==='Ready ZIP'?'⬇️':'🔒'}</button>
+    </td>
+  </tr>`;
+}).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
 
 /* =====================================================================
    RENDER: PENGATURAN (SETTINGS)
