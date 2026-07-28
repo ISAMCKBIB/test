@@ -367,7 +367,7 @@ tbody tr:hover{ background:#f9fbff; }
 
       <div class="group-title">COMMISSIONING</div>
       <div class="nav-item" data-page="commissioning"><span class="ic">🗂️</span><span class="nav-label">Commissioning</span></div>
-      <div class="nav-item" data-page="waitingSticker"><span class="ic">📝</span><span class="nav-label">Preparation</span></div>
+      <div class="nav-item" data-page="preparation"><span class="ic">📝</span><span class="nav-label">Preparation</span></div>
       <div class="nav-item" data-page="expired"><span class="ic">⏰</span><span class="nav-label">Expired / Near Expired</span></div>
 
       <div class="group-title">REPORT</div>
@@ -520,7 +520,7 @@ tbody tr:hover{ background:#f9fbff; }
       </div>
 
       <!-- ============ PREPARATION (was Waiting Sticker) ============ -->
-      <div class="page" id="page-waitingSticker">
+      <div class="page" id="page-preparation">
         <div class="stat-grid" id="prepStats"></div>
         <div class="panel">
           <div class="toolbar">
@@ -535,22 +535,22 @@ tbody tr:hover{ background:#f9fbff; }
               <option>Belum Lengkap</option>
             </select>
             <select id="prepPrioritas"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
-            <button class="btn btn-primary" onclick="renderWaitingSticker()">🔎 Filter</button>
+            <button class="btn btn-primary" onclick="renderPreparation()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="resetPrepFilters()">↻ Reset</button>
-            <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('wsTable','preparation_commissioning')">⬇ Export</button>
+            <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('prepTable','preparation_commissioning')">⬇ Export</button>
           </div>
           <div class="panel-title">DAFTAR PREPARATION COMMISSIONING</div>
           <div style="overflow-x:auto">
-            <table id="wsTable">
+            <table id="prepTable">
               <thead><tr>
                 <th>No</th><th>Unit ID</th><th>Model / Tipe</th><th>Serial Number</th><th>Site</th><th>Area</th>
                 <th>Foto (4 Sisi)</th><th>Checklist</th><th>BAST</th><th>History Maintenance</th>
                 <th>Progress</th><th>Status Preparation</th><th>Prioritas</th><th>Hari di Preparation</th><th>Aksi</th>
               </tr></thead>
-              <tbody id="wsTableBody"></tbody>
+              <tbody id="prepTableBody"></tbody>
             </table>
           </div>
-          <div class="pagination" id="wsPagination"></div>
+          <div class="pagination" id="prepPagination"></div>
         </div>
         <div class="info-box">
           <div>ℹ️</div>
@@ -682,7 +682,7 @@ const CONFIG = {
     jenisUnit:       { sheet: "Master_Jenis_Unit" },
     area:            { sheet: "Master_Area" },
     commissioning:   { sheet: "Commissioning" },
-    waitingSticker:  { sheet: "Preparation_Tracking" },
+    preparation:  { sheet: "Preparation_Tracking" },
     expired:         { sheet: "Commissioning" },   // difilter di FE (Status = Expired/Near Expired)
     users:           { sheet: "Users" },
     exportHistory:   { sheet: "Export_History" }
@@ -786,7 +786,7 @@ const DEMO_DATA = {
     {unitId:"WT0213",model:"HINO 500",sn:"HINO500WT0213",site:"BIB",area:"GRB",reg:"BIB/CKT/2026/VI/120211",mulai:"23 Jul 2025",selesai:"22 Jul 2026",status:"Aktif"},
     {unitId:"DT045",model:"CAT D8T",sn:"CATD8TDT045",site:"TIA",area:"STK",reg:"TIA/CKT/2026/VI/009884",mulai:"12 Jul 2025",selesai:"11 Jul 2026",status:"Aktif"}
   ],
-  waitingSticker: [
+  preparation: [
     {unitId:"C04536",model:"HD 4536",sn:"CAT00HD78S4536",site:"BIB",area:"GRB",foto:true,checklist:true,bast:false,history:false,progress:60,status:"Waiting Admin",prioritas:"Tinggi",hari:3},
     {unitId:"EX1021",model:"EX 1021",sn:"CAT0336GCL1021",site:"BIB",area:"KGB",foto:true,checklist:true,bast:true,history:false,progress:80,status:"Waiting History",prioritas:"Tinggi",hari:2},
     {unitId:"WT0213",model:"HINO 500",sn:"HINO500WT0213",site:"BIB",area:"KGB",foto:true,checklist:true,bast:true,history:true,progress:100,status:"Ready ZIP",prioritas:"Sedang",hari:1},
@@ -1005,7 +1005,7 @@ const PAGE_META = {
   jenisUnit:{title:"Jenis Unit", crumb:"Data Master &gt; Jenis Unit"},
   area:{title:"Area", crumb:"Data Master &gt; Area"},
   commissioning:{title:"Commissioning", crumb:"Commissioning &gt; Daftar Commissioning"},
-  waitingSticker:{title:"Preparation Commissioning", crumb:"Commissioning &gt; Preparation"},
+  preparation:{title:"Preparation Commissioning", crumb:"Commissioning &gt; Preparation"},
   expired:{title:"Expired / Near Expired", crumb:"Commissioning &gt; Expired / Near Expired"},
   laporan:{title:"Laporan", crumb:"Report &gt; Laporan"},
   exportData:{title:"Export Data", crumb:"Report &gt; Export Data"},
@@ -1058,7 +1058,7 @@ function renderDashboard(){
   const active = DB.masterUnit.filter(m=>m.status==="Active"||m.status==="Aktif").length;
   const nearExp = DB.expired.filter(e=>e.status==="Near Expired").length;
   const expired = DB.expired.filter(e=>e.status==="Expired").length;
-  const waiting = DB.waitingSticker.length;
+  const waiting = DB.preparation.length;
   const health = total? Math.round((active/total)*1000)/10 : 0;
 
   document.getElementById('dashStats').innerHTML = [
@@ -1218,18 +1218,18 @@ function renderCommissioning(){
 /* =====================================================================
    RENDER: PREPARATION
 ===================================================================== */
-let wsPage=1;
+let prepPage=1;
 function resetPrepFilters(){
   document.getElementById('prepSearch').value='';
   document.getElementById('prepSite').value='';
   document.getElementById('prepArea').value='';
   document.getElementById('prepStatus').value='';
   document.getElementById('prepPrioritas').value='';
-  wsPage=1;
-  renderWaitingSticker();
+  prepPage=1;
+  renderPreparation();
 }
-function renderWaitingSticker(){
-  const rows = DB.waitingSticker.map(r=>({
+function renderPreparation(){
+  const rows = DB.preparation.map(r=>({
   unitId: pick(r,['Unit_ID (FK)','Unit_ID']),
   model: pick(r,['Model_Type']),
   sn: pick(r,['Serial_Number']),
@@ -1246,46 +1246,46 @@ function renderWaitingSticker(){
 }));
 
   const term = document.getElementById('prepSearch').value;
-let filtered = filterRows(rows, term, ['Unit_ID (FK)','Model_Type','Serial_Number']);
+let filtered = filterRows(rows, term, ['unitId','model','sn']);
 const site = document.getElementById('prepSite').value;
 const area = document.getElementById('prepArea').value;
 const status = document.getElementById('prepStatus').value;
 const prioritas = document.getElementById('prepPrioritas').value;
-if(site) filtered = filtered.filter(r=>r.Site===site);
-if(area) filtered = filtered.filter(r=>r.Area===area);
-if(status) filtered = filtered.filter(r=>r.Status_Preparation===status);
-if(prioritas) filtered = filtered.filter(r=>r.Prioritas===prioritas);
+if(site) filtered = filtered.filter(r=>r.site===site);
+if(area) filtered = filtered.filter(r=>r.area===area);
+if(status) filtered = filtered.filter(r=>r.status===status);
+if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
 
   const perPage=10;
-  buildPagination('wsPagination', filtered.length, perPage, wsPage, 'window.__wsSetPage');
-  window.__wsSetPage=(p)=>{wsPage=p; renderWaitingSticker();};
-  const pageRows = paginate(filtered, wsPage, perPage);
+  buildPagination('prepPagination', filtered.length, perPage, prepPage, 'window.__prepSetPage');
+  window.__prepSetPage=(p)=>{prepPage=p; renderPreparation();};
+  const pageRows = paginate(filtered, prepPage, perPage);
 
-  document.getElementById('wsTableBody').innerHTML = pageRows.map((r,i)=>{
-  const progress = (Number(r.Progress_Percent)||0) * 100;
+  document.getElementById('prepTableBody').innerHTML = pageRows.map((r,i)=>{
+  const progress = r.progress;
   return `
   <tr>
-    <td>${(wsPage-1)*perPage+i+1}</td>
-    <td class="unit-id">${r['Unit_ID (FK)']}</td>
-    <td>${r.Model_Type}</td>
-    <td>${r.Serial_Number}</td>
-    <td><span class="pill blue">${r.Site}</span></td>
-    <td>${r.Area}</td>
-    <td>${checkBadge(r.Foto_4_Sisi==='Lengkap')}</td>
-    <td>${checkBadge(r.Checklist==='Lengkap')}</td>
-    <td>${checkBadge(r.BAST==='Sudah')}</td>
-    <td>${checkBadge(r.History_Maintenance==='Sudah')}</td>
+    <td>${(prepPage-1)*perPage+i+1}</td>
+    <td class="unit-id">${r.unitId}</td>
+    <td>${r.model}</td>
+    <td>${r.sn}</td>
+    <td><span class="pill blue">${r.site}</span></td>
+    <td>${r.area}</td>
+    <td>${checkBadge(r.foto)}</td>
+    <td>${checkBadge(r.checklist)}</td>
+    <td>${checkBadge(r.bast)}</td>
+    <td>${checkBadge(r.history)}</td>
     <td>
       <span class="progress-pct">${Math.round(progress)}%</span>
       <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
     </td>
-    <td>${pillPrep(r.Status_Preparation)}</td>
-    <td>${pillPrioritas(r.Prioritas)}</td>
-    <td>${r.Hari_di_Preparation} Hari</td>
+    <td>${pillPrep(r.status)}</td>
+    <td>${pillPrioritas(r.prioritas)}</td>
+    <td>${r.hari} Hari</td>
     <td>
       <button class="icon-btn blue" title="Lihat Detail">👁</button>
       <button class="icon-btn blue" title="Edit">✏️</button>
-      <button class="icon-btn ${r.Status_Preparation==='Ready ZIP'?'blue':''}" title="${r.Status_Preparation==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.Status_Preparation!=='Ready ZIP'?'disabled':''}>${r.Status_Preparation==='Ready ZIP'?'⬇️':'🔒'}</button>
+      <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.status!=='Ready ZIP'?'disabled':''}>${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
     </td>
   </tr>`;
 }).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
@@ -1795,7 +1795,7 @@ function renderExportData(){
   const types = [
     {key:'masterUnit', t:"Data Master Unit", d:"Data unit/alat berat secara keseluruhan"},
     {key:'commissioning', t:"Data Commissioning", d:"Data unit yang telah selesai commissioning"},
-    {key:'waitingSticker', t:"Data Preparation", d:"Data unit yang sedang dalam proses preparation"},
+    {key:'preparation', t:"Data Preparation", d:"Data unit yang sedang dalam proses preparation"},
     {key:'expired', t:"Data Expired / Near Expired", d:"Data unit yang sudah atau akan expired"}
   ];
   document.getElementById('exportTypeCards').innerHTML = types.map(t=>`
@@ -1807,11 +1807,11 @@ function renderExportData(){
     <td>${r.oleh}</td><td>${r.tanggal}</td><td>${pillFor(r.status)}</td></tr>`).join('');
 }
 function doExportNow(){
-  const map = {masterUnit:'muTable', commissioning:'comTable', waitingSticker:'wsTable', expired:'expTable'};
+  const map = {masterUnit:'muTable', commissioning:'comTable', preparation:'prepTable', expired:'expTable'};
   const tId = map[selectedExportType];
   if(selectedExportType==='masterUnit') renderMasterUnit();
   if(selectedExportType==='commissioning') renderCommissioning();
-  if(selectedExportType==='waitingSticker') renderWaitingSticker();
+  if(selectedExportType==='preparation') renderPreparation();
   if(selectedExportType==='expired') renderExpired();
   exportTableCSV(tId, selectedExportType+'_export');
   DB.exportHistory.unshift({nama:`Export ${selectedExportType} - manual`, jenis:selectedExportType, format:document.getElementById('exFormat').value.toUpperCase(), oleh:"Abdul Azis", tanggal:new Date().toLocaleString('id-ID'), status:"Selesai"});
@@ -1869,7 +1869,7 @@ function resetFilters(){ document.getElementById('dashSearch').value=''; renderD
 function renderPage(key){
   const map = {
     dashboard:renderDashboard, masterUnit:renderMasterUnit, jenisUnit:renderJenisUnit,
-    area:renderArea, commissioning:renderCommissioning, waitingSticker:renderWaitingSticker,
+    area:renderArea, commissioning:renderCommissioning, preparation:renderPreparation,
     expired:renderExpired, laporan:renderLaporan, exportData:renderExportData, userManagement:renderUsers,
     pengaturan:renderPengaturan
   };
