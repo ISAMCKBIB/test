@@ -391,6 +391,21 @@ tbody tr:hover{ background:#f9fbff; }
 .icon-btn:disabled{ opacity:.4; cursor:not-allowed;}
 .icon-btn{ cursor:pointer; }
 
+#bugReportFab{
+  position:fixed; bottom:24px; left:24px; z-index:1600;
+  width:48px; height:48px; border-radius:50%; border:none;
+  background:var(--navy-900); color:#fff; font-size:20px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+}
+#bugReportFab:hover{ background:var(--navy-700); }
+
+.site-tab-bar{ display:flex; gap:6px; margin-bottom:12px; }
+.site-tab-bar .stab{
+  padding:7px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer;
+  background:var(--gray-bg); color:var(--text-600); border:1px solid transparent;
+}
+.site-tab-bar .stab.active{ background:var(--navy-900); color:#fff; }
+
 /* =====================================================================
    RESPONSIVE / MOBILE
 ===================================================================== */
@@ -457,6 +472,44 @@ tbody tr:hover{ background:#f9fbff; }
   .stat-grid{ grid-template-columns:1fr 1fr; }
   .brand-text small{ display:none; }
 }
+
+/* =====================================================================
+   MINI STEPPER (progres tracking Preparation -> Commissioning)
+===================================================================== */
+.mini-stepper{ display:flex; align-items:center; gap:2px; min-width:150px; }
+.mini-step{ display:flex; flex-direction:column; align-items:center; flex:1; position:relative; }
+.mini-step:not(:last-child)::after{
+  content:''; position:absolute; top:5px; left:calc(50% + 8px); right:calc(-50% + 8px);
+  height:2px; background:var(--border);
+}
+.mini-step.done:not(:last-child)::after{ background:var(--green); }
+.mini-step .dot{ width:11px; height:11px; border-radius:50%; background:var(--border); border:2px solid #fff; z-index:1; }
+.mini-step.done .dot{ background:var(--green); }
+.mini-step.current .dot{ background:var(--orange); box-shadow:0 0 0 3px var(--orange-bg); }
+.mini-step .lb{ font-size:9px; color:var(--text-400); margin-top:3px; white-space:nowrap; }
+.mini-step.done .lb{ color:var(--green); font-weight:600; }
+.mini-step.current .lb{ color:var(--orange); font-weight:700; }
+
+/* =====================================================================
+   HERO EXPIRED (dashboard) - supaya unit Expired langsung menonjol
+===================================================================== */
+.expired-hero{
+  background:linear-gradient(135deg, var(--red), #b83530);
+  border-radius:14px; padding:20px 24px; margin-bottom:18px;
+  display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;
+  color:#fff;
+}
+.expired-hero.zero{ background:linear-gradient(135deg, var(--green), #178a45); }
+.expired-hero .eh-left{ display:flex; align-items:center; gap:16px; }
+.expired-hero .eh-icon{ font-size:34px; line-height:1; }
+.expired-hero .eh-num{ font-size:36px; font-weight:800; line-height:1; }
+.expired-hero .eh-label{ font-size:12.5px; font-weight:700; letter-spacing:.5px; opacity:.9; margin-top:4px; }
+.expired-hero .eh-sub{ font-size:12px; opacity:.85; margin-top:2px; }
+.expired-hero .eh-cta{
+  background:rgba(255,255,255,.18); border:1px solid rgba(255,255,255,.4); color:#fff;
+  padding:9px 16px; border-radius:8px; font-size:12.5px; font-weight:700; cursor:pointer; white-space:nowrap;
+}
+.expired-hero .eh-cta:hover{ background:rgba(255,255,255,.28); }
 </style>
 </head>
 <body>
@@ -506,6 +559,34 @@ tbody tr:hover{ background:#f9fbff; }
 
 <div id="saveToast"></div>
 
+<button id="bugReportFab" title="Laporkan masalah atau bug" onclick="openBugReport()">🐞</button>
+
+<div class="modal-overlay" id="bugReportOverlay" onclick="if(event.target===this) closeBugReport();">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-head">
+      <div>
+        <h3>Laporkan Masalah</h3>
+        <div class="sub">Ceritakan apa yang salah atau data yang aneh</div>
+      </div>
+      <button class="modal-close" onclick="closeBugReport()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Halaman terkait</label>
+        <input type="text" id="bugPageInfo" disabled>
+      </div>
+      <div class="form-group">
+        <label>Deskripsi masalah <span class="req">*</span></label>
+        <textarea id="bugDescription" rows="4" placeholder="Contoh: Angka Active di Master Unit masih 0 padahal unitnya aktif semua"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeBugReport()">Batal</button>
+      <button class="btn btn-primary" onclick="submitBugReport()">📨 Kirim Laporan</button>
+    </div>
+  </div>
+</div>
+
 <div class="app">
   <!-- Overlay gelap saat sidebar dibuka di layar mobile -->
   <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
@@ -553,11 +634,12 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="crumb" id="pageCrumb">Dashboard &gt; Commissioning Monitoring</div>
       </div>
       <div class="tb-control">🌐
-        <select id="filterSite"><option value="ALL">ALL SITE</option></select>
+        <select id="filterSite" onchange="setGlobalFilter()"><option value="ALL">ALL SITE</option></select>
       </div>
       <div class="tb-control">📍
-        <select id="filterArea"><option value="ALL">ALL AREA</option></select>
+        <select id="filterArea" onchange="setGlobalFilter()"><option value="ALL">ALL AREA</option></select>
       </div>
+      <div class="tb-control" id="lastUpdatedInfo" title="Waktu terakhir data ditarik dari spreadsheet">🕓 -</div>
       <div class="tb-control">📅 <span id="tbDate"></span></div>
       <div class="tb-control">🕒 <span id="tbTime"></span></div>
       <div class="tb-control" id="connStatus" title="Status koneksi ke Google Apps Script">⏳ Memuat...</div>
@@ -573,6 +655,7 @@ tbody tr:hover{ background:#f9fbff; }
 
       <!-- ============ DASHBOARD ============ -->
       <div class="page active" id="page-dashboard">
+        <div id="dashExpiredHero"></div>
         <div class="stat-grid" id="dashStats"></div>
         <div class="panel">
           <div class="toolbar">
@@ -583,14 +666,11 @@ tbody tr:hover{ background:#f9fbff; }
           </div>
           <div class="two-col">
             <div>
-              <div class="panel-title">DAFTAR KOMISIONING (PER SITE)</div>
+              <div class="panel-title">DAFTAR KOMISIONING</div>
+              <div class="site-tab-bar" id="dashSiteTabs"></div>
               <div style="overflow-x:auto">
                 <table id="dashTable">
-                  <thead><tr>
-                    <th>No</th><th>Unit ID</th><th>Model</th><th>Area</th>
-                    <th>BIB Reg. No</th><th>BIB Masa Berlaku</th><th>BIB Sisa Hari</th><th>BIB Status</th>
-                    <th>TIA Reg. No</th><th>TIA Masa Berlaku</th><th>TIA Sisa Hari</th><th>TIA Status</th><th>Aksi</th>
-                  </tr></thead>
+                  <thead id="dashTableHead"></thead>
                   <tbody id="dashTableBody"></tbody>
                 </table>
               </div>
@@ -598,11 +678,11 @@ tbody tr:hover{ background:#f9fbff; }
             </div>
             <div>
               <div class="panel" style="margin-bottom:12px;">
-                <div class="panel-title">ALERT CENTER <span class="link">Lihat Semua</span></div>
+                <div class="panel-title">PERLU TINDAKAN HARI INI</div>
                 <div id="alertCenter"></div>
               </div>
               <div class="panel">
-                <div class="panel-title">RECENT ACTIVITY <span class="link">Lihat Semua</span></div>
+                <div class="panel-title">AKTIVITAS TERBARU <span class="link" onclick="goToPage('pengaturan')">Lihat Semua</span></div>
                 <div id="recentActivity"></div>
               </div>
             </div>
@@ -692,10 +772,15 @@ tbody tr:hover{ background:#f9fbff; }
             <select id="prepArea" onchange="livePrepSearch()"><option value="">Semua Area</option></select>
             <select id="prepStatus" onchange="livePrepSearch()">
               <option value="">Semua Status</option>
+              <option>Belum Lengkap</option>
               <option>Waiting Admin</option>
               <option>Waiting History</option>
               <option>Ready ZIP</option>
-              <option>Belum Lengkap</option>
+              <option>Diajukan Owner</option>
+              <option>Disetujui Owner</option>
+              <option>Diajukan Portal</option>
+              <option>Waiting Sticker</option>
+              <option>Selesai</option>
             </select>
             <select id="prepPrioritas" onchange="livePrepSearch()"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
             <button class="btn btn-primary" onclick="renderPreparation()">🔎 Filter</button>
@@ -708,7 +793,7 @@ tbody tr:hover{ background:#f9fbff; }
               <thead><tr>
                 <th>No</th><th>Unit ID</th><th>Model / Tipe</th><th>Serial Number</th><th>Site</th><th>Area</th>
                 <th>Foto (4 Sisi)</th><th>Checklist</th><th>BAST</th><th>History Maintenance</th>
-                <th>Progress</th><th>Status Preparation</th><th>Prioritas</th><th>Hari di Preparation</th><th>Aksi</th>
+                <th>Progress</th><th>Tahap Tracking</th><th>Status Preparation</th><th>Prioritas</th><th>Hari di Preparation</th><th>Aksi</th>
               </tr></thead>
               <tbody id="prepTableBody"></tbody>
             </table>
@@ -848,13 +933,15 @@ const CONFIG = {
     preparation:  { sheet: "Preparation_Tracking" },
     expired:         { sheet: "Commissioning" },   // difilter di FE (Status = Expired/Near Expired)
     users:           { sheet: "Users" },
-    exportHistory:   { sheet: "Export_History" }
+    exportHistory:   { sheet: "Export_History" },
+    activityLog:     { sheet: "Activity_Log" }
   }
 };
 
 let DEMO_MODE = true;
 let DB = {};
 let FETCH_HAD_ERROR = false;
+let CURRENT_USER_NAME = 'Abdul Azis (Admin)'; // dipakai untuk mencatat siapa yang melakukan perubahan di Activity Log
 
 async function fetchSheetByName(sheetName, timeoutMs){
   const controller = new AbortController();
@@ -949,6 +1036,16 @@ async function loadAllData(){
   } else {
     DEMO_MODE = true;
     setConnStatus('error');
+  }
+
+  /* DATA TRUST: catat kapan terakhir data ditarik, supaya admin tahu data segar atau basi */
+  const lastUpdatedEl = document.getElementById('lastUpdatedInfo');
+  if(lastUpdatedEl){
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    lastUpdatedEl.innerText = '🕓 Update ' + hh + ':' + mm;
+    lastUpdatedEl.title = 'Data terakhir ditarik dari spreadsheet pukul ' + hh + ':' + mm + ' WIB';
   }
 
   setLoaderProgress(100, "Menyelesaikan");
@@ -1049,6 +1146,12 @@ const DEMO_DATA = {
     {nama:"Data Master Unit - Jul 2026",jenis:"Data Master Unit",format:"XLSX",oleh:"Abdul Azis",tanggal:"22 Jul 2026 08:25",status:"Selesai"},
     {nama:"Data Commissioning - Jul 2026",jenis:"Data Commissioning",format:"XLSX",oleh:"Abdul Azis",tanggal:"22 Jul 2026 08:10",status:"Selesai"},
     {nama:"Data Waiting Sticker - Jul 2026",jenis:"Data Waiting Sticker",format:"PDF",oleh:"Abdul Azis",tanggal:"22 Jul 2026 07:55",status:"Selesai"}
+  ],
+  activityLog: [
+    {Timestamp:"29 Jul 2026 14:02", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"CO4536: Ready ZIP -> Diajukan Owner"},
+    {Timestamp:"29 Jul 2026 11:20", User:"Abdul Azis (Admin)", Action:"Tambah Data", Detail:"Master Unit baru: EX2044"},
+    {Timestamp:"28 Jul 2026 16:45", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"EX1021: Disetujui Owner -> Diajukan Portal"},
+    {Timestamp:"28 Jul 2026 09:10", User:"Abdul Azis (Admin)", Action:"Hapus Data", Detail:"Commissioning CMS-old-002 dihapus"}
   ],
   unitTypes: [
     {icon:"dump_truck",   jenis:"Heavy Dump Truck",    deskripsi:"Unit angkut berat untuk material",            status:"Aktif"},
@@ -1177,9 +1280,72 @@ function escJs(v){
   if(s.includes("menunggu")) return `<span class="pill blue">${status}</span>`;
   return `<span class="pill gray">${status}</span>`;
 }
+/* =====================================================================
+   PIPELINE PREPARATION -> COMMISSIONING (sistem tracking)
+   3 tahap pertama otomatis dihitung dari kelengkapan dokumen (lama),
+   5 tahap setelahnya dijalankan MANUAL oleh admin lewat tombol aksi.
+===================================================================== */
+const PREP_STAGES = [
+  { key:'Belum Lengkap',    label:'Dokumen belum lengkap' },
+  { key:'Waiting Admin',    label:'Menunggu BAST' },
+  { key:'Waiting History',  label:'Menunggu history maintenance' },
+  { key:'Ready ZIP',        label:'Dokumen lengkap' },
+  { key:'Diajukan Owner',   label:'Diajukan ke owner' },
+  { key:'Disetujui Owner',  label:'Disetujui owner' },
+  { key:'Diajukan Portal',  label:'Diajukan ke portal resmi' },
+  { key:'Waiting Sticker',  label:'Menunggu stiker' },
+  { key:'Selesai',          label:'Stiker terpasang' }
+];
+function prepStageIndex(status){
+  const i = PREP_STAGES.findIndex(s=>s.key===status);
+  return i===-1 ? 0 : i;
+}
+/* Tombol aksi berikutnya sesuai tahap saat ini. null kalau belum siap diajukan atau sudah selesai. */
+function prepNextAction(status){
+  const map = {
+    'Ready ZIP':       { to:'Diajukan Owner',  label:'Ajukan ke Owner',            field:'Tanggal_Diajukan_Owner' },
+    'Diajukan Owner':  { to:'Disetujui Owner', label:'Tandai Disetujui Owner',     field:'Tanggal_Disetujui_Owner' },
+    'Disetujui Owner': { to:'Diajukan Portal', label:'Ajukan ke Portal Resmi',     field:'Tanggal_Diajukan_Portal' },
+    'Diajukan Portal': { to:'Waiting Sticker', label:'Tandai Waiting Sticker',     field:'Tanggal_Waiting_Sticker' },
+    'Waiting Sticker': { to:'Selesai',         label:'✓ Tandai Stiker Terpasang', field:'Tanggal_Terpasang' }
+  };
+  return map[status] || null;
+}
+/* Mini-stepper visual 6 langkah: Dokumen > Diajukan > Disetujui > Portal > Stiker > Selesai */
+function prepMiniStepper(status){
+  const idx = prepStageIndex(status);
+  const doneUpTo = idx < 3 ? -1 : (idx - 3);
+  const labels = ['Dokumen','Diajukan','Disetujui','Portal','Stiker','Selesai'];
+  return `<div class="mini-stepper">` + labels.map((lb,i)=>{
+    let cls = 'pending';
+    if(i <= doneUpTo) cls = 'done';
+    else if(i === doneUpTo+1) cls = 'current';
+    return `<div class="mini-step ${cls}" title="${lb}"><span class="dot"></span><span class="lb">${lb}</span></div>`;
+  }).join('') + `</div>`;
+}
+async function advancePrepStage(unitId, toStatus, dateField){
+  if(!confirm(`Ubah status unit ${unitId} menjadi "${toStatus}"? Pastikan tahap sebelumnya sudah benar-benar selesai di lapangan.`)) return;
+  const prevRaw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
+  const prevStatus = prevRaw ? (pick(prevRaw,['Status_Preparation'])||'Belum Lengkap') : '?';
+  showSaveToast('⏳ Memperbarui status...');
+  const data = { Status_Preparation: toStatus };
+  const now = new Date();
+  data[dateField] = now.toISOString().slice(0,16).replace('T',' ');
+  const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data });
+  if(result.success){
+    showSaveToast('✓ Status '+unitId+' berhasil diperbarui ke '+toStatus);
+    logActivity('Update Status', `${unitId}: ${prevStatus} -> ${toStatus}`);
+    manualRefresh();
+  }else{
+    showSaveToast('⚠ Gagal update status: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
+
 function pillPrep(status){
+  if(status==="Selesai") return `<span class="pill green">✓ ${status}</span>`;
   if(status==="Ready ZIP") return `<span class="pill green">${status}</span>`;
   if(status==="Belum Lengkap") return `<span class="pill red">${status}</span>`;
+  if(status==="Waiting Sticker") return `<span class="pill blue">${status}</span>`;
   return `<span class="pill orange">${status}</span>`;
 }
 function pillPrioritas(p){
@@ -1278,6 +1444,26 @@ const PAGE_META = {
   pengaturan:{title:"Pengaturan", crumb:"Settings &gt; Pengaturan"}
 };
 let currentPageKey = 'dashboard';
+let globalSiteFilter = 'ALL';
+let globalAreaFilter = 'ALL';
+function setGlobalFilter(){
+  globalSiteFilter = document.getElementById('filterSite').value || 'ALL';
+  globalAreaFilter = document.getElementById('filterArea').value || 'ALL';
+  renderPage(currentPageKey);
+}
+/* Kumpulan Unit_ID yang cocok dengan filter Site/Area global (berdasarkan data Commissioning).
+   Return null kalau filter = ALL/ALL (artinya tidak ada pembatasan). */
+function getGlobalFilteredUnitIds(){
+  if(globalSiteFilter==='ALL' && globalAreaFilter==='ALL') return null;
+  const ids = new Set();
+  DB.commissioning.forEach(c=>{
+    const s = pick(c,['Site']), a = pick(c,['Area']);
+    if((globalSiteFilter==='ALL'||s===globalSiteFilter) && (globalAreaFilter==='ALL'||a===globalAreaFilter)){
+      ids.add(pick(c,['Unit_ID']));
+    }
+  });
+  return ids;
+}
 function goToPage(key){
   currentPageKey = key;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1324,8 +1510,15 @@ setInterval(updateClock,1000*30); updateClock();
    RENDER: DASHBOARD
 ===================================================================== */
 let dashPage=1;
+let dashSiteTab='BIB';
+function setDashSiteTab(s){
+  dashSiteTab = s;
+  dashPage = 1;
+  renderDashboard();
+}
 function renderDashboard(){
-  const rows = DB.commissioning.map(r=>{
+  const filterIds = getGlobalFilteredUnitIds();
+  const rowsAll = DB.commissioning.map(r=>{
   const unitId = pick(r,['Unit_ID']);
   const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
   return {
@@ -1335,64 +1528,114 @@ function renderDashboard(){
     site: pick(r,['Site']),
     reg: pick(r,['Registration_No']),
     selesai: pick(r,['Masa_Berlaku']),
+    sisa: pick(r,['Sisa_Hari']),
     status: pick(r,['Status'])
   };
 });
-  const total = DB.masterUnit.length;
-  const active = DB.masterUnit.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
-  const nearExp = DB.expired.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
-  const expired = DB.expired.filter(e=>{
+  const rows = filterIds ? rowsAll.filter(r=>filterIds.has(r.unitId)) : rowsAll;
+
+  const muRows = filterIds ? DB.masterUnit.filter(m=>filterIds.has(pick(m,['Unit_ID']))) : DB.masterUnit;
+  const expiredRows = filterIds ? DB.expired.filter(e=>filterIds.has(pick(e,['Unit_ID','unitId']))) : DB.expired;
+  const prepRows = filterIds ? DB.preparation.filter(p=>filterIds.has(pick(p,['Unit_ID (FK)','Unit_ID']))) : DB.preparation;
+
+  const total = muRows.length;
+  const active = muRows.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
+  const nearExp = expiredRows.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const expired = expiredRows.filter(e=>{
     const s = String(pick(e,['Status','status'])||'').toLowerCase();
     return s.includes('expired') && !s.includes('near');
   }).length;
-  const waiting = DB.preparation.length;
+  const waitingSticker = prepRows.filter(p=>pick(p,['Status_Preparation','status'])==='Waiting Sticker').length;
   const health = total? Math.round((active/total)*1000)/10 : 0;
+
+  const filterNote = filterIds ? `<div style="font-size:11.5px;color:var(--text-400);margin:-8px 0 12px;">🔎 Sedang difilter: ${globalSiteFilter!=='ALL'?globalSiteFilter:'Semua Site'} ${globalAreaFilter!=='ALL'?'/ '+globalAreaFilter:''} — <a style="color:var(--blue-600);cursor:pointer" onclick="document.getElementById('filterSite').value='ALL';document.getElementById('filterArea').value='ALL';setGlobalFilter()">reset filter</a></div>` : '';
+
+  /* HERO EXPIRED - supaya unit yang perlu tindakan segera langsung menonjol, bukan tenggelam di grid */
+  document.getElementById('dashExpiredHero').innerHTML = filterNote + `
+    <div class="expired-hero ${expired===0?'zero':''}">
+      <div class="eh-left">
+        <div class="eh-icon">${expired===0?'✅':'🚨'}</div>
+        <div>
+          <div class="eh-num">${expired} Unit Expired</div>
+          <div class="eh-label">${expired===0?'TIDAK ADA UNIT EXPIRED SAAT INI':'PERLU TINDAKAN SEGERA'}</div>
+          <div class="eh-sub">${nearExp} unit lagi berstatus Near Expired (≤30 hari)</div>
+        </div>
+      </div>
+      <button class="eh-cta" onclick="goToPage('expired')">Lihat Detail →</button>
+    </div>`;
 
   document.getElementById('dashStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "100% dari total unit", "blue","📋"),
     statCard("ACTIVE", active, "Unit", `${pct(active,total)}% dari total unit`, "green","✅"),
     statCard("NEAR EXPIRED (≤30 hari)", nearExp, "Unit", `${pct(nearExp,total)}% dari total unit`, "orange","⚠️"),
-    statCard("EXPIRED", expired, "Unit", `${pct(expired,total)}% dari total unit`, "red","❌"),
-    statCard("WAITING STICKER", waiting, "Unit", `${pct(waiting,total)}% dari total unit`, "blue","⏳"),
+    statCard("WAITING STICKER", waitingSticker, "Unit", `${pct(waitingSticker,total)}% dari total unit`, "blue","⏳"),
     statCard("COMMISSIONING HEALTH INDEX", health+"%", "", `${active} Active / ${total} Unit`, "green","💚")
   ].join('');
 
+  /* TAB SITE - pisahkan tampilan BIB/TIA supaya tidak digabung jadi 13 kolom sekaligus */
+  document.getElementById('dashSiteTabs').innerHTML = ['BIB','TIA','ALL'].map(s=>`
+    <div class="stab ${dashSiteTab===s?'active':''}" onclick="setDashSiteTab('${s}')">${s==='ALL'?'Semua Site':'Site '+s}</div>`).join('');
+
+  const siteRows = dashSiteTab==='ALL' ? rows : rows.filter(r=>r.site===dashSiteTab);
+
+  document.getElementById('dashTableHead').innerHTML = dashSiteTab==='ALL'
+    ? `<tr><th>No</th><th>Unit ID</th><th>Model</th><th>Site</th><th>Area</th><th>Reg. No</th><th>Masa Berlaku</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr>`
+    : `<tr><th>No</th><th>Unit ID</th><th>Model</th><th>Area</th><th>${dashSiteTab} Reg. No</th><th>${dashSiteTab} Masa Berlaku</th><th>${dashSiteTab} Sisa Hari</th><th>${dashSiteTab} Status</th><th>Aksi</th></tr>`;
+
   const term = document.getElementById('dashSearch').value;
-  const filtered = filterRows(rows, term, ['unitId','model2','reg']);
+  const filtered = filterRows(siteRows, term, ['unitId','model2','reg']);
   const perPage=8;
   buildPagination('dashPagination', filtered.length, perPage, dashPage, 'window.__dashSetPage');
   window.__dashSetPage = (p)=>{ dashPage=p; renderDashboard(); };
   const pageRows = paginate(filtered, dashPage, perPage);
 
-  document.getElementById('dashTableBody').innerHTML = pageRows.map((r,i)=>`
+  document.getElementById('dashTableBody').innerHTML = pageRows.map((r,i)=>{
+    const midCols = dashSiteTab==='ALL' ? `<td><span class="pill blue">${r.site}</span></td>` : '';
+    return `
     <tr>
       <td>${(dashPage-1)*perPage+i+1}</td>
       <td class="unit-id">${r.unitId}</td>
       <td>${r.model2}</td>
+      ${midCols}
       <td>${r.area}</td>
-      <td>${r.site==='BIB'?r.reg:'-'}</td>
-      <td>${r.site==='BIB'?r.selesai:'-'}</td>
-      <td>${r.site==='BIB'?'':''}</td>
-      <td>${r.site==='BIB'?pillFor(r.status):'-'}</td>
-      <td>${r.site==='TIA'?r.reg:'-'}</td>
-      <td>${r.site==='TIA'?r.selesai:'-'}</td>
-      <td></td>
-      <td>${r.site==='TIA'?pillFor(r.status):'-'}</td>
+      <td>${r.reg}</td>
+      <td>${r.selesai}</td>
+      <td style="color:${Number(r.sisa)<0?'var(--red)':Number(r.sisa)<=30?'var(--orange)':'inherit'}">${r.sisa} Hari</td>
+      <td>${pillFor(r.status)}</td>
       <td><button class="icon-btn blue">👁</button></td>
-    </tr>`).join('') || `<tr><td colspan="13" class="empty-state">Tidak ada data</td></tr>`;
+    </tr>`;
+  }).join('') || `<tr><td colspan="10" class="empty-state">Tidak ada data untuk Site ${dashSiteTab==='ALL'?'ini':dashSiteTab}</td></tr>`;
 
-  document.getElementById('alertCenter').innerHTML = `
-    <div class="alert-item"><div class="alert-ic" style="background:var(--orange-bg);color:var(--orange)">⚠️</div><div><b>${nearExp} Unit</b><br><small>Near Expired (≤30 hari)</small></div></div>
-    <div class="alert-item"><div class="alert-ic" style="background:var(--red-bg);color:var(--red)">❌</div><div><b>${expired} Unit</b><br><small>Expired</small></div></div>
-    <div class="alert-item"><div class="alert-ic" style="background:#eaf0ff;color:var(--blue-600)">⏳</div><div><b>${waiting} Unit</b><br><small>Waiting Sticker</small></div></div>
-    <div class="alert-item"><div class="alert-ic" style="background:var(--green-bg);color:var(--green)">✅</div><div><b>${active} Unit</b><br><small>Active</small></div></div>`;
+  const stuckUnits = prepRows.filter(p=>{
+    const st = pick(p,['Status_Preparation','status']);
+    const hari = Number(pick(p,['Hari_di_Preparation']))||0;
+    return st!=='Selesai' && hari>7;
+  });
 
-  document.getElementById('recentActivity').innerHTML = DB.commissioning.slice(0,4).map(r=>{
-    const st = pick(r,['Status','status']);
-    return `
-    <div class="activity-item"><div class="activity-dot" style="background:${isActiveStatus(st)?'var(--green)':'var(--orange)'}"></div>
-    <div><b>${pick(r,['Unit_ID','unitId'])} - ${pick(r,['Site','site'])}(${pick(r,['Area','area'])})</b><br><small>Status: ${st}</small></div></div>`;
-  }).join('');
+  /* PERLU TINDAKAN HARI INI - daftar aksi konkret, bukan cuma angka statistik */
+  const actionItems = [];
+  if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, page:'expired'});
+  if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, page:'expired'});
+  if(stuckUnits.length>0) actionItems.push({icon:'🐢',bg:'var(--orange-bg)',color:'var(--orange)',text:`${stuckUnits.length} unit macet >7 hari di Preparation — cek kendalanya`, page:'preparation'});
+  if(waitingSticker>0) actionItems.push({icon:'📦',bg:'#eaf0ff',color:'var(--blue-600)',text:`${waitingSticker} unit menunggu stiker fisik dikirim`, page:'preparation'});
+  if(actionItems.length===0) actionItems.push({icon:'✅',bg:'var(--green-bg)',color:'var(--green)',text:'Semua unit dalam kondisi baik, tidak ada tindakan mendesak', page:null});
+
+  document.getElementById('alertCenter').innerHTML = actionItems.map(a=>`
+    <div class="alert-item" ${a.page?`style="cursor:pointer" onclick="goToPage('${a.page}')"`:''}>
+      <div class="alert-ic" style="background:${a.bg};color:${a.color}">${a.icon}</div>
+      <div><b>${a.text}</b></div>
+    </div>`).join('');
+
+  /* RECENT ACTIVITY sekarang menampilkan Activity Log (audit trail) yang sebenarnya,
+     bukan sekadar daftar commissioning terbaru */
+  document.getElementById('recentActivity').innerHTML = (DB.activityLog||[]).slice(0,5).map(r=>{
+    const ts = pick(r,['Timestamp']);
+    const user = pick(r,['User']);
+    const action = pick(r,['Action']);
+    const detail = pick(r,['Detail']);
+    return `<div class="activity-item"><div class="activity-dot" style="background:var(--blue-500)"></div>
+    <div><b>${action}</b><br><small>${detail}</small><br><small style="color:var(--text-400)">${user} · ${ts}</small></div></div>`;
+  }).join('') || `<div class="empty-state" style="padding:16px 0;">Belum ada aktivitas tercatat</div>`;
 }
 
 /* =====================================================================
@@ -1537,10 +1780,24 @@ function renderPreparation(){
   bast: pick(r,['BAST'])==='Sudah',
   history: pick(r,['History_Maintenance'])==='Sudah',
   progress: Math.round((Number(pick(r,['Progress_Percent']))||0)*100),
-  status: pick(r,['Status_Preparation']),
+  status: pick(r,['Status_Preparation']) || 'Belum Lengkap',
   prioritas: pick(r,['Prioritas']),
   hari: pick(r,['Hari_di_Preparation'])
 }));
+
+  const total = rows.length;
+  const belum = rows.filter(r=>prepStageIndex(r.status)===0).length;
+  const dokumenLengkap = rows.filter(r=>prepStageIndex(r.status)>=3 && prepStageIndex(r.status)<4).length;
+  const prosesApproval = rows.filter(r=>{const i=prepStageIndex(r.status); return i>=4 && i<=6;}).length;
+  const waitingSticker = rows.filter(r=>r.status==='Waiting Sticker').length;
+  const selesai = rows.filter(r=>r.status==='Selesai').length;
+  document.getElementById('prepStats').innerHTML = [
+    statCard("TOTAL UNIT", total, "Unit", "Sedang dalam proses preparation", "blue","📝"),
+    statCard("BELUM LENGKAP", belum, "Unit", `${pct(belum,total)}% dari total`, "red","⚠️"),
+    statCard("PROSES APPROVAL", prosesApproval, "Unit", "Diajukan / Disetujui / Portal", "orange","⏳"),
+    statCard("WAITING STICKER", waitingSticker, "Unit", "Menunggu stiker fisik", "blue","📦"),
+    statCard("SELESAI", selesai, "Unit", "Stiker sudah terpasang", "green","✅")
+  ].join('');
 
   const term = document.getElementById('prepSearch').value;
 let filtered = filterRows(rows, term, ['unitId','model','sn']);
@@ -1560,6 +1817,16 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
 
   document.getElementById('prepTableBody').innerHTML = pageRows.map((r,i)=>{
   const progress = r.progress;
+  const stageIdx = prepStageIndex(r.status);
+  const next = prepNextAction(r.status);
+  let actionBtn;
+  if(r.status==='Selesai'){
+    actionBtn = `<span class="pill green" style="white-space:nowrap">✓ Selesai</span>`;
+  } else if(next){
+    actionBtn = `<button class="btn btn-outline" style="font-size:11.5px;padding:6px 10px;white-space:nowrap" onclick="advancePrepStage('${escJs(r.unitId)}','${escJs(next.to)}','${next.field}')">${next.label}</button>`;
+  } else {
+    actionBtn = `<span class="readonly-badge" title="Lengkapi Foto, Checklist, BAST, dan History dulu">Lengkapi dokumen dulu</span>`;
+  }
   return `
   <tr>
     <td>${(prepPage-1)*perPage+i+1}</td>
@@ -1576,16 +1843,20 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
       <span class="progress-pct">${Math.round(progress)}%</span>
       <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
     </td>
+    <td>${prepMiniStepper(r.status)}</td>
     <td>${pillPrep(r.status)}</td>
     <td>${pillPrioritas(r.prioritas)}</td>
     <td>${r.hari} Hari</td>
-    <td>
-      <button class="icon-btn blue" title="Lihat Detail" onclick="openPrepModal(${r._rawIndex},'view')">👁</button>
-      <button class="icon-btn blue" title="Edit" onclick="openPrepModal(${r._rawIndex},'edit')">✏️</button>
-      <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Download ZIP':'Belum siap (lengkapi data dulu)'}" ${r.status!=='Ready ZIP'?'disabled':''} onclick="${r.status==='Ready ZIP'?`downloadPrepZip(${r._rawIndex})`:''}">${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
+    <td style="min-width:170px">
+      ${actionBtn}
+      <div style="margin-top:6px;display:flex;gap:2px">
+        <button class="icon-btn blue" title="Lihat Detail" onclick="openPrepModal(${r._rawIndex},'view')">👁</button>
+        <button class="icon-btn blue" title="Edit Dokumen" onclick="openPrepModal(${r._rawIndex},'edit')">✏️</button>
+        <button class="icon-btn ${stageIdx>=3?'blue':''}" title="${stageIdx>=3?'Download ZIP':'Belum siap (lengkapi data dulu)'}" ${stageIdx<3?'disabled':''} onclick="${stageIdx>=3?`downloadPrepZip(${r._rawIndex})`:''}">${stageIdx>=3?'⬇️':'🔒'}</button>
+      </div>
     </td>
   </tr>`;
-}).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
+}).join('') || `<tr><td colspan="16" class="empty-state">Tidak ada data preparation</td></tr>`;
 }
 
 /* =====================================================================
@@ -1816,7 +2087,12 @@ async function savePrepChanges(){
   const bast = !!bastBase64 || !!bastAlready;
   const history = !!historyBase64 || !!historyAlready;
 
-  const {progress, status} = computePrepStatus(foto, checklist, bast, history);
+  const { progress, status: autoStatus } = computePrepStatus(foto, checklist, bast, history);
+  const prevStatus = pick(raw, ['Status_Preparation']) || raw.status || '';
+  const isManualStage = prepStageIndex(prevStatus) > 3; // sudah lewat 'Ready ZIP' (diajukan/disetujui/dst)
+  // Kalau sudah masuk tahap manual dan dokumen masih lengkap, JANGAN turunkan lagi ke 'Ready ZIP'.
+  // Progres manual cuma boleh mundur kalau dokumennya memang jadi tidak lengkap lagi.
+  const status = (isManualStage && foto && checklist && bast && history) ? prevStatus : autoStatus;
 
   if(prepIsSheetRow(raw)){
     raw['Foto_4_Sisi'] = foto ? 'Lengkap' : 'Belum';
@@ -1880,6 +2156,59 @@ async function crudPost(action, payload){
   }
 }
 
+/* =====================================================================
+   AUDIT TRAIL - catat setiap perubahan data ke sheet Activity_Log
+   (dipanggil "fire and forget" setelah addRow/updateRow/deleteRow berhasil,
+   tidak boleh menghambat/menggagalkan aksi utama kalau logging gagal)
+===================================================================== */
+async function logActivity(action, detail){
+  try{
+    return await crudPost('addRow', {
+      sheet: 'Activity_Log',
+      data: {
+        Log_ID: 'LOG-'+Date.now(),
+        Timestamp: new Date().toISOString().slice(0,16).replace('T',' '),
+        User: CURRENT_USER_NAME,
+        Action: action,
+        Detail: detail
+      }
+    });
+  }catch(err){
+    console.warn('Gagal mencatat activity log (tidak menghentikan aksi utama):', err);
+    return { success:false, message: err.message };
+  }
+}
+
+/* =====================================================================
+   LAPORKAN MASALAH - tombol mengambang, kirim ke Activity_Log
+   (biar admin tidak perlu screenshot + chat terpisah kalau nemu bug/data aneh)
+===================================================================== */
+function openBugReport(){
+  const pageLabel = (PAGE_META[currentPageKey] && PAGE_META[currentPageKey].title) || currentPageKey;
+  document.getElementById('bugPageInfo').value = pageLabel;
+  document.getElementById('bugDescription').value = '';
+  document.getElementById('bugReportOverlay').classList.add('show');
+}
+function closeBugReport(){
+  document.getElementById('bugReportOverlay').classList.remove('show');
+}
+async function submitBugReport(){
+  const desc = document.getElementById('bugDescription').value.trim();
+  if(!desc){
+    showSaveToast('⚠ Tolong isi deskripsi masalahnya dulu', true);
+    return;
+  }
+  const pageLabel = document.getElementById('bugPageInfo').value;
+  showSaveToast('⏳ Mengirim laporan...');
+  const result = await logActivity('Laporan Bug', `[${pageLabel}] ${desc}`);
+  if(result && result.success){
+    showSaveToast('✓ Laporan terkirim, terima kasih!');
+    closeBugReport();
+  }else{
+    showSaveToast('⚠ Gagal kirim laporan: '+(result && result.message ? result.message : 'Belum terhubung ke Apps Script'), true);
+  }
+}
+
 let crudState = null; // { title, sheet, pkField, fields, data, onDone }
 
 function crudFieldHTML(f, value){
@@ -1931,6 +2260,14 @@ async function submitCrudModal(){
     showSaveToast('⚠ Wajib diisi: '+missing.join(', '), true);
     return;
   }
+  /* Validasi tambahan khusus per-form (mis. tanggal masa berlaku harus setelah tanggal terbit) */
+  if(cfg.validate){
+    const errMsg = cfg.validate(data);
+    if(errMsg){
+      showSaveToast('⚠ '+errMsg, true);
+      return;
+    }
+  }
   showSaveToast('⏳ Menyimpan data...');
   let result;
   if(isEdit){
@@ -1942,6 +2279,8 @@ async function submitCrudModal(){
   if(result.success){
     showSaveToast(isEdit ? '✓ Data berhasil diperbarui' : '✓ Data berhasil ditambahkan');
     closeCrudModal();
+    const pkDisplay = data[cfg.pkField] || pick(cfg.data||{},[cfg.pkField]) || '';
+    logActivity(isEdit ? 'Edit Data' : 'Tambah Data', `${cfg.sheet}: ${pkDisplay}`);
     if(cfg.onDone) cfg.onDone();
   }else{
     showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
@@ -1953,6 +2292,7 @@ async function crudDeleteRow(sheet, pkValue, label, onDone){
   const result = await crudPost('deleteRow', { sheet, pk: pkValue });
   if(result.success){
     showSaveToast('✓ Data berhasil dihapus');
+    logActivity('Hapus Data', `${sheet}: ${label}`);
     if(onDone) onDone();
   }else{
     showSaveToast('⚠ Gagal hapus: '+(result.message||'Terjadi kesalahan'), true);
@@ -2002,6 +2342,12 @@ function openCommissioningModal(commId){
       {key:'Tanggal_Terbit', label:'Tanggal Terbit', inputType:'date', required:true},
       {key:'Masa_Berlaku', label:'Masa Berlaku / Expired', inputType:'date', required:true}
     ],
+    validate: (data)=>{
+      if(data.Tanggal_Terbit && data.Masa_Berlaku && data.Masa_Berlaku <= data.Tanggal_Terbit){
+        return 'Tanggal Masa Berlaku harus SETELAH Tanggal Terbit';
+      }
+      return null;
+    },
     onDone: manualRefresh
   });
 }
@@ -2130,7 +2476,9 @@ const SETTINGS_TABS = [
   {key:"workflow", label:"Workflow"},
   {key:"akses", label:"Akses & Role"},
   {key:"integrasi", label:"Integrasi"},
-  {key:"backup", label:"Backup & Restore"}
+  {key:"backup", label:"Backup & Restore"},
+  {key:"logAktivitas", label:"Log Aktivitas"},
+  {key:"changelog", label:"Riwayat Update"}
 ];
 let settingsActiveTab = "umum";
 let unitTypeSubtab = "tambah";
@@ -2148,6 +2496,8 @@ function renderPengaturan(){
 
   if(settingsActiveTab==='umum') renderSettingsUmum();
   else if(settingsActiveTab==='reminder') renderSettingsReminder();
+  else if(settingsActiveTab==='logAktivitas') renderSettingsActivityLog();
+  else if(settingsActiveTab==='changelog') renderSettingsChangelog();
   else renderSettingsComingSoon(settingsActiveTab);
 }
 
@@ -2487,6 +2837,89 @@ function renderSettingsComingSoon(key){
         <div class="t">${label} - Segera Hadir</div>
         <div class="d">Pengaturan ${label} sedang dalam pengembangan dan akan tersedia pada update berikutnya.</div>
       </div>
+    </div>`;
+}
+
+/* =====================================================================
+   TAB: LOG AKTIVITAS (audit trail lengkap) + INSIGHT BOTTLENECK
+===================================================================== */
+function computeStageBottleneck(){
+  /* Hitung rata-rata hari antar tahap dari kolom tanggal per-stage di Preparation_Tracking.
+     Kalau kolom tanggalnya belum ada di sheet (masih string kosong), transisi itu dilewati -
+     tidak menyebabkan error, cuma tidak dihitung. */
+  const pairs = [
+    { label:'Diajukan Owner → Disetujui Owner', from:'Tanggal_Diajukan_Owner', to:'Tanggal_Disetujui_Owner' },
+    { label:'Disetujui Owner → Diajukan Portal', from:'Tanggal_Disetujui_Owner', to:'Tanggal_Diajukan_Portal' },
+    { label:'Diajukan Portal → Waiting Sticker', from:'Tanggal_Diajukan_Portal', to:'Tanggal_Waiting_Sticker' },
+    { label:'Waiting Sticker → Selesai', from:'Tanggal_Waiting_Sticker', to:'Tanggal_Terpasang' }
+  ];
+  return pairs.map(p=>{
+    const durations = [];
+    DB.preparation.forEach(r=>{
+      const a = pick(r,[p.from]), b = pick(r,[p.to]);
+      if(a && b){
+        const d1 = new Date(String(a).replace(' ','T'));
+        const d2 = new Date(String(b).replace(' ','T'));
+        if(!isNaN(d1) && !isNaN(d2) && d2>=d1) durations.push((d2-d1)/(1000*60*60*24));
+      }
+    });
+    const avg = durations.length ? (durations.reduce((a,b)=>a+b,0)/durations.length) : null;
+    return { label:p.label, avgDays: avg, sample: durations.length };
+  });
+}
+function renderSettingsActivityLog(){
+  const bottleneck = computeStageBottleneck();
+  const hasSample = bottleneck.some(b=>b.sample>0);
+  const maxAvg = Math.max(1, ...bottleneck.map(b=>b.avgDays||0));
+
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">INSIGHT: TAHAP PALING SERING MACET (rata-rata hari)</div>
+      ${hasSample ? bottleneck.map(b=>`
+        <div style="margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:4px;">
+            <span>${b.label}</span>
+            <span style="font-weight:700">${b.avgDays!==null ? Math.round(b.avgDays*10)/10+' hari' : '- (belum ada data)'}</span>
+          </div>
+          <div class="progress-track"><div class="progress-fill" style="width:${b.avgDays? Math.min(100,(b.avgDays/maxAvg*100)):0}%;background:${b.avgDays>5?'var(--red)':b.avgDays>2?'var(--orange)':'var(--green)'}"></div></div>
+        </div>`).join('')
+      : `<div class="empty-state" style="padding:20px 0;">Belum cukup data tanggal per-tahap. Pastikan kolom Tanggal_Diajukan_Owner, Tanggal_Disetujui_Owner, Tanggal_Diajukan_Portal, Tanggal_Waiting_Sticker, dan Tanggal_Terpasang sudah ada di sheet Preparation_Tracking.</div>`}
+    </div>
+    <div class="panel">
+      <div class="panel-title">LOG AKTIVITAS (AUDIT TRAIL) <button class="btn btn-outline" style="font-size:11.5px;padding:5px 10px" onclick="manualRefresh()">🔄 Refresh</button></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr></thead>
+          <tbody>
+            ${(DB.activityLog||[]).slice(0,50).map(r=>`
+              <tr><td>${pick(r,['Timestamp'])}</td><td>${pick(r,['User'])}</td><td><span class="pill blue">${pick(r,['Action'])}</span></td><td>${pick(r,['Detail'])}</td></tr>
+            `).join('') || `<tr><td colspan="4" class="empty-state">Belum ada aktivitas tercatat</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+/* =====================================================================
+   TAB: RIWAYAT UPDATE (changelog) - dicatat manual tiap ada perubahan besar
+===================================================================== */
+const CHANGELOG = [
+  { tanggal:"29 Jul 2026", judul:"Sistem tracking Preparation → Commissioning", detail:"Tahap baru: Diajukan Owner, Disetujui Owner, Diajukan Portal, Waiting Sticker, Selesai — lengkap dengan mini-stepper visual dan tombol aksi per tahap." },
+  { tanggal:"29 Jul 2026", judul:"Audit trail & insight bottleneck", detail:"Semua perubahan data (tambah/edit/hapus/update status) sekarang tercatat di Log Aktivitas, plus analisis tahap mana yang paling sering macet." },
+  { tanggal:"29 Jul 2026", judul:"Filter Site/Area di topbar & tampilan mobile", detail:"Dropdown ALL SITE/ALL AREA di topbar sekarang benar-benar memfilter data. Tampilan juga dirapikan untuk layar HP." },
+  { tanggal:"29 Jul 2026", judul:"Dashboard hero Expired", detail:"Unit Expired sekarang ditonjolkan sebagai banner besar di atas, bukan tenggelam di antara kartu statistik lain." },
+  { tanggal:"29 Jul 2026", judul:"Fitur Tambah/Edit/Hapus data", detail:"Master Unit, Commissioning, dan User Management sekarang bisa ditambah/diedit/dihapus langsung dari dashboard." }
+];
+function renderSettingsChangelog(){
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">RIWAYAT UPDATE SISTEM</div>
+      ${CHANGELOG.map(c=>`
+        <div style="border-left:3px solid var(--blue-600);padding:2px 0 14px 14px;margin-bottom:2px;">
+          <div style="font-size:11px;color:var(--text-400);font-weight:700;">${c.tanggal}</div>
+          <div style="font-size:13.5px;font-weight:700;margin:2px 0 4px;">${c.judul}</div>
+          <div style="font-size:12.5px;color:var(--text-600);">${c.detail}</div>
+        </div>`).join('')}
     </div>`;
 }
 
