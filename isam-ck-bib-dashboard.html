@@ -406,6 +406,15 @@ tbody tr:hover{ background:#f9fbff; }
 }
 .site-tab-bar .stab.active{ background:var(--navy-900); color:#fff; }
 
+.funnel-item{ flex:1; min-width:100px; text-align:center; padding:12px 8px; border-radius:10px; background:var(--gray-bg); }
+.funnel-item .fn-num{ font-size:22px; font-weight:800; }
+.funnel-item .fn-lb{ font-size:10.5px; color:var(--text-400); margin-top:2px; }
+
+.jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; }
+.jenis-card .jc-num{ font-size:20px; font-weight:800; }
+.jenis-card .jc-lb{ font-size:11px; color:var(--text-600); margin:2px 0 8px; }
+.jenis-card .jc-pct{ font-size:10.5px; color:var(--text-400); margin-top:4px; }
+
 /* =====================================================================
    RESPONSIVE / MOBILE
 ===================================================================== */
@@ -610,7 +619,6 @@ tbody tr:hover{ background:#f9fbff; }
       <div class="group-title">COMMISSIONING</div>
       <div class="nav-item" data-page="commissioning"><span class="ic">🗂️</span><span class="nav-label">Commissioning</span></div>
       <div class="nav-item" data-page="preparation"><span class="ic">📝</span><span class="nav-label">Preparation</span></div>
-      <div class="nav-item" data-page="expired"><span class="ic">⏰</span><span class="nav-label">Expired / Near Expired</span></div>
 
       <div class="group-title">REPORT</div>
       <div class="nav-item" data-page="laporan"><span class="ic">📊</span><span class="nav-label">Laporan</span></div>
@@ -633,18 +641,12 @@ tbody tr:hover{ background:#f9fbff; }
         <h1 id="pageTitle">Commissioning Monitoring</h1>
         <div class="crumb" id="pageCrumb">Dashboard &gt; Commissioning Monitoring</div>
       </div>
-      <div class="tb-control">🌐
-        <select id="filterSite" onchange="setGlobalFilter()"><option value="ALL">ALL SITE</option></select>
-      </div>
-      <div class="tb-control">📍
-        <select id="filterArea" onchange="setGlobalFilter()"><option value="ALL">ALL AREA</option></select>
-      </div>
       <div class="tb-control" id="lastUpdatedInfo" title="Waktu terakhir data ditarik dari spreadsheet">🕓 -</div>
       <div class="tb-control">📅 <span id="tbDate"></span></div>
       <div class="tb-control">🕒 <span id="tbTime"></span></div>
       <div class="tb-control" id="connStatus" title="Status koneksi ke Google Apps Script">⏳ Memuat...</div>
       <div class="tb-icon-btn" id="refreshBtn" title="Refresh data dari spreadsheet" onclick="manualRefresh()" style="cursor:pointer">🔄</div>
-      <div class="tb-icon-btn">🔔<span class="badge-dot" id="notifCount">0</span></div>
+      <div class="tb-icon-btn" title="Lihat unit Expired &amp; Near Expired" onclick="goToPage('commissioning')" style="cursor:pointer">🔔<span class="badge-dot" id="notifCount">0</span></div>
       <div class="user-chip">
         <div class="avatar">A</div>
         <div class="un"><b>Abdul Azis</b><small>Administrator</small></div>
@@ -688,6 +690,16 @@ tbody tr:hover{ background:#f9fbff; }
             </div>
           </div>
         </div>
+        <div class="two-col">
+          <div class="panel">
+            <div class="panel-title">BREAKDOWN PER JENIS UNIT</div>
+            <div id="dashJenisBreakdown" style="display:flex;flex-wrap:wrap;gap:10px;"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-title">PROYEKSI EXPIRED (6 BULAN KE DEPAN)</div>
+            <div id="dashExpiredForecast"></div>
+          </div>
+        </div>
       </div>
 
       <!-- ============ MASTER UNIT ============ -->
@@ -720,7 +732,7 @@ tbody tr:hover{ background:#f9fbff; }
           <div class="panel-title">DAFTAR JENIS UNIT</div>
           <div style="overflow-x:auto">
             <table id="juTable">
-              <thead><tr><th>No</th><th>Kode</th><th>Jenis Unit</th><th>Kategori</th><th>Deskripsi</th><th>Total Unit</th><th>Unit Aktif</th><th>Status</th></tr></thead>
+              <thead><tr><th>No</th><th>Jenis Unit</th><th>Total Unit</th><th>Unit Aktif</th></tr></thead>
               <tbody id="juTableBody"></tbody>
             </table>
           </div>
@@ -734,7 +746,7 @@ tbody tr:hover{ background:#f9fbff; }
           <div class="panel-title">DAFTAR AREA</div>
           <div style="overflow-x:auto">
             <table id="areaTable">
-              <thead><tr><th>No</th><th>Kode Area</th><th>Nama Area</th><th>Site</th><th>Area Group</th><th>Deskripsi</th><th>Status</th></tr></thead>
+              <thead><tr><th>No</th><th>Kode Area</th><th>Nama Area</th><th>Site</th><th>Total Unit</th></tr></thead>
               <tbody id="areaTableBody"></tbody>
             </table>
           </div>
@@ -744,21 +756,28 @@ tbody tr:hover{ background:#f9fbff; }
       <!-- ============ COMMISSIONING ============ -->
       <div class="page" id="page-commissioning">
         <div class="stat-grid" id="comStats"></div>
-        <div class="panel">
-          <div class="toolbar">
-            <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
-            <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
-            <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';renderCommissioning()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
+        <div class="two-col">
+          <div class="panel">
+            <div class="toolbar">
+              <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
+              <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
+              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';renderCommissioning()">↻ Reset</button>
+              <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
+            </div>
+            <div class="panel-title">DAFTAR KOMISIONING <span style="font-weight:400;font-size:11px;color:var(--text-400)">(Expired &amp; Near Expired ditampilkan lebih dulu)</span></div>
+            <div style="overflow-x:auto">
+              <table id="comTable">
+                <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
+                <tbody id="comTableBody"></tbody>
+              </table>
+            </div>
+            <div class="pagination" id="comPagination"></div>
           </div>
-          <div class="panel-title">DAFTAR KOMISIONING</div>
-          <div style="overflow-x:auto">
-            <table id="comTable">
-              <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Status</th><th>Aksi</th></tr></thead>
-              <tbody id="comTableBody"></tbody>
-            </table>
+          <div class="panel">
+            <div class="panel-title">⚠️ UNIT BELUM ADA COMMISSIONING</div>
+            <div style="font-size:11.5px;color:var(--text-400);margin:-6px 0 10px;">Unit ini sudah terdaftar di Master Unit tapi belum pernah diinput commissioning-nya sama sekali</div>
+            <div id="missingCommissioningList"></div>
           </div>
-          <div class="pagination" id="comPagination"></div>
         </div>
       </div>
 
@@ -776,9 +795,8 @@ tbody tr:hover{ background:#f9fbff; }
               <option>Waiting Admin</option>
               <option>Waiting History</option>
               <option>Ready ZIP</option>
-              <option>Diajukan Owner</option>
-              <option>Disetujui Owner</option>
-              <option>Diajukan Portal</option>
+              <option>Diajukan</option>
+              <option>Disetujui</option>
               <option>Waiting Sticker</option>
               <option>Selesai</option>
             </select>
@@ -800,49 +818,15 @@ tbody tr:hover{ background:#f9fbff; }
           </div>
           <div class="pagination" id="prepPagination"></div>
         </div>
+        <div class="panel">
+          <div class="panel-title">FUNNEL PROGRES TAHAP (SEMUA UNIT)</div>
+          <div id="prepFunnel" style="display:flex;gap:10px;flex-wrap:wrap;"></div>
+        </div>
         <div class="info-box">
           <div>ℹ️</div>
           <div><b>Informasi</b><br>
           Halaman ini menampilkan progres kelengkapan data preparation commissioning.<br>
-          Pastikan seluruh data, foto, checklist, BAST, dan History Maintenance sudah lengkap sebelum generate ZIP untuk diupload ke portal resmi.</div>
-        </div>
-      </div>
-
-      <!-- ============ EXPIRED / NEAR EXPIRED ============ -->
-      <div class="page" id="page-expired">
-        <div class="stat-grid" id="expStats"></div>
-        <div class="two-col">
-          <div>
-            <div class="panel">
-              <div class="toolbar">
-                <input type="text" id="expSearch" placeholder="Cari Unit ID, Model/Tipe, atau Serial Number..." oninput="liveExpSearch()">
-                <select id="expPrioritas" onchange="liveExpSearch()"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
-                <button class="btn btn-primary" onclick="renderExpired()">🔎 Filter</button>
-                <button class="btn btn-outline" onclick="document.getElementById('expSearch').value='';renderExpired()">↻ Reset</button>
-                <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('expTable','expired_near_expired')">⬇ Export</button>
-              </div>
-              <div class="panel-title">DAFTAR EXPIRED / NEAR EXPIRED</div>
-              <div style="overflow-x:auto">
-                <table id="expTable">
-                  <thead><tr><th>No</th><th>Unit ID</th><th>Model/Tipe</th><th>SN</th><th>Site</th><th>Area</th><th>ID BIB/TIA</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Prioritas</th><th>Aksi</th></tr></thead>
-                  <tbody id="expTableBody"></tbody>
-                </table>
-              </div>
-              <div class="pagination" id="expPagination"></div>
-            </div>
-          </div>
-          <div>
-            <div class="panel">
-              <div class="panel-title">RINGKASAN BERDASARKAN STATUS</div>
-              <div class="donut-wrap"><svg id="expDonut" width="170" height="170" viewBox="0 0 170 170"></svg></div>
-              <div id="expLegend" style="margin-top:10px;"></div>
-            </div>
-            <div class="panel">
-              <div class="panel-title">TOP 5 UNIT EXPIRED</div>
-              <div id="expTop5"></div>
-            </div>
-            <div class="info-box">ℹ️ Segera lakukan perpanjangan komisioning pada unit yang statusnya Expired atau Near Expired untuk menghindari downtime operasional dan denda.</div>
-          </div>
+          Pastikan seluruh data, foto, checklist, BAST, dan History Maintenance sudah lengkap sebelum generate ZIP untuk diupload ke portal resmi (BIB), lalu ditandai Waiting Sticker setelah disetujui dan diproses OSHE CK.</div>
         </div>
       </div>
 
@@ -1283,17 +1267,16 @@ function escJs(v){
 /* =====================================================================
    PIPELINE PREPARATION -> COMMISSIONING (sistem tracking)
    3 tahap pertama otomatis dihitung dari kelengkapan dokumen (lama),
-   5 tahap setelahnya dijalankan MANUAL oleh admin lewat tombol aksi.
+   4 tahap setelahnya dijalankan MANUAL oleh admin lewat tombol aksi.
 ===================================================================== */
 const PREP_STAGES = [
   { key:'Belum Lengkap',    label:'Dokumen belum lengkap' },
   { key:'Waiting Admin',    label:'Menunggu BAST' },
   { key:'Waiting History',  label:'Menunggu history maintenance' },
   { key:'Ready ZIP',        label:'Dokumen lengkap' },
-  { key:'Diajukan Owner',   label:'Diajukan ke owner' },
-  { key:'Disetujui Owner',  label:'Disetujui owner' },
-  { key:'Diajukan Portal',  label:'Diajukan ke portal resmi' },
-  { key:'Waiting Sticker',  label:'Menunggu stiker' },
+  { key:'Diajukan',         label:'Diajukan ke Portal BIB' },
+  { key:'Disetujui',        label:'Disetujui' },
+  { key:'Waiting Sticker',  label:'Waiting Sticker (OSHE CK)' },
   { key:'Selesai',          label:'Stiker terpasang' }
 ];
 function prepStageIndex(status){
@@ -1303,19 +1286,18 @@ function prepStageIndex(status){
 /* Tombol aksi berikutnya sesuai tahap saat ini. null kalau belum siap diajukan atau sudah selesai. */
 function prepNextAction(status){
   const map = {
-    'Ready ZIP':       { to:'Diajukan Owner',  label:'Ajukan ke Owner',            field:'Tanggal_Diajukan_Owner' },
-    'Diajukan Owner':  { to:'Disetujui Owner', label:'Tandai Disetujui Owner',     field:'Tanggal_Disetujui_Owner' },
-    'Disetujui Owner': { to:'Diajukan Portal', label:'Ajukan ke Portal Resmi',     field:'Tanggal_Diajukan_Portal' },
-    'Diajukan Portal': { to:'Waiting Sticker', label:'Tandai Waiting Sticker',     field:'Tanggal_Waiting_Sticker' },
-    'Waiting Sticker': { to:'Selesai',         label:'✓ Tandai Stiker Terpasang', field:'Tanggal_Terpasang' }
+    'Ready ZIP':       { to:'Diajukan',        label:'Ajukan ke Portal BIB',              field:'Tanggal_Diajukan' },
+    'Diajukan':        { to:'Disetujui',       label:'Tandai Disetujui',                  field:'Tanggal_Disetujui' },
+    'Disetujui':       { to:'Waiting Sticker', label:'Tandai Waiting Sticker (OSHE CK)',  field:'Tanggal_Waiting_Sticker' },
+    'Waiting Sticker': { to:'Selesai',         label:'✓ Tandai Stiker Terpasang',         field:'Tanggal_Terpasang' }
   };
   return map[status] || null;
 }
-/* Mini-stepper visual 6 langkah: Dokumen > Diajukan > Disetujui > Portal > Stiker > Selesai */
+/* Mini-stepper visual 5 langkah: Dokumen > Diajukan > Disetujui > Stiker > Selesai */
 function prepMiniStepper(status){
   const idx = prepStageIndex(status);
   const doneUpTo = idx < 3 ? -1 : (idx - 3);
-  const labels = ['Dokumen','Diajukan','Disetujui','Portal','Stiker','Selesai'];
+  const labels = ['Dokumen','Diajukan','Disetujui','Stiker','Selesai'];
   return `<div class="mini-stepper">` + labels.map((lb,i)=>{
     let cls = 'pending';
     if(i <= doneUpTo) cls = 'done';
@@ -1375,7 +1357,6 @@ const liveDashSearch  = debounce(()=>{ dashPage=1;  renderDashboard(); });
 const liveMuSearch    = debounce(()=>{ muPage=1;    renderMasterUnit(); });
 const liveComSearch   = debounce(()=>{ comPage=1;   renderCommissioning(); });
 const livePrepSearch  = debounce(()=>{ prepPage=1;  renderPreparation(); });
-const liveExpSearch   = debounce(()=>{ expPage=1;   renderExpired(); });
 const liveUserSearch  = debounce(()=>{ renderUsers(); });
 function paginate(rows, page, perPage){
   const start = (page-1)*perPage;
@@ -1437,32 +1418,17 @@ const PAGE_META = {
   area:{title:"Area", crumb:"Data Master &gt; Area"},
   commissioning:{title:"Commissioning", crumb:"Commissioning &gt; Daftar Commissioning"},
   preparation:{title:"Preparation Commissioning", crumb:"Commissioning &gt; Preparation"},
-  expired:{title:"Expired / Near Expired", crumb:"Commissioning &gt; Expired / Near Expired"},
   laporan:{title:"Laporan", crumb:"Report &gt; Laporan"},
   exportData:{title:"Export Data", crumb:"Report &gt; Export Data"},
   userManagement:{title:"User Management", crumb:"Settings &gt; User Management"},
   pengaturan:{title:"Pengaturan", crumb:"Settings &gt; Pengaturan"}
 };
 let currentPageKey = 'dashboard';
-let globalSiteFilter = 'ALL';
-let globalAreaFilter = 'ALL';
-function setGlobalFilter(){
-  globalSiteFilter = document.getElementById('filterSite').value || 'ALL';
-  globalAreaFilter = document.getElementById('filterArea').value || 'ALL';
-  renderPage(currentPageKey);
-}
-/* Kumpulan Unit_ID yang cocok dengan filter Site/Area global (berdasarkan data Commissioning).
-   Return null kalau filter = ALL/ALL (artinya tidak ada pembatasan). */
+/* Filter Site/Area global di topbar sudah dihapus (redundan dengan filter per-halaman).
+   Fungsi ini tetap ada supaya renderDashboard tidak perlu diubah, tapi sekarang selalu
+   return null (tidak ada pembatasan). */
 function getGlobalFilteredUnitIds(){
-  if(globalSiteFilter==='ALL' && globalAreaFilter==='ALL') return null;
-  const ids = new Set();
-  DB.commissioning.forEach(c=>{
-    const s = pick(c,['Site']), a = pick(c,['Area']);
-    if((globalSiteFilter==='ALL'||s===globalSiteFilter) && (globalAreaFilter==='ALL'||a===globalAreaFilter)){
-      ids.add(pick(c,['Unit_ID']));
-    }
-  });
-  return ids;
+  return null;
 }
 function goToPage(key){
   currentPageKey = key;
@@ -1548,10 +1514,8 @@ function renderDashboard(){
   const waitingSticker = prepRows.filter(p=>pick(p,['Status_Preparation','status'])==='Waiting Sticker').length;
   const health = total? Math.round((active/total)*1000)/10 : 0;
 
-  const filterNote = filterIds ? `<div style="font-size:11.5px;color:var(--text-400);margin:-8px 0 12px;">🔎 Sedang difilter: ${globalSiteFilter!=='ALL'?globalSiteFilter:'Semua Site'} ${globalAreaFilter!=='ALL'?'/ '+globalAreaFilter:''} — <a style="color:var(--blue-600);cursor:pointer" onclick="document.getElementById('filterSite').value='ALL';document.getElementById('filterArea').value='ALL';setGlobalFilter()">reset filter</a></div>` : '';
-
   /* HERO EXPIRED - supaya unit yang perlu tindakan segera langsung menonjol, bukan tenggelam di grid */
-  document.getElementById('dashExpiredHero').innerHTML = filterNote + `
+  document.getElementById('dashExpiredHero').innerHTML = `
     <div class="expired-hero ${expired===0?'zero':''}">
       <div class="eh-left">
         <div class="eh-icon">${expired===0?'✅':'🚨'}</div>
@@ -1561,7 +1525,7 @@ function renderDashboard(){
           <div class="eh-sub">${nearExp} unit lagi berstatus Near Expired (≤30 hari)</div>
         </div>
       </div>
-      <button class="eh-cta" onclick="goToPage('expired')">Lihat Detail →</button>
+      <button class="eh-cta" onclick="goToPage('commissioning')">Lihat Detail →</button>
     </div>`;
 
   document.getElementById('dashStats').innerHTML = [
@@ -1614,8 +1578,8 @@ function renderDashboard(){
 
   /* PERLU TINDAKAN HARI INI - daftar aksi konkret, bukan cuma angka statistik */
   const actionItems = [];
-  if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, page:'expired'});
-  if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, page:'expired'});
+  if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, page:'commissioning'});
+  if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, page:'commissioning'});
   if(stuckUnits.length>0) actionItems.push({icon:'🐢',bg:'var(--orange-bg)',color:'var(--orange)',text:`${stuckUnits.length} unit macet >7 hari di Preparation — cek kendalanya`, page:'preparation'});
   if(waitingSticker>0) actionItems.push({icon:'📦',bg:'#eaf0ff',color:'var(--blue-600)',text:`${waitingSticker} unit menunggu stiker fisik dikirim`, page:'preparation'});
   if(actionItems.length===0) actionItems.push({icon:'✅',bg:'var(--green-bg)',color:'var(--green)',text:'Semua unit dalam kondisi baik, tidak ada tindakan mendesak', page:null});
@@ -1636,6 +1600,46 @@ function renderDashboard(){
     return `<div class="activity-item"><div class="activity-dot" style="background:var(--blue-500)"></div>
     <div><b>${action}</b><br><small>${detail}</small><br><small style="color:var(--text-400)">${user} · ${ts}</small></div></div>`;
   }).join('') || `<div class="empty-state" style="padding:16px 0;">Belum ada aktivitas tercatat</div>`;
+
+  /* BREAKDOWN PER JENIS UNIT */
+  const jenisBreakdown = DB.jenisUnit.map(j=>{
+    const jenis = pick(j,['Jenis_Unit']);
+    const totalJ = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis).length;
+    const activeJ = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis && isActiveStatus(pick(u,['Status']))).length;
+    return { jenis, total: totalJ, active: activeJ };
+  }).filter(j=>j.total>0).sort((a,b)=>b.total-a.total);
+  document.getElementById('dashJenisBreakdown').innerHTML = jenisBreakdown.length ? jenisBreakdown.map(j=>`
+    <div class="jenis-card">
+      <div class="jc-num">${j.total}</div>
+      <div class="jc-lb">${j.jenis}</div>
+      <div class="progress-track"><div class="progress-fill" style="width:${pct(j.active,j.total)}%"></div></div>
+      <div class="jc-pct">${pct(j.active,j.total)}% aktif (${j.active}/${j.total})</div>
+    </div>`).join('') : `<div class="empty-state" style="padding:16px 0;">Belum ada data jenis unit</div>`;
+
+  /* PROYEKSI EXPIRED 6 BULAN KE DEPAN - dihitung dari kolom Masa_Berlaku di Commissioning */
+  const monthsAhead = [];
+  const nowD = new Date();
+  for(let i=0;i<6;i++){
+    const d = new Date(nowD.getFullYear(), nowD.getMonth()+i, 1);
+    monthsAhead.push({ y:d.getFullYear(), m:d.getMonth(), label:d.toLocaleDateString('id-ID',{month:'short',year:'2-digit'}) });
+  }
+  const forecastCounts = monthsAhead.map(mo=>{
+    return DB.commissioning.filter(c=>{
+      const d = parseFlexibleDate(pick(c,['Masa_Berlaku']));
+      return d && d.getFullYear()===mo.y && d.getMonth()===mo.m;
+    }).length;
+  });
+  const maxCount = Math.max(1, ...forecastCounts);
+  document.getElementById('dashExpiredForecast').innerHTML = `
+    <div style="display:flex;align-items:flex-end;gap:10px;height:150px;padding:10px 4px 0;">
+      ${monthsAhead.map((mo,i)=>`
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;">
+          <div style="font-size:11.5px;font-weight:700;margin-bottom:4px;">${forecastCounts[i]}</div>
+          <div style="width:100%;background:${forecastCounts[i]>0?'var(--orange)':'var(--gray-bg)'};border-radius:5px 5px 0 0;height:${Math.max(2,(forecastCounts[i]/maxCount*110))}px;"></div>
+          <div style="font-size:10.5px;color:var(--text-400);margin-top:6px;">${mo.label}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--text-400);margin-top:8px;">ℹ️ Pastikan unit yang akan expired dilakukan perpanjangan sebelum tanggal expire.</div>`;
 }
 
 /* =====================================================================
@@ -1686,19 +1690,23 @@ function renderMasterUnit(){
 ===================================================================== */
 function renderJenisUnit(){
   const rows = DB.jenisUnit;
-  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
+  const totalUnitSemua = DB.masterUnit.length;
+  const jenisTerbanyak = rows.map(r=>{
+    const jenis = pick(r,['Jenis_Unit']);
+    return { jenis, total: DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis).length };
+  }).sort((a,b)=>b.total-a.total)[0];
   document.getElementById('juStats').innerHTML = [
     statCard("TOTAL JENIS UNIT", rows.length, "Jenis", "", "blue","🚚"),
-    statCard("AKTIF", aktif, "Jenis", `${pct(aktif,rows.length)}% dari total jenis unit`, "green","✅"),
-    statCard("NON AKTIF", rows.length-aktif, "Jenis", "", "orange","⏸️"),
-    statCard("TOTAL UNIT (SEMUA JENIS)", DB.masterUnit.length, "Unit", "", "blue","📄")
+    statCard("TOTAL UNIT (SEMUA JENIS)", totalUnitSemua, "Unit", "", "green","📄"),
+    statCard("JENIS PALING BANYAK", jenisTerbanyak?jenisTerbanyak.jenis:"-", "", jenisTerbanyak?`${jenisTerbanyak.total} unit`:"", "orange","🏆")
   ].join('');
   document.getElementById('juTableBody').innerHTML = rows.map((r,i)=>{
     const jenis = pick(r,['Jenis_Unit']);
     const totalUnit = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis).length;
-    return `<tr><td>${i+1}</td><td class="unit-id">${pick(r,['Kode'])}</td><td>${jenis}</td><td>${pick(r,['Kategori'])}</td><td>${pick(r,['Deskripsi'])}</td>
-    <td>${totalUnit}</td><td>${totalUnit}</td><td>${pillFor(pick(r,['Status']))}</td></tr>`;
-  }).join('');
+    const aktifUnit = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis && isActiveStatus(pick(u,['Status']))).length;
+    return `<tr><td>${i+1}</td><td class="unit-id">${jenis}</td>
+    <td>${totalUnit}</td><td>${aktifUnit}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" class="empty-state">Belum ada data jenis unit</td></tr>`;
 }
 
 /* =====================================================================
@@ -1706,16 +1714,18 @@ function renderJenisUnit(){
 ===================================================================== */
 function renderArea(){
   const rows = DB.area;
-  const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
+  const siteCount = new Set(rows.map(r=>pick(r,['Site_Code','Site']))).size;
   document.getElementById('areaStats').innerHTML = [
     statCard("TOTAL AREA", rows.length, "Area", "", "blue","📍"),
-    statCard("AREA AKTIF", aktif, "Area", `${pct(aktif,rows.length)}% dari total area`, "green","✅"),
-    statCard("AREA NON AKTIF", rows.length-aktif, "Area", "", "orange","⏸️"),
-    statCard("TOTAL AREA (SEMUA SITE)", rows.length, "Area", "Tersebar di semua site", "blue","📄")
+    statCard("TOTAL SITE", siteCount, "Site", "", "green","🏭"),
+    statCard("TOTAL UNIT (SEMUA AREA)", DB.commissioning.length, "Unit", "", "orange","📄")
   ].join('');
-  document.getElementById('areaTableBody').innerHTML = rows.map((r,i)=>`
-    <tr><td>${i+1}</td><td class="unit-id">${pick(r,['Kode_Area','Kode'])}</td><td>${pick(r,['Nama_Area','Area_Nama'])}</td><td><span class="pill blue">${pick(r,['Site','Site_Code'])}</span></td>
-    <td>${pick(r,['Area_Group'])}</td><td>${pick(r,['Deskripsi'])}</td><td>${pillFor(pick(r,['Status']))}</td></tr>`).join('');
+  document.getElementById('areaTableBody').innerHTML = rows.map((r,i)=>{
+    const areaNama = pick(r,['Area_Nama','Nama_Area']);
+    const totalUnit = DB.commissioning.filter(c=>pick(c,['Area'])===areaNama).length;
+    return `<tr><td>${i+1}</td><td class="unit-id">${pick(r,['Area_Code','Kode_Area','Kode'])}</td><td>${areaNama}</td>
+    <td><span class="pill blue">${pick(r,['Site_Code','Site'])}</span></td><td>${totalUnit}</td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty-state">Belum ada data area</td></tr>`;
 }
 
 /* =====================================================================
@@ -1725,9 +1735,12 @@ let comPage=1;
 function renderCommissioning(){
   const rows = DB.commissioning;
   const total = rows.length;
-  const aktif = rows.filter(r=>r.Status==="Aktif").length;
-  const near = rows.filter(r=>r.Status==="Near Expired").length;
-  const exp = rows.filter(r=>r.Status==="Expired").length;
+  const aktif = rows.filter(r=>pick(r,['Status'])==="Active"||pick(r,['Status'])==="Aktif").length;
+  const near = rows.filter(r=>String(pick(r,['Status'])||'').toLowerCase().includes('near')).length;
+  const exp = rows.filter(r=>{
+    const s = String(pick(r,['Status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
   document.getElementById('comStats').innerHTML = [
     statCard("TOTAL KOMISIONING", total, "Data", "Tersebar di semua site", "blue","🗂️"),
     statCard("AKTIF", aktif, "Data", `${pct(aktif,total)}% dari total komisioning`, "green","✅"),
@@ -1735,11 +1748,21 @@ function renderCommissioning(){
     statCard("EXPIRED", exp, "Data", `${pct(exp,total)}% dari total komisioning`, "red","❌")
   ].join('');
   const term = document.getElementById('comSearch').value;
-  const filtered = rows.filter(r=>{
+  let filtered = rows.filter(r=>{
     if(!term) return true;
     const t = term.toLowerCase();
     return [pick(r,['Unit_ID']),pick(r,['Registration_No'])].some(v=>String(v||'').toLowerCase().includes(t));
   });
+  /* SORT PRIORITAS: Expired dulu, lalu Near Expired, baru sisanya (Active/dll) -
+     supaya yang paling butuh perhatian langsung kelihatan di atas, bukan tersembunyi di halaman lain */
+  function priorityRank(r){
+    const s = String(pick(r,['Status'])||'').toLowerCase();
+    if(s.includes('expired') && !s.includes('near')) return 0; // Expired
+    if(s.includes('near')) return 1; // Near Expired
+    return 2; // Active/lainnya
+  }
+  filtered = filtered.slice().sort((a,b)=>priorityRank(a)-priorityRank(b));
+
   const perPage=10;
   buildPagination('comPagination', filtered.length, perPage, comPage, 'window.__comSetPage');
   window.__comSetPage=(p)=>{comPage=p; renderCommissioning();};
@@ -1748,10 +1771,25 @@ function renderCommissioning(){
     const unitId = pick(r,['Unit_ID']);
     const commId = pick(r,['Commissioning_ID']);
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
+    const sisa = pick(r,['Sisa_Hari']);
     return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
     <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td><td>${pick(r,['Registration_No'])}</td><td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
-    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue" title="Lihat/Edit" onclick="openCommissioningModal('${escJs(commId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openCommissioningModal('${escJs(commId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteCommissioning('${escJs(commId)}')">🗑</button></td></tr>`;
-  }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
+    <td style="color:${Number(sisa)<0?'var(--red)':Number(sisa)<=30?'var(--orange)':'inherit'}">${sisa} Hari</td>
+    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue" title="Lihat Detail (read-only)" onclick="viewCommissioning('${escJs(commId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openCommissioningModal('${escJs(commId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteCommissioning('${escJs(commId)}')">🗑</button></td></tr>`;
+  }).join('') || `<tr><td colspan="12" class="empty-state">Tidak ada data</td></tr>`;
+
+  /* UNIT BELUM ADA COMMISSIONING - unit yang sudah ada di Master Unit tapi belum
+     punya satupun record di sheet Commissioning. Ini jawaban untuk "gimana admin
+     sadar ada unit baru yang belum diinput registrasinya". */
+  const unitIdsWithCommissioning = new Set(DB.commissioning.map(c=>pick(c,['Unit_ID'])));
+  const missingUnits = DB.masterUnit.filter(m=>!unitIdsWithCommissioning.has(pick(m,['Unit_ID'])));
+  document.getElementById('missingCommissioningList').innerHTML = missingUnits.length
+    ? missingUnits.slice(0,15).map(m=>`
+        <div class="alert-item" style="cursor:pointer" onclick="openCommissioningModal(null)">
+          <div class="alert-ic" style="background:var(--red-bg);color:var(--red)">❗</div>
+          <div><b>${pick(m,['Unit_ID'])}</b><br><small>${pick(m,['Model_Unit'])} — belum ada Registration No</small></div>
+        </div>`).join('') + (missingUnits.length>15 ? `<div style="text-align:center;font-size:11.5px;color:var(--text-400);margin-top:8px;">+${missingUnits.length-15} unit lainnya</div>` : '')
+    : `<div class="empty-state" style="padding:24px 0;">✅ Semua unit di Master Unit sudah punya data commissioning</div>`;
 }
 
 /* =====================================================================
@@ -1794,7 +1832,7 @@ function renderPreparation(){
   document.getElementById('prepStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "Sedang dalam proses preparation", "blue","📝"),
     statCard("BELUM LENGKAP", belum, "Unit", `${pct(belum,total)}% dari total`, "red","⚠️"),
-    statCard("PROSES APPROVAL", prosesApproval, "Unit", "Diajukan / Disetujui / Portal", "orange","⏳"),
+    statCard("PROSES APPROVAL", prosesApproval, "Unit", "Diajukan / Disetujui / Waiting Sticker", "orange","⏳"),
     statCard("WAITING STICKER", waitingSticker, "Unit", "Menunggu stiker fisik", "blue","📦"),
     statCard("SELESAI", selesai, "Unit", "Stiker sudah terpasang", "green","✅")
   ].join('');
@@ -1857,6 +1895,13 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
     </td>
   </tr>`;
 }).join('') || `<tr><td colspan="16" class="empty-state">Tidak ada data preparation</td></tr>`;
+
+  /* FUNNEL PROGRES TAHAP - isi ruang kosong bawah + kasih gambaran distribusi semua unit per tahap */
+  const funnelStages = ['Belum Lengkap','Waiting Admin','Waiting History','Ready ZIP','Diajukan','Disetujui','Waiting Sticker','Selesai'];
+  document.getElementById('prepFunnel').innerHTML = funnelStages.map(s=>{
+    const n = rows.filter(r=>r.status===s).length;
+    return `<div class="funnel-item"><div class="fn-num">${n}</div><div class="fn-lb">${s}</div></div>`;
+  }).join('');
 }
 
 /* =====================================================================
@@ -2211,37 +2256,70 @@ async function submitBugReport(){
 
 let crudState = null; // { title, sheet, pkField, fields, data, onDone }
 
-function crudFieldHTML(f, value){
+/* Normalisasi berbagai format tanggal dari sheet (ISO datetime, dd/mm/yyyy, dll)
+   jadi yyyy-mm-dd supaya <input type="date"> bisa menampilkannya dengan benar.
+   Tanpa ini, tanggal yang sudah ada di data akan tampil KOSONG di form edit. */
+function toDateInputValue(v){
+  if(!v) return '';
+  const s = String(v).trim();
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0,10); // sudah yyyy-mm-dd (atau ISO datetime)
+  const dmy = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); // dd/mm/yyyy atau dd-mm-yyyy
+  if(dmy) return `${dmy[3]}-${dmy[2].padStart(2,'0')}-${dmy[1].padStart(2,'0')}`;
+  const d = new Date(s);
+  if(!isNaN(d)) return d.toISOString().slice(0,10);
+  return '';
+}
+/* Parse tanggal dari sheet (format apapun) jadi objek Date, atau null kalau tidak valid.
+   Dipakai untuk perhitungan seperti Proyeksi Expired. */
+function parseFlexibleDate(v){
+  const iso = toDateInputValue(v);
+  if(!iso) return null;
+  const d = new Date(iso+'T00:00:00');
+  return isNaN(d) ? null : d;
+}
+
+function crudFieldHTML(f, value, readonly){
   const val = (value===undefined || value===null) ? '' : value;
+  const disabled = readonly || f.disabled;
   if(f.type==='select'){
     const opts = (f.options||[]).map(o=>`<option value="${o}" ${String(o)===String(val)?'selected':''}>${o}</option>`).join('');
-    return `<select id="crud_${f.key}" ${f.disabled?'disabled':''}><option value="">-- Pilih --</option>${opts}</select>`;
+    return `<select id="crud_${f.key}" ${disabled?'disabled':''} ${f.onchange?`onchange="${f.onchange}"`:''}><option value="">-- Pilih --</option>${opts}</select>`;
+  }
+  if(f.inputType==='date'){
+    return `<input type="date" id="crud_${f.key}" value="${toDateInputValue(val)}" ${disabled?'disabled':''}>`;
+  }
+  if(f.inputType==='textarea'){
+    const safeVal = String(val).replace(/</g,'&lt;');
+    return `<textarea id="crud_${f.key}" rows="3" ${disabled?'disabled':''} placeholder="${f.placeholder||''}">${safeVal}</textarea>`;
   }
   const safeVal = String(val).replace(/"/g,'&quot;');
-  return `<input type="${f.inputType||'text'}" id="crud_${f.key}" value="${safeVal}" ${f.disabled?'disabled':''} placeholder="${f.placeholder||''}">`;
+  return `<input type="${f.inputType||'text'}" id="crud_${f.key}" value="${safeVal}" ${disabled?'disabled':''} placeholder="${f.placeholder||''}">`;
 }
 
 function openCrudModal(cfg){
   crudState = cfg;
   const isEdit = !!cfg.data;
+  const readonly = !!cfg.readonly;
   document.getElementById('crudModalTitle').innerText = cfg.title;
-  document.getElementById('crudModalSub').innerText = isEdit ? 'Ubah data yang sudah ada' : 'Isi form untuk menambah data baru';
+  document.getElementById('crudModalSub').innerText = readonly ? 'Detail (lihat saja)' : (isEdit ? 'Ubah data yang sudah ada' : 'Isi form untuk menambah data baru');
   document.getElementById('crudModalBody').innerHTML = cfg.fields.filter(f=>!f.hidden).map(f=>`
     <div class="form-group">
-      <label>${f.label}${f.required ? ' <span class="req">*</span>' : ''}</label>
-      ${crudFieldHTML(f, cfg.data ? pick(cfg.data,[f.key]) : (f.default||''))}
+      <label>${f.label}${(f.required && !readonly) ? ' <span class="req">*</span>' : ''}</label>
+      ${crudFieldHTML(f, cfg.data ? pick(cfg.data,[f.key]) : (f.default||''), readonly)}
     </div>`).join('');
-  document.getElementById('crudModalFoot').innerHTML = `
-    <button class="btn btn-outline" onclick="closeCrudModal()">Batal</button>
-    <button class="btn btn-primary" onclick="submitCrudModal()">💾 Simpan</button>`;
+  document.getElementById('crudModalFoot').innerHTML = readonly
+    ? `<button class="btn btn-primary" onclick="closeCrudModal()">Tutup</button>`
+    : `<button class="btn btn-outline" onclick="closeCrudModal()">Batal</button>
+       <button class="btn btn-primary" onclick="submitCrudModal()">💾 Simpan</button>`;
   document.getElementById('crudModalOverlay').classList.add('show');
+  if(cfg.onRendered) cfg.onRendered();
 }
 function closeCrudModal(){
   document.getElementById('crudModalOverlay').classList.remove('show');
   crudState = null;
 }
 async function submitCrudModal(){
-  if(!crudState) return;
+  if(!crudState || crudState.readonly) return;
   const cfg = crudState;
   const isEdit = !!cfg.data;
   const data = {};
@@ -2324,21 +2402,23 @@ function deleteMasterUnit(unitId){
 }
 
 /* ---------- COMMISSIONING: Tambah / Edit / Hapus ---------- */
-function openCommissioningModal(commId){
+function openCommissioningModal(commId, readonly){
   const raw = commId ? DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId) : null;
   const unitOptions = DB.masterUnit.map(m=>pick(m,['Unit_ID'])).filter(Boolean);
-  const siteOptions = [...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  const siteOptions = [...new Set(DB.area.map(a=>pick(a,['Site_Code','Site'])))].filter(Boolean);
+  const areaOptions = [...new Set(DB.area.map(a=>pick(a,['Area_Nama','Nama_Area'])))].filter(Boolean);
   openCrudModal({
-    title: commId ? 'Edit Commissioning' : 'Tambah Commissioning',
+    title: (readonly?'Detail':(commId?'Edit':'Tambah')) + ' Commissioning',
     sheet: 'Commissioning',
     pkField: 'Commissioning_ID',
     data: raw,
+    readonly: !!readonly,
     fields: [
       {key:'Commissioning_ID', hidden:true, generator:()=>'CMS-'+Date.now()},
-      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true},
-      {key:'Site', label:'Site', type:'select', options: siteOptions, required:true},
-      {key:'Area', label:'Area', required:true, placeholder:'Contoh: GRB'},
-      {key:'Registration_No', label:'Registration No', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
+      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true, onchange:'autoFillCommissioningFromUnit(this.value)'},
+      {key:'Site', label:'Site (otomatis, boleh diubah)', type:'select', options: siteOptions, required:true},
+      {key:'Area', label:'Area (otomatis, boleh diubah)', type:'select', options: areaOptions, required:true},
+      {key:'Registration_No', label:'Registration No (selalu baru)', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
       {key:'Tanggal_Terbit', label:'Tanggal Terbit', inputType:'date', required:true},
       {key:'Masa_Berlaku', label:'Masa Berlaku / Expired', inputType:'date', required:true}
     ],
@@ -2351,6 +2431,19 @@ function openCommissioningModal(commId){
     onDone: manualRefresh
   });
 }
+/* Kalau Unit ID dipilih (khusus saat TAMBAH baru), otomatis isi Site & Area dari
+   riwayat commissioning unit itu sebelumnya - jadi admin tidak perlu pilih ulang,
+   cukup pastikan Registration No + tanggal yang memang selalu baru. */
+function autoFillCommissioningFromUnit(unitId){
+  const prevRecords = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId);
+  if(!prevRecords.length) return;
+  const latest = prevRecords[prevRecords.length-1];
+  const siteEl = document.getElementById('crud_Site');
+  const areaEl = document.getElementById('crud_Area');
+  if(siteEl) siteEl.value = pick(latest,['Site']);
+  if(areaEl) areaEl.value = pick(latest,['Area']);
+}
+function viewCommissioning(commId){ openCommissioningModal(commId, true); }
 function deleteCommissioning(commId){
   crudDeleteRow('Commissioning', commId, `Commissioning ${commId}`, manualRefresh);
 }
@@ -2848,9 +2941,8 @@ function computeStageBottleneck(){
      Kalau kolom tanggalnya belum ada di sheet (masih string kosong), transisi itu dilewati -
      tidak menyebabkan error, cuma tidak dihitung. */
   const pairs = [
-    { label:'Diajukan Owner → Disetujui Owner', from:'Tanggal_Diajukan_Owner', to:'Tanggal_Disetujui_Owner' },
-    { label:'Disetujui Owner → Diajukan Portal', from:'Tanggal_Disetujui_Owner', to:'Tanggal_Diajukan_Portal' },
-    { label:'Diajukan Portal → Waiting Sticker', from:'Tanggal_Diajukan_Portal', to:'Tanggal_Waiting_Sticker' },
+    { label:'Diajukan → Disetujui', from:'Tanggal_Diajukan', to:'Tanggal_Disetujui' },
+    { label:'Disetujui → Waiting Sticker', from:'Tanggal_Disetujui', to:'Tanggal_Waiting_Sticker' },
     { label:'Waiting Sticker → Selesai', from:'Tanggal_Waiting_Sticker', to:'Tanggal_Terpasang' }
   ];
   return pairs.map(p=>{
@@ -2926,90 +3018,6 @@ function renderSettingsChangelog(){
 /* =====================================================================
    RENDER: EXPIRED / NEAR EXPIRED
 ===================================================================== */
-let expPage=1;
-function renderExpired(){
-  const rows = DB.expired.map(r=>{
-  const unitId = pick(r,['Unit_ID']);
-  const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
-  return {
-    unitId: unitId,
-    model: mu ? pick(mu,['Model_Unit']) : '',
-    sn: mu ? pick(mu,['Serial_Number']) : '',
-    site: pick(r,['Site']),
-    area: pick(r,['Area']),
-    idbibtia: pick(r,['Registration_No']),
-    selesai: pick(r,['Masa_Berlaku']),
-    sisa: Number(pick(r,['Sisa_Hari'])) || 0,
-    status: pick(r,['Status']),
-    prioritas: pick(r,['Prioritas'])
-  };
-});
-
-  const term = document.getElementById('expSearch').value;
-  let filtered = filterRows(rows, term, ['unitId','model','sn']);
-  const pr = document.getElementById('expPrioritas').value;
-  if(pr) filtered = filtered.filter(r=>r.prioritas===pr);
-  const perPage=8;
-  buildPagination('expPagination', filtered.length, perPage, expPage, 'window.__expSetPage');
-  window.__expSetPage=(p)=>{expPage=p; renderExpired();};
-  const pageRows = paginate(filtered, expPage, perPage);
-  document.getElementById('expTableBody').innerHTML = pageRows.map((r,i)=>`
-    <tr><td>${(expPage-1)*perPage+i+1}</td><td class="unit-id">${r.unitId}</td><td>${r.model}</td><td>${r.sn}</td>
-    <td><span class="pill blue">${r.site}</span></td><td>${r.area}</td><td>${r.idbibtia}</td><td>${r.selesai}</td>
-    <td style="color:${r.sisa<0?'var(--red)':'inherit'}">${r.sisa} Hari</td><td>${pillFor(r.status)}</td>
-    <td><span class="pill ${r.prioritas==='Tinggi'?'red':r.prioritas==='Sedang'?'orange':'green'}">${r.prioritas}</span></td>
-    <td><button class="icon-btn blue">👁</button><button class="icon-btn">🖨</button><button class="icon-btn blue">✏️</button></td></tr>
-  `).join('') || `<tr><td colspan="12" class="empty-state">Tidak ada data</td></tr>`;
-
-  const expiredN = rows.filter(r=>r.status==="Expired").length;
-  const near30 = rows.filter(r=>r.status==="Near Expired" && r.sisa<=30).length;
-  const near6030 = rows.filter(r=>r.status==="Near Expired" && r.sisa>30 && r.sisa<=60).length;
-  const aman = DB.masterUnit.length - expiredN - near30 - near6030;
-
-  const segs = [
-    {label:"Expired", val:expiredN, color:"#e0473f"},
-    {label:"Near Expired (≤30)", val:near30, color:"#f39c2b"},
-    {label:"Near Expired (31-60)", val:near6030, color:"#f7c948"},
-    {label:"Aman (>60)", val:Math.max(aman,0), color:"#1fa251"}
-  ];
-  drawDonut('expDonut', segs);
-  const grandTotal = segs.reduce((a,s)=>a+s.val,0)||1;
-  document.getElementById('expLegend').innerHTML = segs.map(s=>`
-    <div class="legend-row"><span class="legend-dot" style="background:${s.color}"></span>${s.label}: <b>${s.val} (${Math.round(s.val/grandTotal*1000)/10}%)</b></div>`).join('');
-
-  document.getElementById('expTop5').innerHTML = rows.filter(r=>r.status==="Expired").slice(0,5).map((r,i)=>`
-    <div class="alert-item"><div class="alert-ic" style="background:var(--red-bg);color:var(--red)">${i+1}</div>
-    <div><b>${r.unitId} ${r.model}</b><br><small>${r.sisa} hari yang lalu</small></div></div>`).join('')
-    || `<div class="empty-state">Tidak ada unit expired</div>`;
-}
-function drawDonut(svgId, segs){
-  const svg = document.getElementById(svgId);
-  const total = segs.reduce((a,s)=>a+s.val,0) || 1;
-  const cx=85, cy=85, r=65, sw=26;
-  let angleStart = -90;
-  let paths = '';
-  segs.forEach(s=>{
-    const angle = (s.val/total)*360;
-    if(s.val>0){
-      const end = angleStart+angle;
-      paths += describeArc(cx,cy,r,angleStart,end,s.color,sw);
-    }
-    angleStart += angle;
-  });
-  svg.innerHTML = paths + `<text x="${cx}" y="${cy}" text-anchor="middle" dy="6" font-size="20" font-weight="800" fill="#101828">${total}</text>`;
-}
-function polarToCartesian(cx,cy,r,angleDeg){
-  const a = (angleDeg-90)*Math.PI/180;
-  return {x:cx+r*Math.cos(a), y:cy+r*Math.sin(a)};
-}
-function describeArc(cx,cy,r,startAngle,endAngle,color,sw){
-  const s = polarToCartesian(cx,cy,r,endAngle);
-  const e = polarToCartesian(cx,cy,r,startAngle);
-  const largeArc = endAngle-startAngle <= 180 ? 0 : 1;
-  const d = `M ${s.x} ${s.y} A ${r} ${r} 0 ${largeArc} 0 ${e.x} ${e.y}`;
-  return `<path d="${d}" fill="none" stroke="${color}" stroke-width="${sw}"/>`;
-}
-
 /* =====================================================================
    RENDER: LAPORAN
 ===================================================================== */
@@ -3057,9 +3065,8 @@ let selectedExportType = 'masterUnit';
 function renderExportData(){
   const types = [
     {key:'masterUnit', t:"Data Master Unit", d:"Data unit/alat berat secara keseluruhan"},
-    {key:'commissioning', t:"Data Commissioning", d:"Data unit yang telah selesai commissioning"},
-    {key:'preparation', t:"Data Preparation", d:"Data unit yang sedang dalam proses preparation"},
-    {key:'expired', t:"Data Expired / Near Expired", d:"Data unit yang sudah atau akan expired"}
+    {key:'commissioning', t:"Data Commissioning", d:"Data commissioning (termasuk Sisa Hari & status Expired/Near Expired)"},
+    {key:'preparation', t:"Data Preparation", d:"Data unit yang sedang dalam proses preparation"}
   ];
   document.getElementById('exportTypeCards').innerHTML = types.map(t=>`
     <div class="export-card ${selectedExportType===t.key?'sel':''}" onclick="selectedExportType='${t.key}';renderExportData()">
@@ -3070,12 +3077,11 @@ function renderExportData(){
     <td>${r.oleh}</td><td>${r.tanggal}</td><td>${pillFor(r.status)}</td></tr>`).join('');
 }
 function doExportNow(){
-  const map = {masterUnit:'muTable', commissioning:'comTable', preparation:'prepTable', expired:'expTable'};
+  const map = {masterUnit:'muTable', commissioning:'comTable', preparation:'prepTable'};
   const tId = map[selectedExportType];
   if(selectedExportType==='masterUnit') renderMasterUnit();
   if(selectedExportType==='commissioning') renderCommissioning();
   if(selectedExportType==='preparation') renderPreparation();
-  if(selectedExportType==='expired') renderExpired();
   exportTableCSV(tId, selectedExportType+'_export');
   DB.exportHistory.unshift({nama:`Export ${selectedExportType} - manual`, jenis:selectedExportType, format:document.getElementById('exFormat').value.toUpperCase(), oleh:"Abdul Azis", tanggal:new Date().toLocaleString('id-ID'), status:"Selesai"});
   renderExportData();
@@ -3116,14 +3122,10 @@ function renderUsers(){
    FILTER TOP BAR
 ===================================================================== */
 function populateTopFilters(){
-  const sites = [...new Set(DB.area.map(a=>pick(a,['Site'])))];
-const areas = [...new Set(DB.area.map(a=>pick(a,['Nama_Area'])))];
-  const siteSel = document.getElementById('filterSite');
-  const areaSel = document.getElementById('filterArea');
-  siteSel.innerHTML = '<option value="ALL">ALL SITE</option>' + sites.map(s=>`<option>${s}</option>`).join('');
-  areaSel.innerHTML = '<option value="ALL">ALL AREA</option>' + areas.map(a=>`<option>${a}</option>`).join('');
+  const sites = [...new Set(DB.area.map(a=>pick(a,['Site_Code','Site'])))];
+  const areas = [...new Set(DB.area.map(a=>pick(a,['Area_Nama','Nama_Area'])))];
   const jenisSel = document.getElementById('muJenis');
-  jenisSel.innerHTML = '<option value="">Semua Jenis</option>' + DB.jenisUnit.map(j=>`<option>${j.jenis}</option>`).join('');
+  jenisSel.innerHTML = '<option value="">Semua Jenis</option>' + DB.jenisUnit.map(j=>`<option>${pick(j,['Jenis_Unit','jenis'])}</option>`).join('');
   const lapSite = document.getElementById('lapSite');
   lapSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
   const exSite = document.getElementById('exSite');
@@ -3143,15 +3145,18 @@ function renderPage(key){
   const map = {
     dashboard:renderDashboard, masterUnit:renderMasterUnit, jenisUnit:renderJenisUnit,
     area:renderArea, commissioning:renderCommissioning, preparation:renderPreparation,
-    expired:renderExpired, laporan:renderLaporan, exportData:renderExportData, userManagement:renderUsers,
+    laporan:renderLaporan, exportData:renderExportData, userManagement:renderUsers,
     pengaturan:renderPengaturan
   };
   if(map[key]) map[key]();
 }
 
-/* notif count */
+/* notif count - jumlah unit Expired + Near Expired (bukan total seluruh sheet Commissioning) */
 function updateNotif(){
-  const count = (DB.expired?DB.expired.length:0);
+  const count = (DB.expired||[]).filter(e=>{
+    const s = String(pick(e,['Status','status'])||'').toLowerCase();
+    return s.includes('expired'); // "Expired" dan "Near Expired" dua-duanya mengandung kata ini
+  }).length;
   document.getElementById('notifCount').innerText = count;
 }
 
