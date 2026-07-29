@@ -331,9 +331,69 @@ tbody tr:hover{ background:#f9fbff; }
 .loader-dots span:nth-child(2){ animation-delay:.2s; }
 .loader-dots span:nth-child(3){ animation-delay:.4s; }
 @keyframes blink{ 0%,80%,100%{ opacity:.25; } 40%{ opacity:1; } }
+
+/* ===== PREPARATION MODAL ===== */
+.modal-overlay{
+  position:fixed; inset:0; z-index:2000; background:rgba(11,22,66,.55);
+  display:none; align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.show{ display:flex; }
+.modal-box{
+  background:#fff; border-radius:16px; width:100%; max-width:560px;
+  max-height:88vh; overflow-y:auto; box-shadow:0 20px 60px rgba(10,20,60,.3);
+  animation:modalPop .18s ease;
+}
+@keyframes modalPop{ from{ transform:translateY(10px); opacity:0;} to{ transform:translateY(0); opacity:1;} }
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 22px; border-bottom:1px solid var(--border); position:sticky; top:0; background:#fff; border-radius:16px 16px 0 0;
+}
+.modal-head h3{ font-size:15.5px; color:var(--text-900);}
+.modal-head .sub{ font-size:11.5px; color:var(--text-400); margin-top:2px; font-weight:400;}
+.modal-close{ border:none; background:var(--gray-bg); width:30px; height:30px; border-radius:8px; font-size:15px; cursor:pointer; color:var(--text-600);}
+.modal-close:hover{ background:var(--red-bg); color:var(--red);}
+.modal-body{ padding:20px 22px;}
+.modal-foot{
+  display:flex; justify-content:flex-end; gap:10px; padding:16px 22px;
+  border-top:1px solid var(--border); position:sticky; bottom:0; background:#fff; border-radius:0 0 16px 16px;
+}
+.modal-section{ border:1px solid var(--border); border-radius:12px; padding:14px 16px; margin-bottom:14px; background:#fafbff;}
+.modal-section-title{ display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;}
+.modal-section-title b{ font-size:13px; color:var(--text-900);}
+.modal-readonly-row{ display:flex; justify-content:space-between; padding:6px 0; font-size:12.8px; border-bottom:1px dashed var(--border);}
+.modal-readonly-row:last-child{ border-bottom:none; }
+.modal-readonly-row span:first-child{ color:var(--text-400);}
+.modal-readonly-row span:last-child{ font-weight:700; color:var(--text-900); text-align:right;}
+.field-row{ display:flex; gap:10px;}
+.field-row .form-group{ flex:1; }
+
+/* toggle switch */
+.switch{ position:relative; display:inline-block; width:42px; height:24px; flex:none;}
+.switch input{ opacity:0; width:0; height:0;}
+.switch .slider{ position:absolute; cursor:pointer; inset:0; background:#d7dceb; border-radius:999px; transition:.15s;}
+.switch .slider:before{ position:absolute; content:""; height:18px; width:18px; left:3px; top:3px; background:#fff; border-radius:50%; transition:.15s; box-shadow:0 1px 3px rgba(0,0,0,.25);}
+.switch input:checked + .slider{ background:var(--green);}
+.switch input:checked + .slider:before{ transform:translateX(18px);}
+.switch input:disabled + .slider{ opacity:.55; cursor:not-allowed;}
+
+.readonly-badge{ display:inline-block; font-size:10.5px; font-weight:700; color:var(--text-400); background:var(--gray-bg); padding:3px 8px; border-radius:6px;}
+
+/* toast */
+#saveToast{
+  position:fixed; bottom:24px; right:24px; z-index:3000;
+  background:var(--navy-900); color:#fff; padding:12px 18px; border-radius:10px;
+  font-size:12.8px; box-shadow:0 10px 30px rgba(10,20,60,.3);
+  display:flex; align-items:center; gap:8px;
+  opacity:0; transform:translateY(10px); pointer-events:none; transition:.25s;
+}
+#saveToast.show{ opacity:1; transform:translateY(0);}
+#saveToast.err{ background:var(--red);}
+.icon-btn:disabled{ opacity:.4; cursor:not-allowed;}
+.icon-btn{ cursor:pointer; }
 </style>
 </head>
 <body>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 
 <!-- ===================== APP LOADER (splash / loading feature) ===================== -->
 <div id="appLoader">
@@ -346,6 +406,23 @@ tbody tr:hover{ background:#f9fbff; }
     <div class="loader-step" id="loaderStep">Menyiapkan data<span class="loader-dots"><span>.</span><span>.</span><span>.</span></span></div>
   </div>
 </div>
+
+<!-- ===================== PREPARATION EDIT / DETAIL MODAL ===================== -->
+<div class="modal-overlay" id="prepModalOverlay" onclick="if(event.target===this) closePrepModal();">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="prepModalTitle">Edit Preparation</h3>
+        <div class="sub" id="prepModalSub">Unit ID - Model</div>
+      </div>
+      <button class="modal-close" onclick="closePrepModal()">✕</button>
+    </div>
+    <div class="modal-body" id="prepModalBody"></div>
+    <div class="modal-foot" id="prepModalFoot"></div>
+  </div>
+</div>
+
+<div id="saveToast"></div>
 
 <div class="app">
   <!-- ===================== SIDEBAR ===================== -->
@@ -1229,7 +1306,8 @@ function resetPrepFilters(){
   renderPreparation();
 }
 function renderPreparation(){
-  const rows = DB.preparation.map(r=>({
+  const rows = DB.preparation.map((r,idx)=>({
+  _rawIndex: idx,
   unitId: pick(r,['Unit_ID (FK)','Unit_ID']),
   model: pick(r,['Model_Type']),
   sn: pick(r,['Serial_Number']),
@@ -1283,12 +1361,385 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
     <td>${pillPrioritas(r.prioritas)}</td>
     <td>${r.hari} Hari</td>
     <td>
-      <button class="icon-btn blue" title="Lihat Detail">👁</button>
-      <button class="icon-btn blue" title="Edit">✏️</button>
-      <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Generate ZIP':'Belum siap'}" ${r.status!=='Ready ZIP'?'disabled':''}>${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
+      <button class="icon-btn blue" title="Lihat Detail" onclick="openPrepModal(${r._rawIndex},'view')">👁</button>
+      <button class="icon-btn blue" title="Edit" onclick="openPrepModal(${r._rawIndex},'edit')">✏️</button>
+      <button class="icon-btn ${r.status==='Ready ZIP'?'blue':''}" title="${r.status==='Ready ZIP'?'Download ZIP':'Belum siap (lengkapi data dulu)'}" ${r.status!=='Ready ZIP'?'disabled':''} onclick="${r.status==='Ready ZIP'?`downloadPrepZip(${r._rawIndex})`:''}">${r.status==='Ready ZIP'?'⬇️':'🔒'}</button>
     </td>
   </tr>`;
 }).join('') || `<tr><td colspan="15" class="empty-state">Tidak ada data preparation</td></tr>`;
+}
+
+/* =====================================================================
+   PREPARATION: EDIT / DETAIL MODAL + AUTO-SAVE + ZIP EXPORT
+===================================================================== */
+let prepModalIndex = null;
+let prepModalMode = 'view';
+
+function prepIsSheetRow(raw){
+  return Object.prototype.hasOwnProperty.call(raw,'Unit_ID (FK)') ||
+         Object.prototype.hasOwnProperty.call(raw,'Unit_ID') ||
+         Object.prototype.hasOwnProperty.call(raw,'Foto_4_Sisi');
+}
+function prepGetUnitId(raw){
+  return pick(raw,['Unit_ID (FK)','Unit_ID']) || raw.unitId || '';
+}
+function prepReadField(raw, sheetKeys, demoKey, boolMode){
+  if(prepIsSheetRow(raw)){
+    const v = pick(raw, sheetKeys);
+    return boolMode ? (v==='Lengkap'||v==='Sudah') : v;
+  }
+  return raw[demoKey];
+}
+function computePrepStatus(foto, checklist, bast, history){
+  let progress = 0;
+  if(foto) progress += 25;
+  if(checklist) progress += 25;
+  if(bast) progress += 25;
+  if(history) progress += 25;
+  let status;
+  if(!foto || !checklist) status = 'Belum Lengkap';
+  else if(!bast) status = 'Waiting Admin';
+  else if(!history) status = 'Waiting History';
+  else status = 'Ready ZIP';
+  return {progress, status};
+}
+function prepModalFieldsHTML(raw, disabled){
+  const dis = disabled ? 'disabled' : '';
+  const foto = prepReadField(raw, ['Foto_4_Sisi'], 'foto', true);
+  const checklist = prepReadField(raw, ['Checklist'], 'checklist', true);
+  const bast = prepReadField(raw, ['BAST'], 'bast', true);
+  const history = prepReadField(raw, ['History_Maintenance'], 'history', true);
+  const bastUrl = prepReadField(raw, ['BAST_File_URL'], 'bastFileUrl') || '';
+  const bastName = prepReadField(raw, ['BAST_File_Name'], 'bastFileName') || '';
+  const histUrl = prepReadField(raw, ['History_File_URL'], 'historyFileUrl') || '';
+  const histName = prepReadField(raw, ['History_File_Name'], 'historyFileName') || '';
+  const prioritas = pick(raw,['Prioritas']) || raw.prioritas || 'Sedang';
+
+  return `
+    <div class="modal-section">
+      <div class="modal-section-title"><b>📸 Foto (4 Sisi)</b>
+        <label class="switch"><input type="checkbox" id="pf_foto" ${foto?'checked':''} ${dis}><span class="slider"></span></label>
+      </div>
+      <div class="modal-section-title" style="margin-bottom:0;"><b>📋 Checklist</b>
+        <label class="switch"><input type="checkbox" id="pf_checklist" ${checklist?'checked':''} ${dis}><span class="slider"></span></label>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title"><b>🧾 BAST (Berita Acara Serah Terima)</b>
+        <span class="readonly-badge" style="background:${bast?'var(--green-bg)':'var(--red-bg)'};color:${bast?'var(--green)':'var(--red)'}">${bast?'✓ Sudah ada file':'Belum ada file'}</span>
+      </div>
+      <div class="form-group" style="margin-bottom:4px;">
+        <label>Upload File BAST (PDF)</label>
+        <input type="file" id="pf_bastFile" accept="application/pdf" ${dis} onchange="handlePrepFileSelect('bast', this)">
+        <div id="pf_bastFileInfo" style="font-size:11.5px;color:var(--text-400);margin-top:6px;">
+          ${bastUrl ? `<a href="${bastUrl}" target="_blank">📄 Lihat file BAST saat ini${bastName? ' — '+bastName:''}</a>` : (bast ? '📄 File tersimpan (tanpa link, mode demo)' : 'Belum ada file diupload')}
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title"><b>🛠️ History Maintenance</b>
+        <span class="readonly-badge" style="background:${history?'var(--green-bg)':'var(--red-bg)'};color:${history?'var(--green)':'var(--red)'}">${history?'✓ Sudah ada file':'Belum ada file'}</span>
+      </div>
+      <div class="form-group" style="margin-bottom:4px;">
+        <label>Upload File History Maintenance (PDF)</label>
+        <input type="file" id="pf_historyFile" accept="application/pdf" ${dis} onchange="handlePrepFileSelect('history', this)">
+        <div id="pf_historyFileInfo" style="font-size:11.5px;color:var(--text-400);margin-top:6px;">
+          ${histUrl ? `<a href="${histUrl}" target="_blank">📄 Lihat file History saat ini${histName? ' — '+histName:''}</a>` : (history ? '📄 File tersimpan (tanpa link, mode demo)' : 'Belum ada file diupload')}
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Prioritas</label>
+      <select id="pf_prioritas" ${dis}>
+        <option ${prioritas==='Tinggi'?'selected':''}>Tinggi</option>
+        <option ${prioritas==='Sedang'?'selected':''}>Sedang</option>
+        <option ${prioritas==='Rendah'?'selected':''}>Rendah</option>
+      </select>
+    </div>
+  `;
+}
+function prepToggleSection(which){
+  const on = document.getElementById('pf_'+which).checked;
+  document.getElementById('pf_'+which+'_fields').style.opacity = on ? '1' : '.45';
+}
+
+let prepPendingFiles = { bast:null, history:null };
+
+function handlePrepFileSelect(type, input){
+  const file = input.files[0];
+  if(!file) return;
+  if(file.type !== 'application/pdf'){
+    alert('File harus berformat PDF');
+    input.value = '';
+    return;
+  }
+  if(file.size > 8*1024*1024){
+    alert('Ukuran file maksimal 8MB');
+    input.value = '';
+    return;
+  }
+  prepPendingFiles[type] = file;
+  const infoId = type==='bast' ? 'pf_bastFileInfo' : 'pf_historyFileInfo';
+  document.getElementById(infoId).innerHTML = `📄 ${file.name} <span style="color:var(--green)">(siap diupload)</span>`;
+}
+function fileToBase64(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ()=> resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadPrepDocsToServer(raw, files){
+  const unitId = prepGetUnitId(raw);
+  const submissionId = pick(raw, ['Submission_ID (FK)','Submission_ID']) || raw.submissionId || '';
+  const site = pick(raw,['Site']) || raw.site || '';
+
+  if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
+    showSaveToast('✓ File '+unitId+' tersimpan (mode demo, belum ke Drive)');
+    return;
+  }
+  try{
+    showSaveToast('⏳ Mengupload dokumen '+unitId+' ke Google Drive...');
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action:'uploadAdminDocs',
+        payload:{
+          submissionId: submissionId,
+          unitId: unitId,
+          site: site,
+          bastBase64: files.bastBase64,
+          bastFileName: files.bastFileName,
+          historyBase64: files.historyBase64,
+          historyFileName: files.historyFileName,
+          uploadedBy: 'Admin (Dashboard)'
+        }
+      })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    if(json.success){
+      showSaveToast('✓ Dokumen '+unitId+' berhasil diupload ke Drive');
+      if(json.bastUrl){ if(prepIsSheetRow(raw)) raw['BAST_File_URL']=json.bastUrl; else raw.bastFileUrl=json.bastUrl; }
+      if(json.historyUrl){ if(prepIsSheetRow(raw)) raw['History_File_URL']=json.historyUrl; else raw.historyFileUrl=json.historyUrl; }
+      persistPrepOverrides();
+      if(prepModalIndex===DB.preparation.indexOf(raw)) openPrepModal(DB.preparation.indexOf(raw), 'edit');
+    } else {
+      showSaveToast('⚠ Gagal upload dokumen: '+(json.message||''), true);
+    }
+  }catch(err){
+    console.warn('Gagal upload dokumen', err);
+    showSaveToast('⚠ Gagal upload dokumen ke Drive', true);
+  }
+}
+  
+function openPrepModal(rawIndex, mode){
+  prepModalIndex = rawIndex;
+  prepModalMode = mode;
+  const raw = DB.preparation[rawIndex];
+  if(!raw) return;
+  const unitId = prepGetUnitId(raw);
+  const model = pick(raw,['Model_Type']) || raw.model || '';
+  const status = pick(raw,['Status_Preparation']) || raw.status || '';
+
+  document.getElementById('prepModalTitle').innerText = mode==='edit' ? 'Edit Data Preparation' : 'Detail Preparation';
+  document.getElementById('prepModalSub').innerText = `${unitId} — ${model}`;
+
+  const readonly = mode!=='edit';
+  document.getElementById('prepModalBody').innerHTML = `
+    <div class="modal-section">
+      <div class="modal-readonly-row"><span>Unit ID</span><span>${unitId}</span></div>
+      <div class="modal-readonly-row"><span>Model / Tipe</span><span>${model}</span></div>
+      <div class="modal-readonly-row"><span>Status Saat Ini</span><span>${status}</span></div>
+    </div>
+    ${prepModalFieldsHTML(raw, readonly)}
+    ${readonly ? '<div style="text-align:center;"><span class="readonly-badge">Mode Lihat — klik ✏️ Edit untuk mengubah data</span></div>' : ''}
+  `;
+
+  document.getElementById('prepModalFoot').innerHTML = mode==='edit'
+    ? `<button class="btn btn-outline" onclick="closePrepModal()">Batal</button>
+       <button class="btn btn-primary" onclick="savePrepChanges()">💾 Simpan Perubahan</button>`
+    : `${status==='Ready ZIP' ? `<button class="btn btn-primary" onclick="downloadPrepZip(${rawIndex})">⬇️ Download ZIP</button>` : ''}
+       <button class="btn btn-outline" onclick="closePrepModal()">Tutup</button>`;
+
+  document.getElementById('prepModalOverlay').classList.add('show');
+}
+function closePrepModal(){
+  document.getElementById('prepModalOverlay').classList.remove('show');
+  prepModalIndex = null;
+}
+async function savePrepChanges(){
+  if(prepModalIndex===null) return;
+  const raw = DB.preparation[prepModalIndex];
+  if(!raw) return;
+
+  const foto = document.getElementById('pf_foto').checked;
+  const checklist = document.getElementById('pf_checklist').checked;
+  const prioritas = document.getElementById('pf_prioritas').value;
+
+  let bastBase64=null, bastFileName=null, historyBase64=null, historyFileName=null;
+  if(prepPendingFiles.bast){
+    bastBase64 = await fileToBase64(prepPendingFiles.bast);
+    bastFileName = prepPendingFiles.bast.name;
+  }
+  if(prepPendingFiles.history){
+    historyBase64 = await fileToBase64(prepPendingFiles.history);
+    historyFileName = prepPendingFiles.history.name;
+  }
+
+  const bastAlready = prepReadField(raw, ['BAST'], 'bast', true);
+  const historyAlready = prepReadField(raw, ['History_Maintenance'], 'history', true);
+  const bast = !!bastBase64 || !!bastAlready;
+  const history = !!historyBase64 || !!historyAlready;
+
+  const {progress, status} = computePrepStatus(foto, checklist, bast, history);
+
+  if(prepIsSheetRow(raw)){
+    raw['Foto_4_Sisi'] = foto ? 'Lengkap' : 'Belum';
+    raw['Checklist'] = checklist ? 'Lengkap' : 'Belum';
+    raw['BAST'] = bast ? 'Sudah' : 'Belum';
+    raw['History_Maintenance'] = history ? 'Sudah' : 'Belum';
+    raw['Progress_Percent'] = progress/100;
+    raw['Status_Preparation'] = status;
+    raw['Prioritas'] = prioritas;
+    if(bastFileName) raw['BAST_File_Name'] = bastFileName;
+    if(historyFileName) raw['History_File_Name'] = historyFileName;
+  } else {
+    raw.foto=foto; raw.checklist=checklist; raw.bast=bast; raw.history=history;
+    raw.progress=progress; raw.status=status; raw.prioritas=prioritas;
+    if(bastFileName) raw.bastFileName=bastFileName;
+    if(historyFileName) raw.historyFileName=historyFileName;
+  }
+
+  renderPreparation();
+  closePrepModal();
+
+  syncPreparationToSheet(raw);
+  persistPrepOverrides();
+
+  if(bastBase64 || historyBase64){
+    await uploadPrepDocsToServer(raw, {bastBase64,bastFileName,historyBase64,historyFileName});
+  }
+  prepPendingFiles = {bast:null, history:null};
+}
+
+/* ---- auto-save to Google Sheet (Apps Script backend) + local persistence ---- */
+function showSaveToast(msg, isErr){
+  const el = document.getElementById('saveToast');
+  el.innerText = msg;
+  el.className = isErr ? 'show err' : 'show';
+  clearTimeout(window.__saveToastTimer);
+  window.__saveToastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+}
+async function syncPreparationToSheet(raw){
+  const unitId = prepGetUnitId(raw);
+  if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
+    // Belum terhubung ke Google Apps Script - tersimpan secara lokal saja (mode demo)
+    showSaveToast('✓ Perubahan '+unitId+' tersimpan (mode demo, lokal)');
+    return;
+  }
+  try{
+    showSaveToast('⏳ Menyimpan '+unitId+' ke spreadsheet...');
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'updatePreparation',
+        sheet: CONFIG.SCRIPTS.preparation.sheet,
+        unitId: unitId,
+        data: raw
+      })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    showSaveToast('✓ '+unitId+' tersimpan otomatis ke spreadsheet');
+  }catch(err){
+    console.warn('Gagal auto-save ke spreadsheet', err);
+    showSaveToast('⚠ Gagal sync ke spreadsheet, perubahan tersimpan lokal', true);
+  }
+}
+function persistPrepOverrides(){
+  try{
+    localStorage.setItem('isam_prep_overrides', JSON.stringify(DB.preparation));
+  }catch(err){ console.warn('Gagal menyimpan override lokal', err); }
+}
+function applyPrepOverridesFromStorage(){
+  if(!DEMO_MODE) return; // hanya dipakai saat belum terhubung ke spreadsheet asli
+  try{
+    const saved = localStorage.getItem('isam_prep_overrides');
+    if(saved){ DB.preparation = JSON.parse(saved); }
+  }catch(err){ console.warn('Gagal memuat override lokal', err); }
+}
+
+/* ---- generate & download ZIP when preparation is 100% complete ---- */
+async function downloadPrepZip(rawIndex){
+  const raw = DB.preparation[rawIndex];
+  if(!raw) return;
+  const status = pick(raw,['Status_Preparation']) || raw.status || '';
+  if(status !== 'Ready ZIP'){
+    showSaveToast('⚠ Data belum 100% lengkap, ZIP belum bisa dibuat', true);
+    return;
+  }
+  if(typeof JSZip === 'undefined'){
+    showSaveToast('⚠ Gagal memuat modul ZIP, cek koneksi internet', true);
+    return;
+  }
+  const unitId = prepGetUnitId(raw);
+  const model = pick(raw,['Model_Type']) || raw.model || '';
+  const sn = pick(raw,['Serial_Number']) || raw.sn || '';
+  const site = pick(raw,['Site']) || raw.site || '';
+  const area = pick(raw,['Area']) || raw.area || '';
+  const bastTgl = prepReadField(raw, ['BAST_Tanggal'], 'bastTanggal') || '-';
+  const bastNote = prepReadField(raw, ['BAST_Catatan'], 'bastCatatan') || '-';
+  const histTgl = prepReadField(raw, ['History_Tanggal'], 'historyTanggal') || '-';
+  const histNote = prepReadField(raw, ['History_Catatan'], 'historyCatatan') || '-';
+
+  showSaveToast('⏳ Menyiapkan ZIP untuk '+unitId+'...');
+  const zip = new JSZip();
+  const summary =
+`RINGKASAN PREPARATION COMMISSIONING
+=====================================
+Unit ID        : ${unitId}
+Model / Tipe   : ${model}
+Serial Number  : ${sn}
+Site / Area    : ${site} / ${area}
+Status         : Ready ZIP (100% lengkap)
+
+Foto (4 Sisi)  : Lengkap
+Checklist      : Lengkap
+
+BAST
+  Tanggal      : ${bastTgl}
+  No/Catatan   : ${bastNote}
+
+History Maintenance
+  Tanggal      : ${histTgl}
+  Catatan      : ${histNote}
+
+Dokumen ini dibuat otomatis oleh ISAM CK BIB - Inspeksi K3 System.
+`;
+  zip.file(`Preparation_${unitId}/RINGKASAN.txt`, summary);
+  zip.file(`Preparation_${unitId}/data.json`, JSON.stringify(raw, null, 2));
+
+  try{
+    const blob = await zip.generateAsync({type:'blob'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Preparation_${unitId}.zip`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    showSaveToast('✓ ZIP '+unitId+' berhasil diunduh');
+  }catch(err){
+    console.warn('Gagal membuat ZIP', err);
+    showSaveToast('⚠ Gagal membuat ZIP', true);
+  }
 }
 
 /* =====================================================================
@@ -1887,6 +2338,7 @@ function updateNotif(){
 ===================================================================== */
 (async function init(){
   await loadAllData();
+  applyPrepOverridesFromStorage();
   populateTopFilters();
   updateNotif();
   renderDashboard();
