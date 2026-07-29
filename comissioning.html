@@ -2773,22 +2773,43 @@ function renderUsers(){
    FILTER TOP BAR
 ===================================================================== */
 function populateTopFilters(){
-  const sites = [...new Set(DB.area.map(a=>pick(a,['Site'])))];
-const areas = [...new Set(DB.area.map(a=>pick(a,['Nama_Area'])))];
+  // PENTING: opsi dropdown Site & Area HARUS diambil dari kolom Site/Area
+  // yang sama dengan yang dipakai untuk memfilter tabel (Commissioning,
+  // Preparation, Expired) — bukan dari sheet "Area" (Master Data), karena
+  // kolom "Site" di sheet Area itu artinya beda (bukan BIB/TIA).
+  const siteSet = new Set();
+  const areaSet = new Set();
+  [DB.commissioning, DB.preparation, DB.expired].forEach(arr=>{
+    (arr||[]).forEach(r=>{
+      const s = pick(r,['Site']);
+      const a = pick(r,['Area']);
+      if(s) siteSet.add(s);
+      if(a) areaSet.add(a);
+    });
+  });
+  const sites = [...siteSet].sort();
+  const areas = [...areaSet].sort();
+
   const siteSel = document.getElementById('filterSite');
   const areaSel = document.getElementById('filterArea');
-  siteSel.innerHTML = '<option value="ALL">ALL SITE</option>' + sites.map(s=>`<option>${s}</option>`).join('');
-  areaSel.innerHTML = '<option value="ALL">ALL AREA</option>' + areas.map(a=>`<option>${a}</option>`).join('');
+  const prevSite = siteSel.value || 'ALL';
+  const prevArea = areaSel.value || 'ALL';
+  siteSel.innerHTML = '<option value="ALL">ALL SITE</option>' + sites.map(s=>`<option value="${s}">${s}</option>`).join('');
+  areaSel.innerHTML = '<option value="ALL">ALL AREA</option>' + areas.map(a=>`<option value="${a}">${a}</option>`).join('');
+  // pertahankan pilihan filter sebelumnya (kalau masih ada di daftar) saat data di-refresh
+  if(sites.includes(prevSite) || prevSite==='ALL') siteSel.value = prevSite;
+  if(areas.includes(prevArea) || prevArea==='ALL') areaSel.value = prevArea;
+
   const jenisSel = document.getElementById('muJenis');
   jenisSel.innerHTML = '<option value="">Semua Jenis</option>' + DB.jenisUnit.map(j=>`<option>${j.jenis}</option>`).join('');
   const lapSite = document.getElementById('lapSite');
-  lapSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
+  lapSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option value="${s}">${s}</option>`).join('');
   const exSite = document.getElementById('exSite');
-  exSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
+  exSite.innerHTML = '<option value="ALL">Semua Site</option>' + sites.map(s=>`<option value="${s}">${s}</option>`).join('');
   const prepSite = document.getElementById('prepSite');
-  prepSite.innerHTML = '<option value="">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
+  prepSite.innerHTML = '<option value="">Semua Site</option>' + sites.map(s=>`<option value="${s}">${s}</option>`).join('');
   const prepArea = document.getElementById('prepArea');
-  prepArea.innerHTML = '<option value="">Semua Area</option>' + areas.map(a=>`<option>${a}</option>`).join('');
+  prepArea.innerHTML = '<option value="">Semua Area</option>' + areas.map(a=>`<option value="${a}">${a}</option>`).join('');
 }
 function applyFilters(){ dashPage=1; renderDashboard(); }
 function resetFilters(){
