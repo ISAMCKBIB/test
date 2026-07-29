@@ -1684,64 +1684,42 @@ async function downloadPrepZip(rawIndex){
     showSaveToast('⚠ Data belum 100% lengkap, ZIP belum bisa dibuat', true);
     return;
   }
-  if(typeof JSZip === 'undefined'){
-    showSaveToast('⚠ Gagal memuat modul ZIP, cek koneksi internet', true);
+
+  const unitId = prepGetUnitId(raw);
+  const submissionId = pick(raw, ['Submission_ID (FK)','Submission_ID']) || raw.submissionId || '';
+
+  if(!submissionId){
+    showSaveToast('⚠ Submission ID tidak ditemukan untuk unit ini', true);
     return;
   }
-  const unitId = prepGetUnitId(raw);
-  const model = pick(raw,['Model_Type']) || raw.model || '';
-  const sn = pick(raw,['Serial_Number']) || raw.sn || '';
-  const site = pick(raw,['Site']) || raw.site || '';
-  const area = pick(raw,['Area']) || raw.area || '';
-  const bastTgl = prepReadField(raw, ['BAST_Tanggal'], 'bastTanggal') || '-';
-  const bastNote = prepReadField(raw, ['BAST_Catatan'], 'bastCatatan') || '-';
-  const histTgl = prepReadField(raw, ['History_Tanggal'], 'historyTanggal') || '-';
-  const histNote = prepReadField(raw, ['History_Catatan'], 'historyCatatan') || '-';
+  if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
+    showSaveToast('⚠ Belum terhubung ke server (mode demo), ZIP asli tidak bisa dibuat', true);
+    return;
+  }
 
-  showSaveToast('⏳ Menyiapkan ZIP untuk '+unitId+'...');
-  const zip = new JSZip();
-  const summary =
-`RINGKASAN PREPARATION COMMISSIONING
-=====================================
-Unit ID        : ${unitId}
-Model / Tipe   : ${model}
-Serial Number  : ${sn}
-Site / Area    : ${site} / ${area}
-Status         : Ready ZIP (100% lengkap)
-
-Foto (4 Sisi)  : Lengkap
-Checklist      : Lengkap
-
-BAST
-  Tanggal      : ${bastTgl}
-  No/Catatan   : ${bastNote}
-
-History Maintenance
-  Tanggal      : ${histTgl}
-  Catatan      : ${histNote}
-
-Dokumen ini dibuat otomatis oleh ISAM CK BIB - Inspeksi K3 System.
-`;
-  zip.file(`Preparation_${unitId}/RINGKASAN.txt`, summary);
-  zip.file(`Preparation_${unitId}/data.json`, JSON.stringify(raw, null, 2));
-
+  showSaveToast('⏳ Menyiapkan ZIP asli (foto + BAST + History) untuk '+unitId+'...');
   try{
-    const blob = await zip.generateAsync({type:'blob'});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Preparation_${unitId}.zip`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    showSaveToast('✓ ZIP '+unitId+' berhasil diunduh');
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        action: 'generateZip',
+        payload: { submissionId: submissionId }
+      })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const json = await res.json();
+    if(json.success && json.zipUrl){
+      showSaveToast('✓ ZIP '+unitId+' siap, membuka link download...');
+      window.open(json.zipUrl, '_blank');
+    } else {
+      showSaveToast('⚠ Gagal membuat ZIP: '+(json.message||''), true);
+    }
   }catch(err){
-    console.warn('Gagal membuat ZIP', err);
-    showSaveToast('⚠ Gagal membuat ZIP', true);
+    console.warn('Gagal generate ZIP', err);
+    showSaveToast('⚠ Gagal menghubungi server untuk membuat ZIP', true);
   }
 }
-
 /* =====================================================================
    RENDER: PENGATURAN (SETTINGS)
    Hanya "Umum" & "Reminder" yang aktif. Tab lainnya tampil "Coming Soon".
