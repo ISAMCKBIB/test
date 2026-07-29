@@ -1506,7 +1506,7 @@ async function uploadPrepDocsToServer(raw, files){
     showSaveToast('⏳ Mengupload dokumen '+unitId+' ke Google Drive...');
     const res = await fetch(CONFIG.API_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         action:'uploadAdminDocs',
         payload:{
@@ -1647,7 +1647,7 @@ async function syncPreparationToSheet(raw){
     showSaveToast('⏳ Menyimpan '+unitId+' ke spreadsheet...');
     const res = await fetch(CONFIG.API_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         action: 'updatePreparation',
         sheet: CONFIG.SCRIPTS.preparation.sheet,
@@ -1701,7 +1701,7 @@ async function downloadPrepZip(rawIndex){
   try{
     const res = await fetch(CONFIG.API_URL, {
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
         action: 'generateZip',
         payload: { submissionId: submissionId }
