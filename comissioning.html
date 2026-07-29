@@ -274,7 +274,7 @@ tbody tr:hover{ background:#f9fbff; }
 .form-group{ margin-bottom:14px;}
 .form-group label{ display:block; font-size:12.5px; font-weight:700; color:var(--text-900); margin-bottom:6px;}
 .form-group label .req{ color:var(--red);}
-.form-group input[type=text], .form-group textarea, .form-group select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
+.form-group input[type=text], .form-group input[type=email], .form-group input[type=date], .form-group input[type=number], .form-group textarea, .form-group select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
 .form-group textarea{ resize:vertical; min-height:60px;}
 
 .subtab-bar{ display:flex; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px;}
@@ -390,6 +390,73 @@ tbody tr:hover{ background:#f9fbff; }
 #saveToast.err{ background:var(--red);}
 .icon-btn:disabled{ opacity:.4; cursor:not-allowed;}
 .icon-btn{ cursor:pointer; }
+
+/* =====================================================================
+   RESPONSIVE / MOBILE
+===================================================================== */
+.sidebar-backdrop{
+  display:none; position:fixed; inset:0; background:rgba(11,22,66,.5); z-index:1400;
+}
+@media (max-width:900px){
+  .sidebar-backdrop.show{ display:block; }
+}
+
+@media (max-width:900px){
+  /* Sidebar jadi drawer yang slide-in dari kiri, bukan mendorong konten */
+  .sidebar{
+    position:fixed; top:0; left:0; height:100vh; z-index:1500;
+    width:250px; min-width:250px;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    box-shadow:8px 0 30px rgba(0,0,0,.35);
+  }
+  .sidebar.mobile-open{ transform:translateX(0); }
+  /* Di mobile, class 'collapsed' (desktop) tidak dipakai - selalu tampil penuh saat drawer terbuka */
+  .sidebar.collapsed{ width:250px; min-width:250px; }
+  .sidebar.collapsed .brand-text, .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .group-title, .sidebar.collapsed .back-btn span{ display:block; }
+
+  .main{ width:100%; }
+
+  /* Topbar lebih ringkas */
+  .topbar{ padding:10px 12px; gap:8px; }
+  .topbar .titles h1{ font-size:15px; }
+  .topbar .titles .crumb{ font-size:10.5px; }
+  .tb-control{ padding:6px 9px; font-size:11.5px; }
+  .tb-control select{ font-size:11.5px; }
+  .user-chip .un{ display:none; }
+  #connStatus{ order:99; } /* pindah ke akhir supaya tidak mendorong elemen lain */
+
+  .content{ padding:14px 12px 30px; }
+  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+  .stat-card{ padding:12px 14px; }
+  .stat-card .val{ font-size:22px; }
+  .panel{ padding:14px; }
+
+  /* Toolbar (search + filter + tombol) ditumpuk penuh lebar, lebih mudah disentuh */
+  .toolbar{ flex-direction:column; align-items:stretch; }
+  .toolbar input, .toolbar select, .toolbar button{ width:100%; }
+  .toolbar button{ justify-content:center; margin-left:0 !important; }
+
+  /* Tabel: font lebih kecil supaya lebih banyak kolom kelihatan sebelum discroll */
+  table{ font-size:12px; }
+  thead th, tbody td{ padding:8px 8px; }
+
+  /* Modal tampil dari bawah, hampir penuh layar - lebih mudah dipakai jari */
+  .modal-overlay{ padding:0; align-items:flex-end; }
+  .modal-box{ max-width:100%; width:100%; border-radius:16px 16px 0 0; max-height:94vh; }
+  .modal-foot{ flex-wrap:wrap; }
+  .modal-foot button{ flex:1; justify-content:center; }
+
+  /* Pagination & export card ikut menumpuk rapi */
+  .pagination{ flex-wrap:wrap; justify-content:center; gap:8px; }
+}
+
+@media (max-width:480px){
+  .topbar .titles .crumb{ display:none; }
+  .stat-grid{ grid-template-columns:1fr 1fr; }
+  .brand-text small{ display:none; }
+}
 </style>
 </head>
 <body>
@@ -422,9 +489,26 @@ tbody tr:hover{ background:#f9fbff; }
   </div>
 </div>
 
+<!-- ===================== MODAL GENERIK: TAMBAH / EDIT DATA (Master Unit, Commissioning, User) ===================== -->
+<div class="modal-overlay" id="crudModalOverlay" onclick="if(event.target===this) closeCrudModal();">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="crudModalTitle">Tambah Data</h3>
+        <div class="sub" id="crudModalSub">Isi form di bawah</div>
+      </div>
+      <button class="modal-close" onclick="closeCrudModal()">✕</button>
+    </div>
+    <div class="modal-body" id="crudModalBody"></div>
+    <div class="modal-foot" id="crudModalFoot"></div>
+  </div>
+</div>
+
 <div id="saveToast"></div>
 
 <div class="app">
+  <!-- Overlay gelap saat sidebar dibuka di layar mobile -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <!-- ===================== SIDEBAR ===================== -->
   <div class="sidebar" id="sidebar">
     <div class="brand">
@@ -476,6 +560,8 @@ tbody tr:hover{ background:#f9fbff; }
       </div>
       <div class="tb-control">📅 <span id="tbDate"></span></div>
       <div class="tb-control">🕒 <span id="tbTime"></span></div>
+      <div class="tb-control" id="connStatus" title="Status koneksi ke Google Apps Script">⏳ Memuat...</div>
+      <div class="tb-icon-btn" id="refreshBtn" title="Refresh data dari spreadsheet" onclick="manualRefresh()" style="cursor:pointer">🔄</div>
       <div class="tb-icon-btn">🔔<span class="badge-dot" id="notifCount">0</span></div>
       <div class="user-chip">
         <div class="avatar">A</div>
@@ -490,7 +576,7 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="dashStats"></div>
         <div class="panel">
           <div class="toolbar">
-            <input type="text" id="dashSearch" placeholder="Cari Unit, Model, atau Registration No...">
+            <input type="text" id="dashSearch" placeholder="Cari Unit, Model, atau Registration No..." oninput="liveDashSearch()">
             <button class="btn btn-primary" onclick="applyFilters()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="resetFilters()">↻ Reset</button>
             <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('dashTable','commissioning_monitoring')">⬇ Export Excel</button>
@@ -529,12 +615,12 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="muStats"></div>
         <div class="panel">
           <div class="toolbar">
-            <input type="text" id="muSearch" placeholder="Cari Unit ID, Model, atau SN...">
-            <select id="muJenis"><option value="">Semua Jenis</option></select>
-            <select id="muStatus"><option value="">Semua Status</option><option>Active</option><option>Non Aktif</option></select>
+            <input type="text" id="muSearch" placeholder="Cari Unit ID, Model, atau SN..." oninput="liveMuSearch()">
+            <select id="muJenis" onchange="liveMuSearch()"><option value="">Semua Jenis</option></select>
+            <select id="muStatus" onchange="liveMuSearch()"><option value="">Semua Status</option><option>Active</option><option>Non Aktif</option></select>
             <button class="btn btn-primary" onclick="renderMasterUnit()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('muSearch').value='';renderMasterUnit()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah Unit</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openMasterUnitModal(null)">+ Tambah Unit</button>
           </div>
           <div class="panel-title">DAFTAR MASTER UNIT</div>
           <div style="overflow-x:auto">
@@ -580,10 +666,10 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="comStats"></div>
         <div class="panel">
           <div class="toolbar">
-            <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No...">
+            <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
             <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';renderCommissioning()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah Komisioning</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
           </div>
           <div class="panel-title">DAFTAR KOMISIONING</div>
           <div style="overflow-x:auto">
@@ -601,17 +687,17 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="prepStats"></div>
         <div class="panel">
           <div class="toolbar">
-            <input type="text" id="prepSearch" placeholder="Cari Unit ID, Model / Tipe, atau Serial Number...">
-            <select id="prepSite"><option value="">Semua Site</option></select>
-            <select id="prepArea"><option value="">Semua Area</option></select>
-            <select id="prepStatus">
+            <input type="text" id="prepSearch" placeholder="Cari Unit ID, Model / Tipe, atau Serial Number..." oninput="livePrepSearch()">
+            <select id="prepSite" onchange="livePrepSearch()"><option value="">Semua Site</option></select>
+            <select id="prepArea" onchange="livePrepSearch()"><option value="">Semua Area</option></select>
+            <select id="prepStatus" onchange="livePrepSearch()">
               <option value="">Semua Status</option>
               <option>Waiting Admin</option>
               <option>Waiting History</option>
               <option>Ready ZIP</option>
               <option>Belum Lengkap</option>
             </select>
-            <select id="prepPrioritas"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
+            <select id="prepPrioritas" onchange="livePrepSearch()"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
             <button class="btn btn-primary" onclick="renderPreparation()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="resetPrepFilters()">↻ Reset</button>
             <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('prepTable','preparation_commissioning')">⬇ Export</button>
@@ -644,8 +730,8 @@ tbody tr:hover{ background:#f9fbff; }
           <div>
             <div class="panel">
               <div class="toolbar">
-                <input type="text" id="expSearch" placeholder="Cari Unit ID, Model/Tipe, atau Serial Number...">
-                <select id="expPrioritas"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
+                <input type="text" id="expSearch" placeholder="Cari Unit ID, Model/Tipe, atau Serial Number..." oninput="liveExpSearch()">
+                <select id="expPrioritas" onchange="liveExpSearch()"><option value="">Semua Prioritas</option><option>Tinggi</option><option>Sedang</option><option>Rendah</option></select>
                 <button class="btn btn-primary" onclick="renderExpired()">🔎 Filter</button>
                 <button class="btn btn-outline" onclick="document.getElementById('expSearch').value='';renderExpired()">↻ Reset</button>
                 <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('expTable','expired_near_expired')">⬇ Export</button>
@@ -723,15 +809,15 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="userStats"></div>
         <div class="panel">
           <div class="toolbar">
-            <input type="text" id="userSearch" placeholder="Cari nama, username, atau email...">
+            <input type="text" id="userSearch" placeholder="Cari nama, username, atau email..." oninput="liveUserSearch()">
             <button class="btn btn-primary" onclick="renderUsers()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('userSearch').value='';renderUsers()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah User</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openUserModal(null)">+ Tambah User</button>
           </div>
           <div class="panel-title">DAFTAR USER</div>
           <div style="overflow-x:auto">
             <table id="userTable">
-              <thead><tr><th>No</th><th>Nama Lengkap</th><th>Username</th><th>Email</th><th>Role</th><th>Site</th><th>Area</th><th>Status</th></tr></thead>
+              <thead><tr><th>No</th><th>Nama Lengkap</th><th>Username</th><th>Email</th><th>Role</th><th>Site</th><th>Area</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="userTableBody"></tbody>
             </table>
           </div>
@@ -768,22 +854,33 @@ const CONFIG = {
 
 let DEMO_MODE = true;
 let DB = {};
+let FETCH_HAD_ERROR = false;
 
-async function fetchSheetData(key){
-  const cfg = CONFIG.SCRIPTS[key];
-  if(!cfg || !CONFIG.API_URL || CONFIG.API_URL.startsWith("PASTE_")){
-    return null;
-  }
+async function fetchSheetByName(sheetName, timeoutMs){
+  const controller = new AbortController();
+  const to = setTimeout(()=> controller.abort(), timeoutMs || 45000);
   try{
-    const res = await fetch(`${CONFIG.API_URL}?sheet=${encodeURIComponent(cfg.sheet)}`);
+    const res = await fetch(`${CONFIG.API_URL}?sheet=${encodeURIComponent(sheetName)}`, { signal: controller.signal });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const json = await res.json();
-    DEMO_MODE = false;
+    if(json && json.success === false) throw new Error(json.message || "API mengembalikan error");
     return json.data || json;
   }catch(err){
-    console.warn("Gagal fetch", key, err);
+    console.warn("Gagal fetch sheet", sheetName, err);
+    FETCH_HAD_ERROR = true;
     return null;
+  }finally{
+    clearTimeout(to);
   }
+}
+
+function setConnStatus(mode){
+  const el = document.getElementById('connStatus');
+  if(!el) return;
+  if(mode==='loading'){ el.innerHTML = '⏳ Memuat...'; el.style.color=''; }
+  else if(mode==='live'){ el.innerHTML = '🟢 Live'; el.style.color='var(--green)'; }
+  else if(mode==='demo'){ el.innerHTML = '🟠 Mode Demo'; el.style.color='var(--orange)'; }
+  else if(mode==='error'){ el.innerHTML = '🔴 Gagal Konek'; el.style.color='var(--red)'; }
 }
 
 /* ---------- LOADING FEATURE (splash screen dengan progress) ---------- */
@@ -812,17 +909,74 @@ function hideAppLoader(){
 }
 
 async function loadAllData(){
+  setConnStatus('loading');
+  FETCH_HAD_ERROR = false;
   const keys = Object.keys(CONFIG.SCRIPTS);
-  const total = keys.length;
-  const results = [];
-  for(let i=0;i<keys.length;i++){
-    const k = keys[i];
-    const stepLabel = LOADER_STEPS[Math.min(i, LOADER_STEPS.length-1)];
-    setLoaderProgress((i/total)*90, stepLabel);
-    results.push(await fetchSheetData(k));
+  const isConfigured = CONFIG.API_URL && !CONFIG.API_URL.startsWith("PASTE_");
+
+  // Kumpulkan NAMA SHEET yang unik dulu -> beberapa key (mis. commissioning & expired)
+  // memakai sheet Google Sheets yang sama, jadi cukup di-fetch SEKALI saja per sheet
+  // supaya tidak membebani Apps Script dengan request duplikat yang menyebabkan timeout.
+  const uniqueSheetNames = [...new Set(keys.map(k => CONFIG.SCRIPTS[k].sheet))];
+  const total = uniqueSheetNames.length;
+  let done = 0;
+
+  const sheetResults = {};
+  if(isConfigured){
+    await Promise.all(uniqueSheetNames.map(async (sheetName, i) => {
+      const stepLabel = LOADER_STEPS[Math.min(i, LOADER_STEPS.length-1)];
+      setLoaderProgress((done/total)*90, stepLabel);
+      sheetResults[sheetName] = await fetchSheetByName(sheetName);
+      done++;
+      setLoaderProgress((done/total)*90, LOADER_STEPS[Math.min(done, LOADER_STEPS.length-1)]);
+    }));
   }
-  keys.forEach((k,i)=>{ DB[k] = results[i] || DEMO_DATA[k]; });
+
+  let anySuccess = false;
+  keys.forEach((k)=>{
+    const sheetName = CONFIG.SCRIPTS[k].sheet;
+    const data = sheetResults[sheetName];
+    if(data !== undefined && data !== null){ anySuccess = true; }
+    DB[k] = (data !== undefined && data !== null) ? data : DEMO_DATA[k];
+  });
+
+  if(!isConfigured){
+    DEMO_MODE = true;
+    setConnStatus('demo');
+  } else if(anySuccess){
+    DEMO_MODE = false;
+    setConnStatus(FETCH_HAD_ERROR ? 'error' : 'live');
+  } else {
+    DEMO_MODE = true;
+    setConnStatus('error');
+  }
+
   setLoaderProgress(100, "Menyelesaikan");
+}
+
+/* ---------- REFRESH MANUAL: tarik ulang data dari Apps Script tanpa reload halaman ---------- */
+let __refreshing = false;
+async function manualRefresh(){
+  if(__refreshing) return;
+  __refreshing = true;
+  const btn = document.getElementById('refreshBtn');
+  if(btn) btn.style.opacity = '0.5';
+  showSaveToast('⏳ Memuat ulang data dari spreadsheet...');
+  try{
+    await loadAllData();
+    applyPrepOverridesFromStorage();
+    populateTopFilters();
+    updateNotif();
+    renderPage(currentPageKey || 'dashboard');
+    if(DEMO_MODE){
+      showSaveToast('⚠ Gagal konek ke Apps Script, menampilkan data demo', true);
+    }else{
+      showSaveToast('✓ Data berhasil diperbarui');
+    }
+  }finally{
+    __refreshing = false;
+    if(btn) btn.style.opacity = '1';
+  }
 }
 
 /* =====================================================================
@@ -1002,6 +1156,18 @@ function iconFor(key){
   }
   return '';
 }
+
+/* Cek status "Aktif/Active" secara toleran (trim + tanpa peduli huruf besar/kecil),
+   supaya tidak meleset kalau nilai di sheet ada spasi ekstra atau beda kapitalisasi */
+function isActiveStatus(status){
+  const s = String(status||'').trim().toLowerCase();
+  return s === 'active' || s === 'aktif';
+}
+
+/* Amankan tanda kutip pada nilai yang disisipkan ke atribut onclick='...' */
+function escJs(v){
+  return String(v==null?'':v).replace(/'/g,"\\'");
+}
   
   function pillFor(status){
   const s = (status||"").toLowerCase();
@@ -1028,6 +1194,23 @@ function filterRows(rows, term, fields){
   term = term.toLowerCase();
   return rows.filter(r => fields.some(f => String(r[f]||"").toLowerCase().includes(term)));
 }
+
+/* =====================================================================
+   REAL-TIME SEARCH (debounce ketikan supaya tidak render tiap huruf)
+===================================================================== */
+function debounce(fn, delay){
+  let t;
+  return function(...args){
+    clearTimeout(t);
+    t = setTimeout(()=> fn.apply(this,args), delay || 250);
+  };
+}
+const liveDashSearch  = debounce(()=>{ dashPage=1;  renderDashboard(); });
+const liveMuSearch    = debounce(()=>{ muPage=1;    renderMasterUnit(); });
+const liveComSearch   = debounce(()=>{ comPage=1;   renderCommissioning(); });
+const livePrepSearch  = debounce(()=>{ prepPage=1;  renderPreparation(); });
+const liveExpSearch   = debounce(()=>{ expPage=1;   renderExpired(); });
+const liveUserSearch  = debounce(()=>{ renderUsers(); });
 function paginate(rows, page, perPage){
   const start = (page-1)*perPage;
   return rows.slice(start, start+perPage);
@@ -1055,6 +1238,11 @@ function exportTableCSV(tableId, filename){
   const a = document.createElement('a');
   a.href = url; a.download = filename + '.csv'; a.click();
   URL.revokeObjectURL(url);
+}
+/* Hitung persentase dengan aman (hindari NaN/Infinity saat total = 0) */
+function pct(part, total){
+  if(!total || isNaN(total)) return 0;
+  return Math.round((part/total)*1000)/10;
 }
 function statCard(label, value, unit, sub, colorClass, icon){
   return `<div class="stat-card ${colorClass||''}">
@@ -1089,7 +1277,9 @@ const PAGE_META = {
   userManagement:{title:"User Management", crumb:"Settings &gt; User Management"},
   pengaturan:{title:"Pengaturan", crumb:"Settings &gt; Pengaturan"}
 };
+let currentPageKey = 'dashboard';
 function goToPage(key){
+  currentPageKey = key;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+key).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -1098,12 +1288,29 @@ function goToPage(key){
   document.getElementById('pageCrumb').innerHTML = PAGE_META[key].crumb;
   renderPage(key);
 }
+function isMobileView(){ return window.innerWidth <= 900; }
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
 document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click', ()=> goToPage(item.dataset.page));
+  item.addEventListener('click', ()=> {
+    goToPage(item.dataset.page);
+    if(isMobileView()) closeMobileSidebar();
+  });
 });
 document.getElementById('hamburger').addEventListener('click', ()=>{
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  if(isMobileView()){
+    document.getElementById('sidebar').classList.toggle('mobile-open');
+    document.getElementById('sidebarBackdrop').classList.toggle('show');
+  }else{
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
 });
+document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+window.addEventListener('resize', debounce(()=>{
+  if(!isMobileView()) closeMobileSidebar();
+}, 200));
 
 function updateClock(){
   const now = new Date();
@@ -1132,18 +1339,21 @@ function renderDashboard(){
   };
 });
   const total = DB.masterUnit.length;
-  const active = DB.masterUnit.filter(m=>m.status==="Active"||m.status==="Aktif").length;
-  const nearExp = DB.expired.filter(e=>e.status==="Near Expired").length;
-  const expired = DB.expired.filter(e=>e.status==="Expired").length;
+  const active = DB.masterUnit.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
+  const nearExp = DB.expired.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const expired = DB.expired.filter(e=>{
+    const s = String(pick(e,['Status','status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
   const waiting = DB.preparation.length;
   const health = total? Math.round((active/total)*1000)/10 : 0;
 
   document.getElementById('dashStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "100% dari total unit", "blue","📋"),
-    statCard("ACTIVE", active, "Unit", `${Math.round(active/total*1000)/10}% dari total unit`, "green","✅"),
-    statCard("NEAR EXPIRED (≤30 hari)", nearExp, "Unit", `${Math.round(nearExp/total*1000)/10}% dari total unit`, "orange","⚠️"),
-    statCard("EXPIRED", expired, "Unit", `${Math.round(expired/total*1000)/10}% dari total unit`, "red","❌"),
-    statCard("WAITING STICKER", waiting, "Unit", `${Math.round(waiting/total*1000)/10}% dari total unit`, "blue","⏳"),
+    statCard("ACTIVE", active, "Unit", `${pct(active,total)}% dari total unit`, "green","✅"),
+    statCard("NEAR EXPIRED (≤30 hari)", nearExp, "Unit", `${pct(nearExp,total)}% dari total unit`, "orange","⚠️"),
+    statCard("EXPIRED", expired, "Unit", `${pct(expired,total)}% dari total unit`, "red","❌"),
+    statCard("WAITING STICKER", waiting, "Unit", `${pct(waiting,total)}% dari total unit`, "blue","⏳"),
     statCard("COMMISSIONING HEALTH INDEX", health+"%", "", `${active} Active / ${total} Unit`, "green","💚")
   ].join('');
 
@@ -1177,9 +1387,12 @@ function renderDashboard(){
     <div class="alert-item"><div class="alert-ic" style="background:#eaf0ff;color:var(--blue-600)">⏳</div><div><b>${waiting} Unit</b><br><small>Waiting Sticker</small></div></div>
     <div class="alert-item"><div class="alert-ic" style="background:var(--green-bg);color:var(--green)">✅</div><div><b>${active} Unit</b><br><small>Active</small></div></div>`;
 
-  document.getElementById('recentActivity').innerHTML = DB.commissioning.slice(0,4).map(r=>`
-    <div class="activity-item"><div class="activity-dot" style="background:${r.status==='Aktif'?'var(--green)':'var(--orange)'}"></div>
-    <div><b>${r.unitId} - ${r.site}(${r.area})</b><br><small>Status: ${r.status}</small></div></div>`).join('');
+  document.getElementById('recentActivity').innerHTML = DB.commissioning.slice(0,4).map(r=>{
+    const st = pick(r,['Status','status']);
+    return `
+    <div class="activity-item"><div class="activity-dot" style="background:${isActiveStatus(st)?'var(--green)':'var(--orange)'}"></div>
+    <div><b>${pick(r,['Unit_ID','unitId'])} - ${pick(r,['Site','site'])}(${pick(r,['Area','area'])})</b><br><small>Status: ${st}</small></div></div>`;
+  }).join('');
 }
 
 /* =====================================================================
@@ -1189,19 +1402,24 @@ let muPage=1;
 function renderMasterUnit(){
   const rows = DB.masterUnit;
   const total = rows.length;
-  const active = rows.filter(r=>{
-    const s = pick(r,['Status']);
-    return s==="Active"||s==="Aktif";
-  }).length;
+  const active = rows.filter(r=> isActiveStatus(pick(r,['Status']))).length;
   document.getElementById('muStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "100% dari total unit", "blue","🚚"),
-    statCard("UNIT AKTIF", active, "Unit", `${Math.round(active/total*1000)/10}% dari total unit`, "green","✅"),
+    statCard("UNIT AKTIF", active, "Unit", `${pct(active,total)}% dari total unit`, "green","✅"),
     statCard("UNIT NON AKTIF", total-active, "Unit", `${Math.round((total-active)/total*1000)/10}% dari total unit`, "orange","⏸️"),
     statCard("TOTAL KOMISIONING (BIB+TIA)", DB.commissioning.length, "Data", "", "blue","📄")
   ].join('');
 
   const term = document.getElementById('muSearch').value;
+  const jenisFilter = (document.getElementById('muJenis')||{}).value || '';
+  const statusFilter = (document.getElementById('muStatus')||{}).value || '';
   const filtered = rows.filter(r=>{
+    if(jenisFilter && pick(r,['Jenis_Unit']) !== jenisFilter) return false;
+    if(statusFilter){
+      const isActive = isActiveStatus(pick(r,['Status']));
+      if(statusFilter==="Active" && !isActive) return false;
+      if(statusFilter==="Non Aktif" && isActive) return false;
+    }
     if(!term) return true;
     const t = term.toLowerCase();
     return [pick(r,['Unit_ID']),pick(r,['Model_Unit','Model']),pick(r,['Serial_Number'])].some(v=>String(v||'').toLowerCase().includes(t));
@@ -1216,7 +1434,7 @@ function renderMasterUnit(){
     const tiaCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='TIA').length;
     return `<tr><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${pick(r,['Model_Unit','Model'])}</td><td>${pick(r,['Jenis_Unit'])}</td>
     <td>${pick(r,['Serial_Number'])}</td><td>${pick(r,['Tahun'])}</td><td>${pillFor(pick(r,['Status']))}</td><td>${bibCount}</td><td>${tiaCount}</td><td>${bibCount+tiaCount}</td>
-    <td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+    <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteMasterUnit('${escJs(unitId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
@@ -1228,7 +1446,7 @@ function renderJenisUnit(){
   const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
   document.getElementById('juStats').innerHTML = [
     statCard("TOTAL JENIS UNIT", rows.length, "Jenis", "", "blue","🚚"),
-    statCard("AKTIF", aktif, "Jenis", `${Math.round(aktif/rows.length*1000)/10}% dari total jenis unit`, "green","✅"),
+    statCard("AKTIF", aktif, "Jenis", `${pct(aktif,rows.length)}% dari total jenis unit`, "green","✅"),
     statCard("NON AKTIF", rows.length-aktif, "Jenis", "", "orange","⏸️"),
     statCard("TOTAL UNIT (SEMUA JENIS)", DB.masterUnit.length, "Unit", "", "blue","📄")
   ].join('');
@@ -1248,7 +1466,7 @@ function renderArea(){
   const aktif = rows.filter(r=>pick(r,['Status'])==="Aktif").length;
   document.getElementById('areaStats').innerHTML = [
     statCard("TOTAL AREA", rows.length, "Area", "", "blue","📍"),
-    statCard("AREA AKTIF", aktif, "Area", `${Math.round(aktif/rows.length*1000)/10}% dari total area`, "green","✅"),
+    statCard("AREA AKTIF", aktif, "Area", `${pct(aktif,rows.length)}% dari total area`, "green","✅"),
     statCard("AREA NON AKTIF", rows.length-aktif, "Area", "", "orange","⏸️"),
     statCard("TOTAL AREA (SEMUA SITE)", rows.length, "Area", "Tersebar di semua site", "blue","📄")
   ].join('');
@@ -1269,9 +1487,9 @@ function renderCommissioning(){
   const exp = rows.filter(r=>r.Status==="Expired").length;
   document.getElementById('comStats').innerHTML = [
     statCard("TOTAL KOMISIONING", total, "Data", "Tersebar di semua site", "blue","🗂️"),
-    statCard("AKTIF", aktif, "Data", `${Math.round(aktif/total*1000)/10}% dari total komisioning`, "green","✅"),
-    statCard("NEAR EXPIRED (≤60 hari)", near, "Data", `${Math.round(near/total*1000)/10}% dari total komisioning`, "orange","⚠️"),
-    statCard("EXPIRED", exp, "Data", `${Math.round(exp/total*1000)/10}% dari total komisioning`, "red","❌")
+    statCard("AKTIF", aktif, "Data", `${pct(aktif,total)}% dari total komisioning`, "green","✅"),
+    statCard("NEAR EXPIRED (≤60 hari)", near, "Data", `${pct(near,total)}% dari total komisioning`, "orange","⚠️"),
+    statCard("EXPIRED", exp, "Data", `${pct(exp,total)}% dari total komisioning`, "red","❌")
   ].join('');
   const term = document.getElementById('comSearch').value;
   const filtered = rows.filter(r=>{
@@ -1285,10 +1503,11 @@ function renderCommissioning(){
   const pageRows = paginate(filtered, comPage, perPage);
   document.getElementById('comTableBody').innerHTML = pageRows.map((r,i)=>{
     const unitId = pick(r,['Unit_ID']);
+    const commId = pick(r,['Commissioning_ID']);
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
     return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
     <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td><td>${pick(r,['Registration_No'])}</td><td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
-    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue" title="Lihat/Edit" onclick="openCommissioningModal('${escJs(commId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openCommissioningModal('${escJs(commId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteCommissioning('${escJs(commId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
@@ -1635,6 +1854,185 @@ function showSaveToast(msg, isErr){
   el.className = isErr ? 'show err' : 'show';
   clearTimeout(window.__saveToastTimer);
   window.__saveToastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+}
+
+/* =====================================================================
+   CRUD GENERIK: Tambah / Edit / Hapus baris data
+   Dipakai oleh Master Unit, Commissioning, dan User Management.
+   Memanggil endpoint doPost Apps Script: action addRow / updateRow / deleteRow
+===================================================================== */
+async function crudPost(action, payload){
+  if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
+    showSaveToast('⚠ Apps Script belum terhubung (mode demo) - perubahan tidak tersimpan ke spreadsheet', true);
+    return { success:false, message:'Belum terhubung ke Apps Script (mode demo)' };
+  }
+  try{
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action, payload })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(err){
+    console.warn('crudPost error', action, err);
+    return { success:false, message: err.message };
+  }
+}
+
+let crudState = null; // { title, sheet, pkField, fields, data, onDone }
+
+function crudFieldHTML(f, value){
+  const val = (value===undefined || value===null) ? '' : value;
+  if(f.type==='select'){
+    const opts = (f.options||[]).map(o=>`<option value="${o}" ${String(o)===String(val)?'selected':''}>${o}</option>`).join('');
+    return `<select id="crud_${f.key}" ${f.disabled?'disabled':''}><option value="">-- Pilih --</option>${opts}</select>`;
+  }
+  const safeVal = String(val).replace(/"/g,'&quot;');
+  return `<input type="${f.inputType||'text'}" id="crud_${f.key}" value="${safeVal}" ${f.disabled?'disabled':''} placeholder="${f.placeholder||''}">`;
+}
+
+function openCrudModal(cfg){
+  crudState = cfg;
+  const isEdit = !!cfg.data;
+  document.getElementById('crudModalTitle').innerText = cfg.title;
+  document.getElementById('crudModalSub').innerText = isEdit ? 'Ubah data yang sudah ada' : 'Isi form untuk menambah data baru';
+  document.getElementById('crudModalBody').innerHTML = cfg.fields.filter(f=>!f.hidden).map(f=>`
+    <div class="form-group">
+      <label>${f.label}${f.required ? ' <span class="req">*</span>' : ''}</label>
+      ${crudFieldHTML(f, cfg.data ? pick(cfg.data,[f.key]) : (f.default||''))}
+    </div>`).join('');
+  document.getElementById('crudModalFoot').innerHTML = `
+    <button class="btn btn-outline" onclick="closeCrudModal()">Batal</button>
+    <button class="btn btn-primary" onclick="submitCrudModal()">💾 Simpan</button>`;
+  document.getElementById('crudModalOverlay').classList.add('show');
+}
+function closeCrudModal(){
+  document.getElementById('crudModalOverlay').classList.remove('show');
+  crudState = null;
+}
+async function submitCrudModal(){
+  if(!crudState) return;
+  const cfg = crudState;
+  const isEdit = !!cfg.data;
+  const data = {};
+  const missing = [];
+  cfg.fields.forEach(f=>{
+    if(f.hidden){
+      data[f.key] = isEdit ? pick(cfg.data,[f.key]) : (f.generator ? f.generator() : '');
+      return;
+    }
+    const el = document.getElementById('crud_'+f.key);
+    const v = el ? String(el.value).trim() : '';
+    if(f.required && !v) missing.push(f.label);
+    data[f.key] = v;
+  });
+  if(missing.length){
+    showSaveToast('⚠ Wajib diisi: '+missing.join(', '), true);
+    return;
+  }
+  showSaveToast('⏳ Menyimpan data...');
+  let result;
+  if(isEdit){
+    const pkValue = pick(cfg.data,[cfg.pkField]);
+    result = await crudPost('updateRow', { sheet: cfg.sheet, pk: pkValue, data });
+  }else{
+    result = await crudPost('addRow', { sheet: cfg.sheet, data });
+  }
+  if(result.success){
+    showSaveToast(isEdit ? '✓ Data berhasil diperbarui' : '✓ Data berhasil ditambahkan');
+    closeCrudModal();
+    if(cfg.onDone) cfg.onDone();
+  }else{
+    showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
+async function crudDeleteRow(sheet, pkValue, label, onDone){
+  if(!confirm(`Yakin ingin menghapus ${label}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  showSaveToast('⏳ Menghapus data...');
+  const result = await crudPost('deleteRow', { sheet, pk: pkValue });
+  if(result.success){
+    showSaveToast('✓ Data berhasil dihapus');
+    if(onDone) onDone();
+  }else{
+    showSaveToast('⚠ Gagal hapus: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
+
+/* ---------- MASTER UNIT: Tambah / Edit / Hapus ---------- */
+function openMasterUnitModal(unitId){
+  const raw = unitId ? DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId) : null;
+  const jenisOptions = DB.jenisUnit.map(j=>pick(j,['Jenis_Unit'])).filter(Boolean);
+  openCrudModal({
+    title: unitId ? 'Edit Master Unit' : 'Tambah Master Unit',
+    sheet: 'Master_Unit',
+    pkField: 'Unit_ID',
+    data: raw,
+    fields: [
+      {key:'Unit_ID', label:'Unit ID', required:true, disabled: !!unitId, placeholder:'Contoh: CO4536'},
+      {key:'Model_Unit', label:'Model Unit', required:true, placeholder:'Contoh: HD 4536/HD785'},
+      {key:'Jenis_Unit', label:'Jenis Unit', type:'select', options: jenisOptions, required:true},
+      {key:'Serial_Number', label:'Serial Number'},
+      {key:'Tahun', label:'Tahun', inputType:'number', placeholder:'Contoh: 2021'},
+      {key:'Status', label:'Status', type:'select', options:['Active','Non Aktif'], required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteMasterUnit(unitId){
+  crudDeleteRow('Master_Unit', unitId, `Unit ${unitId}`, manualRefresh);
+}
+
+/* ---------- COMMISSIONING: Tambah / Edit / Hapus ---------- */
+function openCommissioningModal(commId){
+  const raw = commId ? DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId) : null;
+  const unitOptions = DB.masterUnit.map(m=>pick(m,['Unit_ID'])).filter(Boolean);
+  const siteOptions = [...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  openCrudModal({
+    title: commId ? 'Edit Commissioning' : 'Tambah Commissioning',
+    sheet: 'Commissioning',
+    pkField: 'Commissioning_ID',
+    data: raw,
+    fields: [
+      {key:'Commissioning_ID', hidden:true, generator:()=>'CMS-'+Date.now()},
+      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true},
+      {key:'Site', label:'Site', type:'select', options: siteOptions, required:true},
+      {key:'Area', label:'Area', required:true, placeholder:'Contoh: GRB'},
+      {key:'Registration_No', label:'Registration No', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
+      {key:'Tanggal_Terbit', label:'Tanggal Terbit', inputType:'date', required:true},
+      {key:'Masa_Berlaku', label:'Masa Berlaku / Expired', inputType:'date', required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteCommissioning(commId){
+  crudDeleteRow('Commissioning', commId, `Commissioning ${commId}`, manualRefresh);
+}
+
+/* ---------- USER MANAGEMENT: Tambah / Edit / Hapus ---------- */
+function openUserModal(userId){
+  const raw = userId ? DB.users.find(u=>pick(u,['User_ID'])===userId) : null;
+  const siteOptions = ['Semua Site', ...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  openCrudModal({
+    title: userId ? 'Edit User' : 'Tambah User',
+    sheet: 'Users',
+    pkField: 'User_ID',
+    data: raw,
+    fields: [
+      {key:'User_ID', hidden:true, generator:()=>'USR-'+Date.now()},
+      {key:'Nama', label:'Nama Lengkap', required:true},
+      {key:'Username', label:'Username', required:true, disabled: !!userId},
+      {key:'Email', label:'Email', inputType:'email', required:true},
+      {key:'Role', label:'Role', type:'select', options:['Administrator','Supervisor','Operator','Viewer'], required:true},
+      {key:'Site', label:'Site', type:'select', options: siteOptions},
+      {key:'Area', label:'Area', placeholder:'Contoh: GRB, atau Semua Area'},
+      {key:'Status', label:'Status', type:'select', options:['Aktif','Non Aktif'], required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteUser(userId, nama){
+  crudDeleteRow('Users', userId, `User ${nama||userId}`, manualRefresh);
 }
 async function syncPreparationToSheet(raw){
   const unitId = prepGetUnitId(raw);
@@ -2194,13 +2592,16 @@ function renderLaporan(){
   document.getElementById('laporanCards').innerHTML = cards.map((c,i)=>`
     <div class="export-card ${i===0?'sel':''}"><div class="t">${c.t}</div><div class="d">${c.d}</div><div class="chk">✓</div></div>`).join('');
 
-  const aktif = DB.masterUnit.filter(r=>r.status==="Active"||r.status==="Aktif").length;
-  const near = DB.expired.filter(r=>r.status==="Near Expired").length;
-  const exp = DB.expired.filter(r=>r.status==="Expired").length;
+  const aktif = DB.masterUnit.filter(r=>isActiveStatus(pick(r,['Status','status']))).length;
+  const near = DB.expired.filter(r=>String(pick(r,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const exp = DB.expired.filter(r=>{
+    const s = String(pick(r,['Status','status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
 
   document.getElementById('lapStats').innerHTML = [
     statCard("TOTAL UNIT", DB.masterUnit.length, "Unit", "100% dari total", "blue","📊"),
-    statCard("AKTIF", aktif, "Unit", `${Math.round(aktif/DB.masterUnit.length*1000)/10}% dari total`, "green","✅"),
+    statCard("AKTIF", aktif, "Unit", `${pct(aktif,DB.masterUnit.length)}% dari total`, "green","✅"),
     statCard("NEAR EXPIRED (≤60 hari)", near, "Unit", "", "orange","⏰"),
     statCard("EXPIRED", exp, "Unit", "", "red","❌")
   ].join('');
@@ -2208,9 +2609,9 @@ function renderLaporan(){
   const total = DB.masterUnit.length;
   const rowsDetail = [
     {ket:"Total Unit Keseluruhan", jml:total, pct:100},
-    {ket:"Unit Aktif", jml:aktif, pct:Math.round(aktif/total*1000)/10},
-    {ket:"Unit Near Expired", jml:near, pct:Math.round(near/total*1000)/10},
-    {ket:"Unit Expired", jml:exp, pct:Math.round(exp/total*1000)/10}
+    {ket:"Unit Aktif", jml:aktif, pct:pct(aktif,total)},
+    {ket:"Unit Near Expired", jml:near, pct:pct(near,total)},
+    {ket:"Unit Expired", jml:exp, pct:pct(exp,total)}
   ];
   document.getElementById('lapTableBody').innerHTML = rowsDetail.map((r,i)=>`
     <tr><td>${i+1}</td><td>${r.ket}</td><td>${r.jml}</td><td>${r.pct}%</td></tr>`).join('');
@@ -2251,21 +2652,31 @@ function doExportNow(){
    RENDER: USER MANAGEMENT
 ===================================================================== */
 function renderUsers(){
-  const rows = DB.users;
-  const aktif = rows.filter(r=>r.status==="Aktif").length;
-  const admin = rows.filter(r=>r.role==="Administrator").length;
+  const rows = DB.users.map(r=>({
+    userId: pick(r,['User_ID','userId']),
+    nama: pick(r,['Nama','nama']),
+    username: pick(r,['Username','username']),
+    email: pick(r,['Email','email']),
+    role: pick(r,['Role','role']),
+    site: pick(r,['Site','site']),
+    area: pick(r,['Area','area']),
+    status: pick(r,['Status','status'])
+  }));
+  const aktif = rows.filter(r=> isActiveStatus(r.status)).length;
+  const admin = rows.filter(r=> String(r.role||'').toLowerCase()==="administrator").length;
   document.getElementById('userStats').innerHTML = [
     statCard("TOTAL USER", rows.length, "User", "Semua pengguna terdaftar", "blue","👥"),
-    statCard("AKTIF", aktif, "User", `${Math.round(aktif/rows.length*1000)/10}% dari total user`, "green","✅"),
+    statCard("AKTIF", aktif, "User", `${pct(aktif,rows.length)}% dari total user`, "green","✅"),
     statCard("NON AKTIF", rows.length-aktif, "User", "", "orange","⏸️"),
-    statCard("ADMIN", admin, "User", `${Math.round(admin/rows.length*1000)/10}% dari total user`, "blue","🛡️")
+    statCard("ADMIN", admin, "User", `${pct(admin,rows.length)}% dari total user`, "blue","🛡️")
   ].join('');
   const term = document.getElementById('userSearch').value;
   const filtered = filterRows(rows, term, ['nama','username','email']);
   document.getElementById('userTableBody').innerHTML = filtered.map((r,i)=>`
     <tr><td>${i+1}</td><td>${r.nama}</td><td>${r.username}</td><td>${r.email}</td>
-    <td><span class="pill blue">${r.role}</span></td><td>${r.site}</td><td>${r.area}</td><td>${pillFor(r.status)}</td></tr>
-  `).join('') || `<tr><td colspan="8" class="empty-state">Tidak ada data</td></tr>`;
+    <td><span class="pill blue">${r.role}</span></td><td>${r.site}</td><td>${r.area}</td><td>${pillFor(r.status)}</td>
+    <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openUserModal('${escJs(r.userId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openUserModal('${escJs(r.userId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteUser('${escJs(r.userId)}','${escJs(r.nama)}')">🗑</button></td></tr>
+  `).join('') || `<tr><td colspan="9" class="empty-state">Tidak ada data</td></tr>`;
 }
 
 /* =====================================================================
