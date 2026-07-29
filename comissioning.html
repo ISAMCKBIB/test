@@ -553,19 +553,36 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="crumb" id="pageCrumb">Dashboard &gt; Commissioning Monitoring</div>
       </div>
       <div class="tb-control">🌐
-        <select id="filterSite"><option value="ALL">ALL SITE</option></select>
+        <select id="filterSite" onchange="applyFilters()"><option value="ALL">ALL SITE</option></select>
       </div>
       <div class="tb-control">📍
-        <select id="filterArea"><option value="ALL">ALL AREA</option></select>
+        <select id="filterArea" onchange="applyFilters()"><option value="ALL">ALL AREA</option></select>
       </div>
       <div class="tb-control">📅 <span id="tbDate"></span></div>
       <div class="tb-control">🕒 <span id="tbTime"></span></div>
       <div class="tb-control" id="connStatus" title="Status koneksi ke Google Apps Script">⏳ Memuat...</div>
       <div class="tb-icon-btn" id="refreshBtn" title="Refresh data dari spreadsheet" onclick="manualRefresh()" style="cursor:pointer">🔄</div>
-      <div class="tb-icon-btn">🔔<span class="badge-dot" id="notifCount">0</span></div>
-      <div class="user-chip">
+      <div style="position:relative">
+        <div class="tb-icon-btn" id="notifBtn" onclick="toggleNotifPanel()">🔔<span class="badge-dot" id="notifCount">0</span></div>
+        <div id="notifPanel" style="display:none;position:absolute;right:0;top:42px;width:300px;background:#fff;color:#101828;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:50;overflow:hidden">
+          <div style="padding:10px 14px;font-weight:700;font-size:13px;border-bottom:1px solid var(--border)">Notifikasi</div>
+          <div id="notifPanelBody" style="max-height:280px;overflow-y:auto"></div>
+        </div>
+      </div>
+      <div class="user-chip" onclick="toggleProfilePanel()" style="position:relative">
         <div class="avatar">A</div>
         <div class="un"><b>Abdul Azis</b><small>Administrator</small></div>
+        <div id="profilePanel" style="display:none;position:absolute;right:0;top:42px;width:230px;background:#fff;color:#101828;border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);z-index:50;padding:16px;text-align:center">
+          <div class="avatar" style="width:52px;height:52px;font-size:20px;margin:0 auto 8px">A</div>
+          <b style="display:block;font-size:14px">Abdul Azis</b>
+          <small style="color:var(--text-400)">Administrator</small>
+          <div style="font-size:12px;color:var(--text-600);margin-top:8px;text-align:left">
+            <div style="margin-bottom:4px">📧 abdul.azis@ck.co.id</div>
+            <div>📍 Semua Site / Semua Area</div>
+          </div>
+          <hr style="margin:10px 0;border-color:var(--border)">
+          <button class="btn btn-outline" style="width:100%" onclick="event.stopPropagation();goToPage('userManagement');toggleProfilePanel(true)">👤 Kelola Akun</button>
+        </div>
       </div>
     </div>
 
@@ -1196,6 +1213,61 @@ function filterRows(rows, term, fields){
 }
 
 /* =====================================================================
+   SISA HARI (COUNTDOWN) — dihitung LIVE dari tanggal Masa Berlaku
+   dibandingkan tanggal & jam saat web dibuka (bukan angka statis sheet)
+===================================================================== */
+function parseFlexDate(str){
+  if(!str) return null;
+  const s = String(str).trim();
+  // format "2026-08-04 08:00" atau "2026-08-04"
+  let m = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if(m) return new Date(+m[1], +m[2]-1, +m[3]);
+  // format "04/08/2026" (DD/MM/YYYY)
+  m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if(m) return new Date(+m[3], +m[2]-1, +m[1]);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+function sisaHariCount(masaBerlakuStr){
+  const target = parseFlexDate(masaBerlakuStr);
+  if(!target) return null;
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target - today) / 86400000); // pembulatan hari penuh
+}
+function sisaHariHTML(masaBerlakuStr){
+  const d = sisaHariCount(masaBerlakuStr);
+  if(d === null) return '-';
+  if(d < 0) return `<span style="color:var(--red);font-weight:600">${d} Hari</span>`;
+  if(d <= 30) return `<span style="color:var(--orange);font-weight:600">${d} Hari</span>`;
+  return `<span style="color:var(--green)">${d} Hari</span>`;
+}
+
+/* =====================================================================
+   ALERT COUNT — sumber tunggal dipakai Dashboard & Notifikasi Lonceng,
+   supaya keduanya selalu sinkron saat data (near/expired) berubah
+===================================================================== */
+function computeAlertCounts(siteFilter, areaFilter){
+  siteFilter = siteFilter || 'ALL';
+  areaFilter = areaFilter || 'ALL';
+  const scope = DB.expired.filter(e=>{
+    if(siteFilter!=='ALL' && pick(e,['Site'])!==siteFilter) return false;
+    if(areaFilter!=='ALL' && pick(e,['Area'])!==areaFilter) return false;
+    return true;
+  });
+  const nearExp = scope.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const expired = scope.filter(e=>{
+    const s = String(pick(e,['Status','status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
+  const waiting = DB.preparation.filter(p=>{
+    if(areaFilter!=='ALL' && pick(p,['Area'])!==areaFilter) return false;
+    return true;
+  }).length;
+  return {nearExp, expired, waiting};
+}
+
+/* =====================================================================
    REAL-TIME SEARCH (debounce ketikan supaya tidak render tiap huruf)
 ===================================================================== */
 function debounce(fn, delay){
@@ -1325,27 +1397,42 @@ setInterval(updateClock,1000*30); updateClock();
 ===================================================================== */
 let dashPage=1;
 function renderDashboard(){
-  const rows = DB.commissioning.map(r=>{
-  const unitId = pick(r,['Unit_ID']);
-  const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
-  return {
-    unitId: unitId,
-    model2: mu ? pick(mu,['Model_Unit']) : '',
-    area: pick(r,['Area']),
-    site: pick(r,['Site']),
-    reg: pick(r,['Registration_No']),
-    selesai: pick(r,['Masa_Berlaku']),
-    status: pick(r,['Status'])
-  };
-});
-  const total = DB.masterUnit.length;
-  const active = DB.masterUnit.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
-  const nearExp = DB.expired.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
-  const expired = DB.expired.filter(e=>{
-    const s = String(pick(e,['Status','status'])||'').toLowerCase();
-    return s.includes('expired') && !s.includes('near');
-  }).length;
-  const waiting = DB.preparation.length;
+  // Nilai filter dari dropdown ALL SITE (BIB/TIA) & ALL AREA (GRB/KGB dst) di topbar
+  const siteFilter = (document.getElementById('filterSite')||{}).value || 'ALL';
+  const areaFilter = (document.getElementById('filterArea')||{}).value || 'ALL';
+
+  const rows = DB.commissioning
+    .filter(r=>{
+      if(siteFilter!=='ALL' && pick(r,['Site'])!==siteFilter) return false;
+      if(areaFilter!=='ALL' && pick(r,['Area'])!==areaFilter) return false;
+      return true;
+    })
+    .map(r=>{
+    const unitId = pick(r,['Unit_ID']);
+    const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
+    return {
+      unitId: unitId,
+      model2: mu ? pick(mu,['Model_Unit']) : '',
+      area: pick(r,['Area']),
+      site: pick(r,['Site']),
+      reg: pick(r,['Registration_No']),
+      selesai: pick(r,['Masa_Berlaku']),
+      status: pick(r,['Status'])
+    };
+  });
+
+  // Unit yang muncul di scope filter saat ini (dipakai untuk kartu TOTAL UNIT / ACTIVE)
+  const filteredUnitIds = new Set(rows.map(r=>r.unitId));
+  const muInScope = (siteFilter==='ALL' && areaFilter==='ALL')
+    ? DB.masterUnit
+    : DB.masterUnit.filter(m=>filteredUnitIds.has(pick(m,['Unit_ID'])));
+
+  const total = muInScope.length;
+  const active = muInScope.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
+  const alertCounts = computeAlertCounts(siteFilter, areaFilter);
+  const nearExp = alertCounts.nearExp;
+  const expired = alertCounts.expired;
+  const waiting = alertCounts.waiting;
   const health = total? Math.round((active/total)*1000)/10 : 0;
 
   document.getElementById('dashStats').innerHTML = [
@@ -1372,11 +1459,11 @@ function renderDashboard(){
       <td>${r.area}</td>
       <td>${r.site==='BIB'?r.reg:'-'}</td>
       <td>${r.site==='BIB'?r.selesai:'-'}</td>
-      <td>${r.site==='BIB'?'':''}</td>
+      <td>${r.site==='BIB'?sisaHariHTML(r.selesai):'-'}</td>
       <td>${r.site==='BIB'?pillFor(r.status):'-'}</td>
       <td>${r.site==='TIA'?r.reg:'-'}</td>
       <td>${r.site==='TIA'?r.selesai:'-'}</td>
-      <td></td>
+      <td>${r.site==='TIA'?sisaHariHTML(r.selesai):'-'}</td>
       <td>${r.site==='TIA'?pillFor(r.status):'-'}</td>
       <td><button class="icon-btn blue">👁</button></td>
     </tr>`).join('') || `<tr><td colspan="13" class="empty-state">Tidak ada data</td></tr>`;
@@ -1837,6 +1924,7 @@ async function savePrepChanges(){
 
   renderPreparation();
   closePrepModal();
+  updateNotif();
 
   syncPreparationToSheet(raw);
   persistPrepOverrides();
@@ -1943,6 +2031,7 @@ async function submitCrudModal(){
     showSaveToast(isEdit ? '✓ Data berhasil diperbarui' : '✓ Data berhasil ditambahkan');
     closeCrudModal();
     if(cfg.onDone) cfg.onDone();
+    updateNotif();
   }else{
     showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
   }
@@ -1954,6 +2043,7 @@ async function crudDeleteRow(sheet, pkValue, label, onDone){
   if(result.success){
     showSaveToast('✓ Data berhasil dihapus');
     if(onDone) onDone();
+    updateNotif();
   }else{
     showSaveToast('⚠ Gagal hapus: '+(result.message||'Terjadi kesalahan'), true);
   }
@@ -2700,8 +2790,14 @@ const areas = [...new Set(DB.area.map(a=>pick(a,['Nama_Area'])))];
   const prepArea = document.getElementById('prepArea');
   prepArea.innerHTML = '<option value="">Semua Area</option>' + areas.map(a=>`<option>${a}</option>`).join('');
 }
-function applyFilters(){ renderDashboard(); }
-function resetFilters(){ document.getElementById('dashSearch').value=''; renderDashboard(); }
+function applyFilters(){ dashPage=1; renderDashboard(); }
+function resetFilters(){
+  document.getElementById('dashSearch').value='';
+  document.getElementById('filterSite').value='ALL';
+  document.getElementById('filterArea').value='ALL';
+  dashPage=1;
+  renderDashboard();
+}
 
 /* =====================================================================
    ROUTER
@@ -2716,11 +2812,52 @@ function renderPage(key){
   if(map[key]) map[key]();
 }
 
-/* notif count */
+/* =====================================================================
+   NOTIFIKASI (LONCENG) — badge = Near Expired + Expired, ikut update
+   setiap kali data di-refresh / berubah (dipanggil ulang di loadAllData,
+   manualRefresh, dan setelah simpan/hapus data commissioning/preparation)
+===================================================================== */
 function updateNotif(){
-  const count = (DB.expired?DB.expired.length:0);
-  document.getElementById('notifCount').innerText = count;
+  const c = computeAlertCounts();
+  const totalAlert = c.nearExp + c.expired;
+  const badge = document.getElementById('notifCount');
+  badge.innerText = totalAlert;
+  badge.style.display = totalAlert>0 ? 'flex' : 'none';
+
+  const body = document.getElementById('notifPanelBody');
+  if(!body) return;
+  const items = [];
+  if(c.expired>0) items.push({ic:'❌',bg:'var(--red-bg)',color:'var(--red)',label:`${c.expired} Unit Expired`,sub:'Segera lakukan pengajuan ulang'});
+  if(c.nearExp>0) items.push({ic:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',label:`${c.nearExp} Unit Near Expired`,sub:'≤ 30 hari lagi akan expired'});
+  if(c.waiting>0) items.push({ic:'⏳',bg:'#eaf0ff',color:'var(--blue-600)',label:`${c.waiting} Unit Waiting Sticker`,sub:'Menunggu proses stiker'});
+  body.innerHTML = items.length ? items.map(it=>`
+    <div class="alert-item" style="padding:10px 14px;border-bottom:1px solid var(--border)">
+      <div class="alert-ic" style="background:${it.bg};color:${it.color}">${it.ic}</div>
+      <div><b style="font-size:12.5px">${it.label}</b><br><small style="color:var(--text-400)">${it.sub}</small></div>
+    </div>`).join('') : `<div class="empty-state" style="padding:16px">Tidak ada notifikasi</div>`;
 }
+function toggleNotifPanel(){
+  const p = document.getElementById('notifPanel');
+  const wasOpen = p.style.display==='block';
+  closeAllTopPanels();
+  p.style.display = wasOpen ? 'none' : 'block';
+}
+function toggleProfilePanel(forceClose){
+  const p = document.getElementById('profilePanel');
+  if(forceClose){ p.style.display='none'; return; }
+  const wasOpen = p.style.display==='block';
+  closeAllTopPanels();
+  p.style.display = wasOpen ? 'none' : 'block';
+}
+function closeAllTopPanels(){
+  document.getElementById('notifPanel').style.display='none';
+  document.getElementById('profilePanel').style.display='none';
+}
+document.addEventListener('click', function(e){
+  const insideNotif = e.target.closest('#notifBtn') || e.target.closest('#notifPanel');
+  const insideProfile = e.target.closest('.user-chip');
+  if(!insideNotif && !insideProfile) closeAllTopPanels();
+});
 
 /* =====================================================================
    INIT
