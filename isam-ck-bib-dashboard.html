@@ -772,21 +772,17 @@ let DEMO_MODE = true;
 let DB = {};
 let FETCH_HAD_ERROR = false;
 
-async function fetchSheetData(key, timeoutMs){
-  const cfg = CONFIG.SCRIPTS[key];
-  if(!cfg || !CONFIG.API_URL || CONFIG.API_URL.startsWith("PASTE_")){
-    return null;
-  }
+async function fetchSheetByName(sheetName, timeoutMs){
   const controller = new AbortController();
-  const to = setTimeout(()=> controller.abort(), timeoutMs || 20000);
+  const to = setTimeout(()=> controller.abort(), timeoutMs || 45000);
   try{
-    const res = await fetch(`${CONFIG.API_URL}?sheet=${encodeURIComponent(cfg.sheet)}`, { signal: controller.signal });
+    const res = await fetch(`${CONFIG.API_URL}?sheet=${encodeURIComponent(sheetName)}`, { signal: controller.signal });
     if(!res.ok) throw new Error("HTTP "+res.status);
     const json = await res.json();
     if(json && json.success === false) throw new Error(json.message || "API mengembalikan error");
     return json.data || json;
   }catch(err){
-    console.warn("Gagal fetch", key, err);
+    console.warn("Gagal fetch sheet", sheetName, err);
     FETCH_HAD_ERROR = true;
     return null;
   }finally{
@@ -832,25 +828,32 @@ async function loadAllData(){
   setConnStatus('loading');
   FETCH_HAD_ERROR = false;
   const keys = Object.keys(CONFIG.SCRIPTS);
-  const total = keys.length;
-  let done = 0;
-
   const isConfigured = CONFIG.API_URL && !CONFIG.API_URL.startsWith("PASTE_");
 
-  // fetch semua sheet secara PARALEL (jauh lebih cepat daripada satu-satu)
-  const results = await Promise.all(keys.map(async (k, i) => {
-    const stepLabel = LOADER_STEPS[Math.min(i, LOADER_STEPS.length-1)];
-    setLoaderProgress((done/total)*90, stepLabel);
-    const data = await fetchSheetData(k);
-    done++;
-    setLoaderProgress((done/total)*90, LOADER_STEPS[Math.min(done, LOADER_STEPS.length-1)]);
-    return data;
-  }));
+  // Kumpulkan NAMA SHEET yang unik dulu -> beberapa key (mis. commissioning & expired)
+  // memakai sheet Google Sheets yang sama, jadi cukup di-fetch SEKALI saja per sheet
+  // supaya tidak membebani Apps Script dengan request duplikat yang menyebabkan timeout.
+  const uniqueSheetNames = [...new Set(keys.map(k => CONFIG.SCRIPTS[k].sheet))];
+  const total = uniqueSheetNames.length;
+  let done = 0;
+
+  const sheetResults = {};
+  if(isConfigured){
+    await Promise.all(uniqueSheetNames.map(async (sheetName, i) => {
+      const stepLabel = LOADER_STEPS[Math.min(i, LOADER_STEPS.length-1)];
+      setLoaderProgress((done/total)*90, stepLabel);
+      sheetResults[sheetName] = await fetchSheetByName(sheetName);
+      done++;
+      setLoaderProgress((done/total)*90, LOADER_STEPS[Math.min(done, LOADER_STEPS.length-1)]);
+    }));
+  }
 
   let anySuccess = false;
-  keys.forEach((k,i)=>{
-    if(results[i] !== null){ anySuccess = true; }
-    DB[k] = results[i] || DEMO_DATA[k];
+  keys.forEach((k)=>{
+    const sheetName = CONFIG.SCRIPTS[k].sheet;
+    const data = sheetResults[sheetName];
+    if(data !== undefined && data !== null){ anySuccess = true; }
+    DB[k] = (data !== undefined && data !== null) ? data : DEMO_DATA[k];
   });
 
   if(!isConfigured){
@@ -1069,6 +1072,13 @@ function iconFor(key){
   }
   return '';
 }
+
+/* Cek status "Aktif/Active" secara toleran (trim + tanpa peduli huruf besar/kecil),
+   supaya tidak meleset kalau nilai di sheet ada spasi ekstra atau beda kapitalisasi */
+function isActiveStatus(status){
+  const s = String(status||'').trim().toLowerCase();
+  return s === 'active' || s === 'aktif';
+}
   
   function pillFor(status){
   const s = (status||"").toLowerCase();
@@ -1223,9 +1233,12 @@ function renderDashboard(){
   };
 });
   const total = DB.masterUnit.length;
-  const active = DB.masterUnit.filter(m=>m.status==="Active"||m.status==="Aktif").length;
-  const nearExp = DB.expired.filter(e=>e.status==="Near Expired").length;
-  const expired = DB.expired.filter(e=>e.status==="Expired").length;
+  const active = DB.masterUnit.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
+  const nearExp = DB.expired.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const expired = DB.expired.filter(e=>{
+    const s = String(pick(e,['Status','status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
   const waiting = DB.preparation.length;
   const health = total? Math.round((active/total)*1000)/10 : 0;
 
@@ -1268,9 +1281,12 @@ function renderDashboard(){
     <div class="alert-item"><div class="alert-ic" style="background:#eaf0ff;color:var(--blue-600)">⏳</div><div><b>${waiting} Unit</b><br><small>Waiting Sticker</small></div></div>
     <div class="alert-item"><div class="alert-ic" style="background:var(--green-bg);color:var(--green)">✅</div><div><b>${active} Unit</b><br><small>Active</small></div></div>`;
 
-  document.getElementById('recentActivity').innerHTML = DB.commissioning.slice(0,4).map(r=>`
-    <div class="activity-item"><div class="activity-dot" style="background:${r.status==='Aktif'?'var(--green)':'var(--orange)'}"></div>
-    <div><b>${r.unitId} - ${r.site}(${r.area})</b><br><small>Status: ${r.status}</small></div></div>`).join('');
+  document.getElementById('recentActivity').innerHTML = DB.commissioning.slice(0,4).map(r=>{
+    const st = pick(r,['Status','status']);
+    return `
+    <div class="activity-item"><div class="activity-dot" style="background:${isActiveStatus(st)?'var(--green)':'var(--orange)'}"></div>
+    <div><b>${pick(r,['Unit_ID','unitId'])} - ${pick(r,['Site','site'])}(${pick(r,['Area','area'])})</b><br><small>Status: ${st}</small></div></div>`;
+  }).join('');
 }
 
 /* =====================================================================
@@ -1280,10 +1296,7 @@ let muPage=1;
 function renderMasterUnit(){
   const rows = DB.masterUnit;
   const total = rows.length;
-  const active = rows.filter(r=>{
-    const s = pick(r,['Status']);
-    return s==="Active"||s==="Aktif";
-  }).length;
+  const active = rows.filter(r=> isActiveStatus(pick(r,['Status']))).length;
   document.getElementById('muStats').innerHTML = [
     statCard("TOTAL UNIT", total, "Unit", "100% dari total unit", "blue","🚚"),
     statCard("UNIT AKTIF", active, "Unit", `${pct(active,total)}% dari total unit`, "green","✅"),
@@ -1297,8 +1310,7 @@ function renderMasterUnit(){
   const filtered = rows.filter(r=>{
     if(jenisFilter && pick(r,['Jenis_Unit']) !== jenisFilter) return false;
     if(statusFilter){
-      const s = pick(r,['Status']);
-      const isActive = s==="Active"||s==="Aktif";
+      const isActive = isActiveStatus(pick(r,['Status']));
       if(statusFilter==="Active" && !isActive) return false;
       if(statusFilter==="Non Aktif" && isActive) return false;
     }
@@ -2294,9 +2306,12 @@ function renderLaporan(){
   document.getElementById('laporanCards').innerHTML = cards.map((c,i)=>`
     <div class="export-card ${i===0?'sel':''}"><div class="t">${c.t}</div><div class="d">${c.d}</div><div class="chk">✓</div></div>`).join('');
 
-  const aktif = DB.masterUnit.filter(r=>r.status==="Active"||r.status==="Aktif").length;
-  const near = DB.expired.filter(r=>r.status==="Near Expired").length;
-  const exp = DB.expired.filter(r=>r.status==="Expired").length;
+  const aktif = DB.masterUnit.filter(r=>isActiveStatus(pick(r,['Status','status']))).length;
+  const near = DB.expired.filter(r=>String(pick(r,['Status','status'])||'').toLowerCase().includes('near')).length;
+  const exp = DB.expired.filter(r=>{
+    const s = String(pick(r,['Status','status'])||'').toLowerCase();
+    return s.includes('expired') && !s.includes('near');
+  }).length;
 
   document.getElementById('lapStats').innerHTML = [
     statCard("TOTAL UNIT", DB.masterUnit.length, "Unit", "100% dari total", "blue","📊"),
@@ -2351,9 +2366,17 @@ function doExportNow(){
    RENDER: USER MANAGEMENT
 ===================================================================== */
 function renderUsers(){
-  const rows = DB.users;
-  const aktif = rows.filter(r=>r.status==="Aktif").length;
-  const admin = rows.filter(r=>r.role==="Administrator").length;
+  const rows = DB.users.map(r=>({
+    nama: pick(r,['Nama','nama']),
+    username: pick(r,['Username','username']),
+    email: pick(r,['Email','email']),
+    role: pick(r,['Role','role']),
+    site: pick(r,['Site','site']),
+    area: pick(r,['Area','area']),
+    status: pick(r,['Status','status'])
+  }));
+  const aktif = rows.filter(r=> isActiveStatus(r.status)).length;
+  const admin = rows.filter(r=> String(r.role||'').toLowerCase()==="administrator").length;
   document.getElementById('userStats').innerHTML = [
     statCard("TOTAL USER", rows.length, "User", "Semua pengguna terdaftar", "blue","👥"),
     statCard("AKTIF", aktif, "User", `${pct(aktif,rows.length)}% dari total user`, "green","✅"),
