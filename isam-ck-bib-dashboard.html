@@ -274,7 +274,7 @@ tbody tr:hover{ background:#f9fbff; }
 .form-group{ margin-bottom:14px;}
 .form-group label{ display:block; font-size:12.5px; font-weight:700; color:var(--text-900); margin-bottom:6px;}
 .form-group label .req{ color:var(--red);}
-.form-group input[type=text], .form-group textarea, .form-group select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
+.form-group input[type=text], .form-group input[type=email], .form-group input[type=date], .form-group input[type=number], .form-group textarea, .form-group select{ width:100%; border:1px solid var(--border); border-radius:8px; padding:9px 12px; font-size:13px; font-family:inherit;}
 .form-group textarea{ resize:vertical; min-height:60px;}
 
 .subtab-bar{ display:flex; gap:20px; border-bottom:1px solid var(--border); margin-bottom:16px;}
@@ -390,6 +390,73 @@ tbody tr:hover{ background:#f9fbff; }
 #saveToast.err{ background:var(--red);}
 .icon-btn:disabled{ opacity:.4; cursor:not-allowed;}
 .icon-btn{ cursor:pointer; }
+
+/* =====================================================================
+   RESPONSIVE / MOBILE
+===================================================================== */
+.sidebar-backdrop{
+  display:none; position:fixed; inset:0; background:rgba(11,22,66,.5); z-index:1400;
+}
+@media (max-width:900px){
+  .sidebar-backdrop.show{ display:block; }
+}
+
+@media (max-width:900px){
+  /* Sidebar jadi drawer yang slide-in dari kiri, bukan mendorong konten */
+  .sidebar{
+    position:fixed; top:0; left:0; height:100vh; z-index:1500;
+    width:250px; min-width:250px;
+    transform:translateX(-100%);
+    transition:transform .25s ease;
+    box-shadow:8px 0 30px rgba(0,0,0,.35);
+  }
+  .sidebar.mobile-open{ transform:translateX(0); }
+  /* Di mobile, class 'collapsed' (desktop) tidak dipakai - selalu tampil penuh saat drawer terbuka */
+  .sidebar.collapsed{ width:250px; min-width:250px; }
+  .sidebar.collapsed .brand-text, .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .group-title, .sidebar.collapsed .back-btn span{ display:block; }
+
+  .main{ width:100%; }
+
+  /* Topbar lebih ringkas */
+  .topbar{ padding:10px 12px; gap:8px; }
+  .topbar .titles h1{ font-size:15px; }
+  .topbar .titles .crumb{ font-size:10.5px; }
+  .tb-control{ padding:6px 9px; font-size:11.5px; }
+  .tb-control select{ font-size:11.5px; }
+  .user-chip .un{ display:none; }
+  #connStatus{ order:99; } /* pindah ke akhir supaya tidak mendorong elemen lain */
+
+  .content{ padding:14px 12px 30px; }
+  .stat-grid{ grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
+  .stat-card{ padding:12px 14px; }
+  .stat-card .val{ font-size:22px; }
+  .panel{ padding:14px; }
+
+  /* Toolbar (search + filter + tombol) ditumpuk penuh lebar, lebih mudah disentuh */
+  .toolbar{ flex-direction:column; align-items:stretch; }
+  .toolbar input, .toolbar select, .toolbar button{ width:100%; }
+  .toolbar button{ justify-content:center; margin-left:0 !important; }
+
+  /* Tabel: font lebih kecil supaya lebih banyak kolom kelihatan sebelum discroll */
+  table{ font-size:12px; }
+  thead th, tbody td{ padding:8px 8px; }
+
+  /* Modal tampil dari bawah, hampir penuh layar - lebih mudah dipakai jari */
+  .modal-overlay{ padding:0; align-items:flex-end; }
+  .modal-box{ max-width:100%; width:100%; border-radius:16px 16px 0 0; max-height:94vh; }
+  .modal-foot{ flex-wrap:wrap; }
+  .modal-foot button{ flex:1; justify-content:center; }
+
+  /* Pagination & export card ikut menumpuk rapi */
+  .pagination{ flex-wrap:wrap; justify-content:center; gap:8px; }
+}
+
+@media (max-width:480px){
+  .topbar .titles .crumb{ display:none; }
+  .stat-grid{ grid-template-columns:1fr 1fr; }
+  .brand-text small{ display:none; }
+}
 </style>
 </head>
 <body>
@@ -422,9 +489,26 @@ tbody tr:hover{ background:#f9fbff; }
   </div>
 </div>
 
+<!-- ===================== MODAL GENERIK: TAMBAH / EDIT DATA (Master Unit, Commissioning, User) ===================== -->
+<div class="modal-overlay" id="crudModalOverlay" onclick="if(event.target===this) closeCrudModal();">
+  <div class="modal-box">
+    <div class="modal-head">
+      <div>
+        <h3 id="crudModalTitle">Tambah Data</h3>
+        <div class="sub" id="crudModalSub">Isi form di bawah</div>
+      </div>
+      <button class="modal-close" onclick="closeCrudModal()">✕</button>
+    </div>
+    <div class="modal-body" id="crudModalBody"></div>
+    <div class="modal-foot" id="crudModalFoot"></div>
+  </div>
+</div>
+
 <div id="saveToast"></div>
 
 <div class="app">
+  <!-- Overlay gelap saat sidebar dibuka di layar mobile -->
+  <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
   <!-- ===================== SIDEBAR ===================== -->
   <div class="sidebar" id="sidebar">
     <div class="brand">
@@ -536,7 +620,7 @@ tbody tr:hover{ background:#f9fbff; }
             <select id="muStatus" onchange="liveMuSearch()"><option value="">Semua Status</option><option>Active</option><option>Non Aktif</option></select>
             <button class="btn btn-primary" onclick="renderMasterUnit()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('muSearch').value='';renderMasterUnit()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah Unit</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openMasterUnitModal(null)">+ Tambah Unit</button>
           </div>
           <div class="panel-title">DAFTAR MASTER UNIT</div>
           <div style="overflow-x:auto">
@@ -585,7 +669,7 @@ tbody tr:hover{ background:#f9fbff; }
             <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
             <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';renderCommissioning()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah Komisioning</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
           </div>
           <div class="panel-title">DAFTAR KOMISIONING</div>
           <div style="overflow-x:auto">
@@ -728,12 +812,12 @@ tbody tr:hover{ background:#f9fbff; }
             <input type="text" id="userSearch" placeholder="Cari nama, username, atau email..." oninput="liveUserSearch()">
             <button class="btn btn-primary" onclick="renderUsers()">🔎 Filter</button>
             <button class="btn btn-outline" onclick="document.getElementById('userSearch').value='';renderUsers()">↻ Reset</button>
-            <button class="btn btn-primary" style="margin-left:auto">+ Tambah User</button>
+            <button class="btn btn-primary" style="margin-left:auto" onclick="openUserModal(null)">+ Tambah User</button>
           </div>
           <div class="panel-title">DAFTAR USER</div>
           <div style="overflow-x:auto">
             <table id="userTable">
-              <thead><tr><th>No</th><th>Nama Lengkap</th><th>Username</th><th>Email</th><th>Role</th><th>Site</th><th>Area</th><th>Status</th></tr></thead>
+              <thead><tr><th>No</th><th>Nama Lengkap</th><th>Username</th><th>Email</th><th>Role</th><th>Site</th><th>Area</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="userTableBody"></tbody>
             </table>
           </div>
@@ -1079,6 +1163,11 @@ function isActiveStatus(status){
   const s = String(status||'').trim().toLowerCase();
   return s === 'active' || s === 'aktif';
 }
+
+/* Amankan tanda kutip pada nilai yang disisipkan ke atribut onclick='...' */
+function escJs(v){
+  return String(v==null?'':v).replace(/'/g,"\\'");
+}
   
   function pillFor(status){
   const s = (status||"").toLowerCase();
@@ -1199,12 +1288,29 @@ function goToPage(key){
   document.getElementById('pageCrumb').innerHTML = PAGE_META[key].crumb;
   renderPage(key);
 }
+function isMobileView(){ return window.innerWidth <= 900; }
+function closeMobileSidebar(){
+  document.getElementById('sidebar').classList.remove('mobile-open');
+  document.getElementById('sidebarBackdrop').classList.remove('show');
+}
 document.querySelectorAll('.nav-item').forEach(item=>{
-  item.addEventListener('click', ()=> goToPage(item.dataset.page));
+  item.addEventListener('click', ()=> {
+    goToPage(item.dataset.page);
+    if(isMobileView()) closeMobileSidebar();
+  });
 });
 document.getElementById('hamburger').addEventListener('click', ()=>{
-  document.getElementById('sidebar').classList.toggle('collapsed');
+  if(isMobileView()){
+    document.getElementById('sidebar').classList.toggle('mobile-open');
+    document.getElementById('sidebarBackdrop').classList.toggle('show');
+  }else{
+    document.getElementById('sidebar').classList.toggle('collapsed');
+  }
 });
+document.getElementById('sidebarBackdrop').addEventListener('click', closeMobileSidebar);
+window.addEventListener('resize', debounce(()=>{
+  if(!isMobileView()) closeMobileSidebar();
+}, 200));
 
 function updateClock(){
   const now = new Date();
@@ -1328,7 +1434,7 @@ function renderMasterUnit(){
     const tiaCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='TIA').length;
     return `<tr><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${pick(r,['Model_Unit','Model'])}</td><td>${pick(r,['Jenis_Unit'])}</td>
     <td>${pick(r,['Serial_Number'])}</td><td>${pick(r,['Tahun'])}</td><td>${pillFor(pick(r,['Status']))}</td><td>${bibCount}</td><td>${tiaCount}</td><td>${bibCount+tiaCount}</td>
-    <td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+    <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteMasterUnit('${escJs(unitId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
@@ -1397,10 +1503,11 @@ function renderCommissioning(){
   const pageRows = paginate(filtered, comPage, perPage);
   document.getElementById('comTableBody').innerHTML = pageRows.map((r,i)=>{
     const unitId = pick(r,['Unit_ID']);
+    const commId = pick(r,['Commissioning_ID']);
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
     return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
     <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td><td>${pick(r,['Registration_No'])}</td><td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
-    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue">👁</button><button class="icon-btn blue">✏️</button><button class="icon-btn red">🗑</button></td></tr>`;
+    <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue" title="Lihat/Edit" onclick="openCommissioningModal('${escJs(commId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openCommissioningModal('${escJs(commId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteCommissioning('${escJs(commId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
 }
 
@@ -1747,6 +1854,185 @@ function showSaveToast(msg, isErr){
   el.className = isErr ? 'show err' : 'show';
   clearTimeout(window.__saveToastTimer);
   window.__saveToastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
+}
+
+/* =====================================================================
+   CRUD GENERIK: Tambah / Edit / Hapus baris data
+   Dipakai oleh Master Unit, Commissioning, dan User Management.
+   Memanggil endpoint doPost Apps Script: action addRow / updateRow / deleteRow
+===================================================================== */
+async function crudPost(action, payload){
+  if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
+    showSaveToast('⚠ Apps Script belum terhubung (mode demo) - perubahan tidak tersimpan ke spreadsheet', true);
+    return { success:false, message:'Belum terhubung ke Apps Script (mode demo)' };
+  }
+  try{
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action, payload })
+    });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    return await res.json();
+  }catch(err){
+    console.warn('crudPost error', action, err);
+    return { success:false, message: err.message };
+  }
+}
+
+let crudState = null; // { title, sheet, pkField, fields, data, onDone }
+
+function crudFieldHTML(f, value){
+  const val = (value===undefined || value===null) ? '' : value;
+  if(f.type==='select'){
+    const opts = (f.options||[]).map(o=>`<option value="${o}" ${String(o)===String(val)?'selected':''}>${o}</option>`).join('');
+    return `<select id="crud_${f.key}" ${f.disabled?'disabled':''}><option value="">-- Pilih --</option>${opts}</select>`;
+  }
+  const safeVal = String(val).replace(/"/g,'&quot;');
+  return `<input type="${f.inputType||'text'}" id="crud_${f.key}" value="${safeVal}" ${f.disabled?'disabled':''} placeholder="${f.placeholder||''}">`;
+}
+
+function openCrudModal(cfg){
+  crudState = cfg;
+  const isEdit = !!cfg.data;
+  document.getElementById('crudModalTitle').innerText = cfg.title;
+  document.getElementById('crudModalSub').innerText = isEdit ? 'Ubah data yang sudah ada' : 'Isi form untuk menambah data baru';
+  document.getElementById('crudModalBody').innerHTML = cfg.fields.filter(f=>!f.hidden).map(f=>`
+    <div class="form-group">
+      <label>${f.label}${f.required ? ' <span class="req">*</span>' : ''}</label>
+      ${crudFieldHTML(f, cfg.data ? pick(cfg.data,[f.key]) : (f.default||''))}
+    </div>`).join('');
+  document.getElementById('crudModalFoot').innerHTML = `
+    <button class="btn btn-outline" onclick="closeCrudModal()">Batal</button>
+    <button class="btn btn-primary" onclick="submitCrudModal()">💾 Simpan</button>`;
+  document.getElementById('crudModalOverlay').classList.add('show');
+}
+function closeCrudModal(){
+  document.getElementById('crudModalOverlay').classList.remove('show');
+  crudState = null;
+}
+async function submitCrudModal(){
+  if(!crudState) return;
+  const cfg = crudState;
+  const isEdit = !!cfg.data;
+  const data = {};
+  const missing = [];
+  cfg.fields.forEach(f=>{
+    if(f.hidden){
+      data[f.key] = isEdit ? pick(cfg.data,[f.key]) : (f.generator ? f.generator() : '');
+      return;
+    }
+    const el = document.getElementById('crud_'+f.key);
+    const v = el ? String(el.value).trim() : '';
+    if(f.required && !v) missing.push(f.label);
+    data[f.key] = v;
+  });
+  if(missing.length){
+    showSaveToast('⚠ Wajib diisi: '+missing.join(', '), true);
+    return;
+  }
+  showSaveToast('⏳ Menyimpan data...');
+  let result;
+  if(isEdit){
+    const pkValue = pick(cfg.data,[cfg.pkField]);
+    result = await crudPost('updateRow', { sheet: cfg.sheet, pk: pkValue, data });
+  }else{
+    result = await crudPost('addRow', { sheet: cfg.sheet, data });
+  }
+  if(result.success){
+    showSaveToast(isEdit ? '✓ Data berhasil diperbarui' : '✓ Data berhasil ditambahkan');
+    closeCrudModal();
+    if(cfg.onDone) cfg.onDone();
+  }else{
+    showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
+async function crudDeleteRow(sheet, pkValue, label, onDone){
+  if(!confirm(`Yakin ingin menghapus ${label}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  showSaveToast('⏳ Menghapus data...');
+  const result = await crudPost('deleteRow', { sheet, pk: pkValue });
+  if(result.success){
+    showSaveToast('✓ Data berhasil dihapus');
+    if(onDone) onDone();
+  }else{
+    showSaveToast('⚠ Gagal hapus: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
+
+/* ---------- MASTER UNIT: Tambah / Edit / Hapus ---------- */
+function openMasterUnitModal(unitId){
+  const raw = unitId ? DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId) : null;
+  const jenisOptions = DB.jenisUnit.map(j=>pick(j,['Jenis_Unit'])).filter(Boolean);
+  openCrudModal({
+    title: unitId ? 'Edit Master Unit' : 'Tambah Master Unit',
+    sheet: 'Master_Unit',
+    pkField: 'Unit_ID',
+    data: raw,
+    fields: [
+      {key:'Unit_ID', label:'Unit ID', required:true, disabled: !!unitId, placeholder:'Contoh: CO4536'},
+      {key:'Model_Unit', label:'Model Unit', required:true, placeholder:'Contoh: HD 4536/HD785'},
+      {key:'Jenis_Unit', label:'Jenis Unit', type:'select', options: jenisOptions, required:true},
+      {key:'Serial_Number', label:'Serial Number'},
+      {key:'Tahun', label:'Tahun', inputType:'number', placeholder:'Contoh: 2021'},
+      {key:'Status', label:'Status', type:'select', options:['Active','Non Aktif'], required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteMasterUnit(unitId){
+  crudDeleteRow('Master_Unit', unitId, `Unit ${unitId}`, manualRefresh);
+}
+
+/* ---------- COMMISSIONING: Tambah / Edit / Hapus ---------- */
+function openCommissioningModal(commId){
+  const raw = commId ? DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId) : null;
+  const unitOptions = DB.masterUnit.map(m=>pick(m,['Unit_ID'])).filter(Boolean);
+  const siteOptions = [...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  openCrudModal({
+    title: commId ? 'Edit Commissioning' : 'Tambah Commissioning',
+    sheet: 'Commissioning',
+    pkField: 'Commissioning_ID',
+    data: raw,
+    fields: [
+      {key:'Commissioning_ID', hidden:true, generator:()=>'CMS-'+Date.now()},
+      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true},
+      {key:'Site', label:'Site', type:'select', options: siteOptions, required:true},
+      {key:'Area', label:'Area', required:true, placeholder:'Contoh: GRB'},
+      {key:'Registration_No', label:'Registration No', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
+      {key:'Tanggal_Terbit', label:'Tanggal Terbit', inputType:'date', required:true},
+      {key:'Masa_Berlaku', label:'Masa Berlaku / Expired', inputType:'date', required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteCommissioning(commId){
+  crudDeleteRow('Commissioning', commId, `Commissioning ${commId}`, manualRefresh);
+}
+
+/* ---------- USER MANAGEMENT: Tambah / Edit / Hapus ---------- */
+function openUserModal(userId){
+  const raw = userId ? DB.users.find(u=>pick(u,['User_ID'])===userId) : null;
+  const siteOptions = ['Semua Site', ...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  openCrudModal({
+    title: userId ? 'Edit User' : 'Tambah User',
+    sheet: 'Users',
+    pkField: 'User_ID',
+    data: raw,
+    fields: [
+      {key:'User_ID', hidden:true, generator:()=>'USR-'+Date.now()},
+      {key:'Nama', label:'Nama Lengkap', required:true},
+      {key:'Username', label:'Username', required:true, disabled: !!userId},
+      {key:'Email', label:'Email', inputType:'email', required:true},
+      {key:'Role', label:'Role', type:'select', options:['Administrator','Supervisor','Operator','Viewer'], required:true},
+      {key:'Site', label:'Site', type:'select', options: siteOptions},
+      {key:'Area', label:'Area', placeholder:'Contoh: GRB, atau Semua Area'},
+      {key:'Status', label:'Status', type:'select', options:['Aktif','Non Aktif'], required:true}
+    ],
+    onDone: manualRefresh
+  });
+}
+function deleteUser(userId, nama){
+  crudDeleteRow('Users', userId, `User ${nama||userId}`, manualRefresh);
 }
 async function syncPreparationToSheet(raw){
   const unitId = prepGetUnitId(raw);
@@ -2367,6 +2653,7 @@ function doExportNow(){
 ===================================================================== */
 function renderUsers(){
   const rows = DB.users.map(r=>({
+    userId: pick(r,['User_ID','userId']),
     nama: pick(r,['Nama','nama']),
     username: pick(r,['Username','username']),
     email: pick(r,['Email','email']),
@@ -2387,8 +2674,9 @@ function renderUsers(){
   const filtered = filterRows(rows, term, ['nama','username','email']);
   document.getElementById('userTableBody').innerHTML = filtered.map((r,i)=>`
     <tr><td>${i+1}</td><td>${r.nama}</td><td>${r.username}</td><td>${r.email}</td>
-    <td><span class="pill blue">${r.role}</span></td><td>${r.site}</td><td>${r.area}</td><td>${pillFor(r.status)}</td></tr>
-  `).join('') || `<tr><td colspan="8" class="empty-state">Tidak ada data</td></tr>`;
+    <td><span class="pill blue">${r.role}</span></td><td>${r.site}</td><td>${r.area}</td><td>${pillFor(r.status)}</td>
+    <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openUserModal('${escJs(r.userId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openUserModal('${escJs(r.userId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteUser('${escJs(r.userId)}','${escJs(r.nama)}')">🗑</button></td></tr>
+  `).join('') || `<tr><td colspan="9" class="empty-state">Tidak ada data</td></tr>`;
 }
 
 /* =====================================================================
