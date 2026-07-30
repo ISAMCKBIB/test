@@ -924,7 +924,16 @@ const CONFIG = {
     expired:         { sheet: "Commissioning" },   // difilter di FE (Status = Expired/Near Expired)
     users:           { sheet: "Users" },
     exportHistory:   { sheet: "Export_History" },
-    activityLog:     { sheet: "Activity_Log" }
+    activityLog:     { sheet: "Activity_Log" },
+    masterSite:      { sheet: "Master_Site" },
+    picReminder:     { sheet: "Master_PIC_Reminder" },
+    masterChecklist: { sheet: "Master_Checklist" },
+    photoLog:        { sheet: "Photo_Log" },
+    checklistResult: { sheet: "Checklist_Result" },
+    documentUpload:  { sheet: "Document_Upload" },
+    formSubmission:  { sheet: "Form_Submission" },
+    reminderLog:     { sheet: "Reminder_Log" },
+    reminderSettingsSheet: { sheet: "Reminder_Settings" }
   }
 };
 
@@ -1138,11 +1147,56 @@ const DEMO_DATA = {
     {nama:"Data Waiting Sticker - Jul 2026",jenis:"Data Waiting Sticker",format:"PDF",oleh:"Abdul Azis",tanggal:"22 Jul 2026 07:55",status:"Selesai"}
   ],
   activityLog: [
-    {Timestamp:"29 Jul 2026 14:02", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"CO4536: Ready ZIP -> Diajukan Owner"},
+    {Timestamp:"29 Jul 2026 14:02", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"CO4536: Ready ZIP -> Diajukan"},
     {Timestamp:"29 Jul 2026 11:20", User:"Abdul Azis (Admin)", Action:"Tambah Data", Detail:"Master Unit baru: EX2044"},
-    {Timestamp:"28 Jul 2026 16:45", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"EX1021: Disetujui Owner -> Diajukan Portal"},
+    {Timestamp:"28 Jul 2026 16:45", User:"Abdul Azis (Admin)", Action:"Update Status", Detail:"EX1021: Disetujui -> Waiting Sticker"},
     {Timestamp:"28 Jul 2026 09:10", User:"Abdul Azis (Admin)", Action:"Hapus Data", Detail:"Commissioning CMS-old-002 dihapus"}
   ],
+  masterSite: [
+    {ID:"1", Site_Code:"BIB", Site_Name:"BIB (Owner)", Status:"Aktif"},
+    {ID:"2", Site_Code:"TIA", Site_Name:"TIA (Owner)", Status:"Aktif"}
+  ],
+  picReminder: [
+    {PIC_ID:"P001", Nama:"Abdul Azis", Role:"PIC", Email:"abdul.azis@ck.co.id", Status:"Aktif"},
+    {PIC_ID:"P002", Nama:"Hendro", Role:"PIC", Email:"hendro@ck.co.id", Status:"Aktif"},
+    {PIC_ID:"P003", Nama:"Rommy", Role:"PIC", Email:"rommy@ck.co.id", Status:"Aktif"},
+    {PIC_ID:"P004", Nama:"Supervisor GRB", Role:"Supervisor", Email:"supervisor.grb@ck.co.id", Status:"Aktif"},
+    {PIC_ID:"P005", Nama:"Admin Commissioning", Role:"Admin", Email:"admin.commissioning@ck.co.id", Status:"Aktif"}
+  ],
+  masterChecklist: [
+    {Checklist_No:"1", Item:"Kondisi Ban / Track", Kategori:"Safety"},
+    {Checklist_No:"2", Item:"Sistem Rem", Kategori:"Safety"},
+    {Checklist_No:"3", Item:"Lampu & Sirine", Kategori:"Safety"},
+    {Checklist_No:"4", Item:"APAR", Kategori:"Safety"},
+    {Checklist_No:"5", Item:"Kelengkapan P3K", Kategori:"Safety"},
+    {Checklist_No:"6", Item:"Kondisi Mesin", Kategori:"Teknis"},
+    {Checklist_No:"7", Item:"Kebocoran Oli/BBM", Kategori:"Teknis"}
+  ],
+  photoLog: [
+    {Photo_ID:"PH001", Unit_ID:"CO4536", Sisi:"Depan", URL:"https://drive.google.com/demo1"},
+    {Photo_ID:"PH002", Unit_ID:"CO4536", Sisi:"Belakang", URL:"https://drive.google.com/demo2"},
+    {Photo_ID:"PH003", Unit_ID:"CO4536", Sisi:"Kiri", URL:"https://drive.google.com/demo3"},
+    {Photo_ID:"PH004", Unit_ID:"CO4536", Sisi:"Kanan", URL:"https://drive.google.com/demo4"}
+  ],
+  checklistResult: [
+    {Result_ID:"R001", Unit_ID:"CO4536", Checklist_No:"1", Status:"OK"},
+    {Result_ID:"R002", Unit_ID:"CO4536", Checklist_No:"2", Status:"OK"},
+    {Result_ID:"R003", Unit_ID:"CO4536", Checklist_No:"3", Status:"Perlu Perhatian"}
+  ],
+  documentUpload: [
+    {Document_ID:"D001", Unit_ID:"CO4536", Jenis:"BAST", URL:"https://drive.google.com/demo-bast"},
+    {Document_ID:"D002", Unit_ID:"CO4536", Jenis:"History Maintenance", URL:"https://drive.google.com/demo-history"}
+  ],
+  formSubmission: [
+    {Submission_ID:"SUB001", Unit_ID:"CO4536", Site:"BIB", Area:"GRB", Tanggal:"20 Jul 2026 08:12", Submitted_By:"Teknisi Lapangan"},
+    {Submission_ID:"SUB002", Unit_ID:"EX1021", Site:"BIB", Area:"KGB", Tanggal:"10 Jun 2026 07:40", Submitted_By:"Teknisi Lapangan"}
+  ],
+  reminderLog: [
+    {Log_ID:"LG001", Tanggal:"22 Jul 2026", Jam:"08:00", Unit_ID:"CO4536", PIC:"Abdul Azis", Jenis:"H-30 Hari", Channel:"Email, Telegram", Status:"Berhasil"},
+    {Log_ID:"LG002", Tanggal:"22 Jul 2026", Jam:"08:00", Unit_ID:"WT0213", PIC:"Hendro", Jenis:"H-7 Hari", Channel:"Email, Telegram", Status:"Berhasil"},
+    {Log_ID:"LG003", Tanggal:"22 Jul 2026", Jam:"08:00", Unit_ID:"HD5678", PIC:"Rommy", Jenis:"Expired (H+1)", Channel:"Email, Telegram", Status:"Gagal"}
+  ],
+  reminderSettingsSheet: [],
   unitTypes: [
     {icon:"dump_truck",   jenis:"Heavy Dump Truck",    deskripsi:"Unit angkut berat untuk material",            status:"Aktif"},
     {icon:"excavator",    jenis:"Excavator",            deskripsi:"Unit alat gali",                              status:"Aktif"},
@@ -1202,14 +1256,7 @@ const DEMO_DATA = {
       {range:"Hari H (Expired) s/d H+3", target:"PIC + Supervisor + Superintendent", note:"Menerima reminder"},
       {range:"H+7 s/d H+14", target:"Manager Area", note:"Menerima reminder"}
     ]
-  },
-  reminderLog: [
-    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"CO4536",pic:"Abdul Azis",jenis:"H-30 Hari",channel:"Email, Telegram",status:"Berhasil",ket:"-"},
-    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"WT0213",pic:"Hendro",jenis:"H-7 Hari",channel:"Email, Telegram",status:"Berhasil",ket:"-"},
-    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"HD5678",pic:"Rommy",jenis:"Expired (H+1)",channel:"Email, Telegram",status:"Gagal",ket:"Email tidak valid"},
-    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"EX1021",pic:"Supervisor GRB",jenis:"H-14 Hari",channel:"Dashboard",status:"Berhasil",ket:"-"},
-    {tanggal:"22 Jul 2026",jam:"08:00",unitId:"FV1003",pic:"Admin",jenis:"Expired (H+1)",channel:"Email, Telegram",status:"Berhasil",ket:"-"}
-  ]
+  }
 };
 
 const ICON_LIBRARY = [
@@ -1729,7 +1776,7 @@ function renderJenisUnit(){
 ===================================================================== */
 function renderArea(){
   const rows = DB.area;
-  const siteCount = new Set(rows.map(r=>pick(r,['Site_Code','Site']))).size;
+  const siteCount = DB.masterSite.length;
   document.getElementById('areaStats').innerHTML = [
     statCard("TOTAL AREA", rows.length, "Area", "", "blue","📍"),
     statCard("TOTAL SITE", siteCount, "Site", "", "green","🏭"),
@@ -2132,6 +2179,7 @@ function openPrepModal(rawIndex, mode){
       <div class="modal-readonly-row"><span>Status Saat Ini</span><span>${status}</span></div>
     </div>
     ${prepModalFieldsHTML(raw, readonly)}
+    ${prepModalAttachmentsHTML(unitId)}
     ${readonly ? '<div style="text-align:center;"><span class="readonly-badge">Mode Lihat — klik ✏️ Edit untuk mengubah data</span></div>' : ''}
   `;
 
@@ -2142,6 +2190,49 @@ function openPrepModal(rawIndex, mode){
        <button class="btn btn-outline" onclick="closePrepModal()">Tutup</button>`;
 
   document.getElementById('prepModalOverlay').classList.add('show');
+}
+/* Foto 4 sisi, dokumen (BAST/History), dan detail checklist per-item -
+   diambil dari sheet Photo_Log, Document_Upload, Checklist_Result + Master_Checklist,
+   bukan cuma status ✓/✗ agregat seperti sebelumnya. */
+function prepModalAttachmentsHTML(unitId){
+  const photos = DB.photoLog.filter(p=>pick(p,['Unit_ID'])===unitId);
+  const docs = DB.documentUpload.filter(d=>pick(d,['Unit_ID'])===unitId);
+  const results = DB.checklistResult.filter(c=>pick(c,['Unit_ID'])===unitId);
+
+  const photosHTML = photos.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title"><b>📸 Foto (${photos.length})</b></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        ${photos.map(p=>`<a href="${pick(p,['URL'])}" target="_blank" style="font-size:11.5px;background:var(--gray-bg);padding:6px 10px;border-radius:8px;text-decoration:none;color:var(--text-700);">🖼️ ${pick(p,['Sisi'])}</a>`).join('')}
+      </div>
+    </div>` : '';
+
+  const docsHTML = docs.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title"><b>🧾 Dokumen (${docs.length})</b></div>
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        ${docs.map(d=>`<a href="${pick(d,['URL'])}" target="_blank" style="font-size:12px;color:var(--blue-600);text-decoration:none;">📄 ${pick(d,['Jenis'])} — buka dokumen ↗</a>`).join('')}
+      </div>
+    </div>` : '';
+
+  const checklistHTML = results.length ? `
+    <div class="modal-section">
+      <div class="modal-section-title"><b>📋 Checklist (${results.length} item)</b></div>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        ${results.map(r=>{
+          const cNo = pick(r,['Checklist_No']);
+          const item = DB.masterChecklist.find(m=>pick(m,['Checklist_No'])===cNo);
+          const itemName = item ? pick(item,['Item']) : `Item #${cNo}`;
+          const st = pick(r,['Status']);
+          const ok = String(st).toLowerCase()==='ok';
+          return `<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid var(--border);">
+            <span>${itemName}</span><span style="color:${ok?'var(--green)':'var(--orange)'};font-weight:700;">${ok?'✓ OK':'⚠ '+st}</span></div>`;
+        }).join('')}
+      </div>
+    </div>` : '';
+
+  if(!photosHTML && !docsHTML && !checklistHTML) return '';
+  return photosHTML + docsHTML + checklistHTML;
 }
 function closePrepModal(){
   document.getElementById('prepModalOverlay').classList.remove('show');
@@ -2444,7 +2535,7 @@ function deleteMasterUnit(unitId){
 function openCommissioningModal(commId, readonly){
   const raw = commId ? DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId) : null;
   const unitOptions = DB.masterUnit.map(m=>pick(m,['Unit_ID'])).filter(Boolean);
-  const siteOptions = [...new Set(DB.area.map(a=>pick(a,['Site_Code','Site'])))].filter(Boolean);
+  const siteOptions = DB.masterSite.map(s=>pick(s,['Site_Code'])).filter(Boolean);
   const areaOptions = [...new Set(DB.area.map(a=>pick(a,['Area_Code','Kode_Area'])))].filter(Boolean);
   openCrudModal({
     title: (readonly?'Detail':(commId?'Edit':'Tambah')) + ' Commissioning',
@@ -2490,7 +2581,7 @@ function deleteCommissioning(commId){
 /* ---------- USER MANAGEMENT: Tambah / Edit / Hapus ---------- */
 function openUserModal(userId){
   const raw = userId ? DB.users.find(u=>pick(u,['User_ID'])===userId) : null;
-  const siteOptions = ['Semua Site', ...new Set(DB.area.map(a=>pick(a,['Site'])))].filter(Boolean);
+  const siteOptions = ['Semua Site', ...DB.masterSite.map(s=>pick(s,['Site_Code']))].filter(Boolean);
   openCrudModal({
     title: userId ? 'Edit User' : 'Tambah User',
     sheet: 'Users',
@@ -2603,6 +2694,7 @@ async function downloadPrepZip(rawIndex){
 const SETTINGS_TABS = [
   {key:"umum", label:"Umum"},
   {key:"reminder", label:"Reminder"},
+  {key:"submission", label:"Riwayat Submission"},
   {key:"uploadFoto", label:"Upload & Foto"},
   {key:"dokumen", label:"Dokumen"},
   {key:"workflow", label:"Workflow"},
@@ -2628,9 +2720,31 @@ function renderPengaturan(){
 
   if(settingsActiveTab==='umum') renderSettingsUmum();
   else if(settingsActiveTab==='reminder') renderSettingsReminder();
+  else if(settingsActiveTab==='submission') renderSettingsSubmission();
   else if(settingsActiveTab==='logAktivitas') renderSettingsActivityLog();
   else if(settingsActiveTab==='changelog') renderSettingsChangelog();
   else renderSettingsComingSoon(settingsActiveTab);
+}
+
+/* =====================================================================
+   TAB: RIWAYAT SUBMISSION (Form_Submission) - log mentah pengajuan dari lapangan
+===================================================================== */
+function renderSettingsSubmission(){
+  const rows = DB.formSubmission;
+  document.getElementById('settingsTabContent').innerHTML = `
+    <div class="panel">
+      <div class="panel-title">RIWAYAT SUBMISSION DARI LAPANGAN <span style="font-weight:400;font-size:11px;color:var(--text-400)">(${rows.length} submission)</span></div>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>No</th><th>Unit ID</th><th>Site</th><th>Area</th><th>Tanggal Submit</th><th>Disubmit Oleh</th></tr></thead>
+          <tbody>
+            ${rows.map((r,i)=>`
+              <tr><td>${i+1}</td><td class="unit-id">${pick(r,['Unit_ID'])}</td><td><span class="pill blue">${pick(r,['Site'])}</span></td>
+              <td>${pick(r,['Area'])}</td><td>${pick(r,['Tanggal'])}</td><td>${pick(r,['Submitted_By'])}</td></tr>`).join('') || `<tr><td colspan="6" class="empty-state">Belum ada submission</td></tr>`}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
 }
 
 /* ---------- TAB: UMUM (Master Jenis Unit + Icon) ---------- */
@@ -2788,14 +2902,32 @@ function toggleJadwalItem(idx){
 function updateJadwalValue(idx, val){
   DB.reminderSettings.jadwal[idx].value = parseInt(val)||0;
 }
-function togglePenerimaItem(idx){
-  DB.reminderSettings.penerima[idx].checked = !DB.reminderSettings.penerima[idx].checked;
+/* Penerima reminder sekarang berdasarkan Master_PIC_Reminder asli (bukan hardcode demo).
+   Toggle "Aktif" langsung disimpan ke sheet lewat updateRow, sama seperti fitur CRUD lain. */
+async function togglePenerimaItem(picId){
+  const p = DB.picReminder.find(x=>pick(x,['PIC_ID'])===picId);
+  if(!p) return;
+  const curStatus = pick(p,['Status']);
+  const newStatus = isActiveStatus(curStatus) ? 'Non Aktif' : 'Aktif';
+  const result = await crudPost('updateRow', { sheet:'Master_PIC_Reminder', pk: picId, data:{ Status:newStatus } });
+  if(result.success){
+    p.Status = newStatus; // update lokal biar UI langsung responsif tanpa nunggu refresh penuh
+    logActivity('Update PIC Reminder', `${pick(p,['Nama'])}: ${newStatus}`);
+  }else{
+    showSaveToast('⚠ Gagal update (mode demo): '+(result.message||''), true);
+    p.Status = newStatus; // tetap update tampilan di mode demo biar terasa responsif
+  }
   renderSettingsReminder();
 }
-function toggleAllPenerima(){
-  const rs = DB.reminderSettings;
-  const allChecked = rs.penerima.every(p=>p.checked);
-  rs.penerima.forEach(p=> p.checked = !allChecked);
+async function toggleAllPenerima(){
+  const allChecked = DB.picReminder.every(p=>isActiveStatus(pick(p,['Status'])));
+  const newStatus = allChecked ? 'Non Aktif' : 'Aktif';
+  showSaveToast('⏳ Memperbarui semua penerima...');
+  for(const p of DB.picReminder){
+    await crudPost('updateRow', { sheet:'Master_PIC_Reminder', pk: pick(p,['PIC_ID']), data:{ Status:newStatus } });
+    p.Status = newStatus;
+  }
+  showSaveToast('✓ Semua penerima diperbarui');
   renderSettingsReminder();
 }
 function toggleJadwalPengiriman(idx){
@@ -2803,11 +2935,10 @@ function toggleJadwalPengiriman(idx){
   renderSettingsReminder();
 }
 function saveReminderSettings(){
-  alert('Perubahan pengaturan reminder berhasil disimpan (demo mode - belum tersambung ke spreadsheet).');
+  alert('Jadwal & channel reminder tersimpan (mode demo - belum tersambung ke spreadsheet).\n\nCatatan: daftar Penerima Reminder SUDAH tersambung ke Master_PIC_Reminder dan tersimpan otomatis setiap dicentang/dilepas.');
 }
 function renderSettingsReminder(){
   const rs = DB.reminderSettings;
-  const allChecked = rs.penerima.every(p=>p.checked);
 
   const col1 = `
     <div class="panel">
@@ -2845,21 +2976,21 @@ function renderSettingsReminder(){
   const col3 = `
     <div class="panel">
       <div class="panel-title">👥 PENERIMA REMINDER</div>
-      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Pilih penerima reminder. Semua PIC area yang dipilih akan menerima notifikasi.</p>
-      <label style="font-size:11.5px;font-weight:700;color:var(--text-600);">Berdasarkan Area</label>
-      <select class="area-select">
-        <option>${rs.areaFilter}</option>
-      </select>
-      ${rs.penerima.map((p,idx)=>`
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Pilih penerima reminder dari Master PIC Reminder. Perubahan langsung tersimpan ke spreadsheet.</p>
+      ${DB.picReminder.map(p=>{
+        const picId = pick(p,['PIC_ID']);
+        const isChecked = isActiveStatus(pick(p,['Status']));
+        return `
         <div class="penerima-item">
-          <input type="checkbox" ${p.checked?'checked':''} onchange="togglePenerimaItem(${idx})">
-          <div><span class="nm">${p.nama}</span><span class="role-pill">${p.role}</span></div>
-          <span class="em">${p.email}</span>
-        </div>`).join('')}
-      <div class="penerima-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px;">
-        <input type="checkbox" ${allChecked?'checked':''} onchange="toggleAllPenerima()">
+          <input type="checkbox" ${isChecked?'checked':''} onchange="togglePenerimaItem('${escJs(picId)}')">
+          <div><span class="nm">${pick(p,['Nama'])}</span><span class="role-pill">${pick(p,['Role'])}</span></div>
+          <span class="em">${pick(p,['Email'])}</span>
+        </div>`;
+      }).join('') || `<div class="empty-state" style="padding:16px 0;">Belum ada PIC terdaftar</div>`}
+      ${DB.picReminder.length ? `<div class="penerima-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px;">
+        <input type="checkbox" ${DB.picReminder.every(p=>isActiveStatus(pick(p,['Status'])))?'checked':''} onchange="toggleAllPenerima()">
         <b>Pilih Semua</b>
-      </div>
+      </div>` : ''}
     </div>`;
 
   const col4 = `
@@ -2931,21 +3062,14 @@ function renderSettingsReminder(){
       <div class="panel-title">🕓 RIWAYAT PENGIRIMAN REMINDER <span class="link" onclick="exportTableCSV('reminderLogTable','riwayat_reminder')">⬇ Export Log</span></div>
       <div style="overflow-x:auto">
         <table id="reminderLogTable">
-          <thead><tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Unit ID</th><th>PIC</th><th>Jenis Reminder</th><th>Channel</th><th>Status</th><th>Keterangan</th></tr></thead>
+          <thead><tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Unit ID</th><th>PIC</th><th>Jenis Reminder</th><th>Channel</th><th>Status</th></tr></thead>
           <tbody>
             ${DB.reminderLog.map((r,i)=>`
-              <tr><td>${i+1}</td><td>${r.tanggal}</td><td>${r.jam}</td><td class="unit-id">${r.unitId}</td><td>${r.pic}</td><td>${r.jenis}</td><td>${r.channel}</td><td>${pillFor(r.status)}</td><td>${r.ket}</td></tr>`).join('')}
+              <tr><td>${i+1}</td><td>${pick(r,['Tanggal'])}</td><td>${pick(r,['Jam'])}</td><td class="unit-id">${pick(r,['Unit_ID'])}</td><td>${pick(r,['PIC'])}</td><td>${pick(r,['Jenis'])}</td><td>${pick(r,['Channel'])}</td><td>${pillFor(pick(r,['Status']))}</td></tr>`).join('') || `<tr><td colspan="8" class="empty-state">Belum ada riwayat reminder terkirim</td></tr>`}
           </tbody>
         </table>
       </div>
-      <div class="pagination">
-        <div class="info">Menampilkan 1 - ${DB.reminderLog.length} dari 58 data</div>
-        <div class="pages">
-          <button disabled>‹</button>
-          <button class="active">1</button><button>2</button><button>3</button><button>…</button><button>12</button>
-          <button>›</button>
-        </div>
-      </div>
+      <div style="font-size:11.5px;color:var(--text-400);margin-top:8px;">Menampilkan ${DB.reminderLog.length} data terakhir</div>
     </div>`;
 
   document.getElementById('settingsTabContent').innerHTML = `
@@ -3211,7 +3335,9 @@ function renderUsers(){
    FILTER TOP BAR
 ===================================================================== */
 function populateTopFilters(){
-  const sites = [...new Set(DB.area.map(a=>pick(a,['Site_Code','Site'])))];
+  /* Site sekarang bersumber dari Master_Site (master data owner BIB/TIA yang sebenarnya),
+     bukan lagi ditebak dari nilai yang kebetulan ada di Master_Area */
+  const sites = DB.masterSite.map(s=>pick(s,['Site_Code'])).filter(Boolean);
   const areas = [...new Set(DB.area.map(a=>pick(a,['Area_Code','Kode_Area'])))];
   const jenisSel = document.getElementById('muJenis');
   jenisSel.innerHTML = '<option value="">Semua Jenis</option>' + DB.jenisUnit.map(j=>`<option>${pick(j,['Jenis_Unit','jenis'])}</option>`).join('');
