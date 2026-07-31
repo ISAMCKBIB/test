@@ -434,6 +434,20 @@ tbody tr:hover{ background:#f9fbff; }
 .inline-edit-cell:hover{ background:var(--gray-bg); outline:1px dashed var(--border); }
 .inline-edit-input{ border:1px solid var(--blue-600); border-radius:6px; padding:4px 6px; font-size:12.5px; font-family:inherit; }
 
+.need-prep-panel{
+  background:linear-gradient(135deg, #fff4e5, #ffe8d1); border:1px solid var(--orange);
+  border-radius:12px; padding:14px 18px; margin-bottom:18px;
+}
+.need-prep-panel .np-title{ font-size:13px; font-weight:800; color:#9a5b0f; margin-bottom:10px; display:flex; align-items:center; gap:8px; }
+.need-prep-row{
+  display:flex; align-items:center; gap:12px; background:#fff; border-radius:8px;
+  padding:9px 12px; margin-bottom:6px; font-size:12.5px; flex-wrap:wrap;
+}
+.need-prep-row:last-child{ margin-bottom:0; }
+.need-prep-row .np-badge{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; white-space:nowrap; }
+.need-prep-row .np-badge.exp{ background:var(--red-bg); color:var(--red); }
+.need-prep-row .np-badge.near{ background:var(--orange-bg); color:var(--orange); }
+
 .jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; }
 .jenis-card .jc-num{ font-size:20px; font-weight:800; }
 .jenis-card .jc-lb{ font-size:11px; color:var(--text-600); margin:2px 0 8px; }
@@ -821,6 +835,8 @@ tbody tr:hover{ background:#f9fbff; }
       <!-- ============ PREPARATION (was Waiting Sticker) ============ -->
       <div class="page" id="page-preparation">
         <div class="stat-grid" id="prepStats"></div>
+        <div id="needPrepPanel"></div>
+        <div id="needCommissioningPanel"></div>
         <div class="panel">
           <div class="toolbar">
             <input type="text" id="prepSearch" placeholder="Cari Unit ID, Model / Tipe, atau Serial Number..." oninput="livePrepSearch()">
@@ -1398,6 +1414,36 @@ function prepMiniStepper(status){
     return `<div class="mini-step ${cls}" title="${lb}"><span class="dot"></span><span class="lb">${lb}</span></div>`;
   }).join('') + `</div>`;
 }
+/* Bikin baris baru di Preparation_Tracking untuk unit yang commissioning-nya sudah
+   Near Expired/Expired - data Site/Area/Model diambil otomatis dari Commissioning &
+   Master Unit yang sudah ada, admin tidak perlu isi ulang dari nol. */
+async function startPreparationForUnit(unitId){
+  const c = DB.commissioning.find(x=>pick(x,['Unit_ID'])===unitId);
+  const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
+  const isExpired = c ? String(pick(c,['Status'])||'').toLowerCase().includes('expired') && !String(pick(c,['Status'])||'').toLowerCase().includes('near') : false;
+  const data = {
+    'Unit_ID (FK)': unitId,
+    'Model_Type': mu ? pick(mu,['Model_Unit']) : '',
+    'Serial_Number': mu ? pick(mu,['Serial_Number']) : '',
+    'Site': c ? pick(c,['Site']) : '',
+    'Area': c ? pick(c,['Area']) : '',
+    'Foto_4_Sisi': 'Belum',
+    'Checklist': 'Belum',
+    'BAST': 'Belum',
+    'History_Maintenance': 'Belum',
+    'Status_Preparation': 'Belum Lengkap',
+    'Prioritas': isExpired ? 'Tinggi' : 'Sedang'
+  };
+  showSaveToast('⏳ Memulai preparation untuk '+unitId+'...');
+  const result = await crudPost('addRow', { sheet:'Preparation_Tracking', data });
+  if(result.success){
+    logActivity('Mulai Preparation', `${unitId} (${isExpired?'Expired':'Near Expired'}) ditambahkan ke antrian preparation`);
+    showSaveToast('✓ '+unitId+' masuk antrian preparation');
+    manualRefresh();
+  }else{
+    showSaveToast('⚠ Gagal memulai preparation: '+(result.message||'Terjadi kesalahan'), true);
+  }
+}
 async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
   const prevRaw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
   const prevStatus = prevRaw ? (pick(prevRaw,['Status_Preparation'])||'Belum Lengkap') : '?';
@@ -1408,9 +1454,15 @@ async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
   const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data });
   if(result.success){
     logActivity('Update Status', `${unitId}: ${prevStatus} -> ${toStatus}`);
+    if(toStatus==='Selesai'){
+      logActivity('Perlu Input Commissioning', `${unitId}: preparation selesai, tunggu nomor registrasi baru lalu input manual di Commissioning`);
+    }
     if(!skipUndo){
       manualRefresh();
-      showUndoToast(`✓ ${unitId}: ${prevStatus} → ${toStatus}`, async ()=>{
+      const undoMsg = toStatus==='Selesai'
+        ? `✓ ${unitId}: Selesai. Jangan lupa input Commissioning baru begitu nomor registrasi terbit!`
+        : `✓ ${unitId}: ${prevStatus} → ${toStatus}`;
+      showUndoToast(undoMsg, async ()=>{
         showSaveToast('⏳ Membatalkan...');
         await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data:{ Status_Preparation: prevStatus, [dateField]: prevDateField } });
         logActivity('Batalkan Update Status', `${unitId}: kembali ke ${prevStatus}`);
@@ -1687,10 +1739,23 @@ function renderDashboard(){
     return st!=='Selesai' && hari>7;
   });
 
+  /* Hitung unit Near Expired/Expired yang belum ada di Preparation_Tracking sama sekali
+     (jembatan Commissioning <-> Preparation, sama seperti logika di renderPreparation) */
+  const existingPrepUnitIdsForCount = new Set(prepRows.map(p=>pick(p,['Unit_ID (FK)','Unit_ID'])));
+  const needPrepSeenForCount = new Set();
+  DB.commissioning.forEach(c=>{
+    const s = String(pick(c,['Status'])||'').toLowerCase();
+    if(!s.includes('expired')) return;
+    const uid = pick(c,['Unit_ID']);
+    if(!existingPrepUnitIdsForCount.has(uid)) needPrepSeenForCount.add(uid);
+  });
+  const needPrepCount = needPrepSeenForCount.size;
+
   /* PERLU TINDAKAN HARI INI - daftar aksi konkret, bukan cuma angka statistik.
      'action' berisi JS yang dijalankan saat diklik, langsung membawa konteks filter -
      tidak cuma pindah halaman lalu harus dicari-cari lagi manual. */
   const actionItems = [];
+  if(needPrepCount>0) actionItems.push({icon:'🔔',bg:'var(--red-bg)',color:'var(--red)',text:`${needPrepCount} unit Near Expired/Expired BELUM masuk antrian Preparation`, action:`goToPage('preparation')`});
   if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, action:`goToCommissioningFiltered('Expired')`});
   if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, action:`goToCommissioningFiltered('Near Expired')`});
   if(stuckUnits.length>0) actionItems.push({icon:'🐢',bg:'var(--orange-bg)',color:'var(--orange)',text:`${stuckUnits.length} unit macet >7 hari di Preparation — cek kendalanya`, action:`goToPage('preparation')`});
@@ -2042,6 +2107,65 @@ function renderPreparation(){
   prioritas: pick(r,['Prioritas']),
   hari: pick(r,['Hari_di_Preparation'])
 }));
+
+  /* UNIT PERLU MULAI PREPARATION - deteksi otomatis dari status Commissioning
+     (Near Expired / Expired) yang UNIT-nya belum punya baris di Preparation_Tracking.
+     Ini jembatan antara sheet Commissioning dan Preparation_Tracking yang sebelumnya
+     tidak nyambung sama sekali - dulu unit begini cuma kelihatan statusnya merah/oranye
+     di Commissioning, tapi nggak pernah otomatis masuk antrian persiapan ulang. */
+  const existingPrepUnitIds = new Set(rows.map(r=>r.unitId));
+  const needPrepSeen = new Set();
+  const needPrep = [];
+  DB.commissioning.forEach(c=>{
+    const s = String(pick(c,['Status'])||'').toLowerCase();
+    if(!s.includes('expired')) return; // ambil yang Near Expired ATAU Expired
+    const unitId = pick(c,['Unit_ID']);
+    if(needPrepSeen.has(unitId) || existingPrepUnitIds.has(unitId)) return;
+    needPrepSeen.add(unitId);
+    needPrep.push({ unitId, isExpired: s.includes('expired') && !s.includes('near'), site: pick(c,['Site']), area: pick(c,['Area']), sisa: pick(c,['Sisa_Hari']) });
+  });
+  needPrep.sort((a,b)=> (a.isExpired===b.isExpired) ? 0 : (a.isExpired?-1:1)); // Expired dulu
+
+  document.getElementById('needPrepPanel').innerHTML = needPrep.length ? `
+    <div class="need-prep-panel">
+      <div class="np-title">🔔 ${needPrep.length} UNIT PERLU MULAI PREPARATION (masa berlaku Near Expired / Expired, belum ada di antrian persiapan)</div>
+      ${needPrep.slice(0,8).map(n=>`
+        <div class="need-prep-row">
+          <span class="np-badge ${n.isExpired?'exp':'near'}">${n.isExpired?'EXPIRED':'NEAR EXPIRED'}</span>
+          <b>${n.unitId}</b>
+          <span style="color:var(--text-400)">${n.site} / ${n.area} — sisa ${n.sisa} hari</span>
+          <button class="btn btn-primary" style="margin-left:auto;font-size:11.5px;padding:6px 12px;" onclick="startPreparationForUnit('${escJs(n.unitId)}')">+ Mulai Preparation</button>
+        </div>`).join('')}
+      ${needPrep.length>8 ? `<div style="text-align:center;font-size:11.5px;color:#9a5b0f;margin-top:8px;">+${needPrep.length-8} unit lainnya perlu mulai preparation juga</div>` : ''}
+    </div>` : '';
+
+  /* PERLU INPUT COMMISSIONING BARU - kebalikan dari panel di atas: unit yang preparation-nya
+     SUDAH Selesai (stiker terpasang), tapi commissioning terbarunya masih berstatus Near
+     Expired/Expired (artinya nomor registrasi baru belum sempat diinput ke sistem).
+     Ini pengingat manual (bukan auto-draft) - sesuai keputusan kita, karena format nomor
+     & waktu terbitnya belum tentu sama tiap kali. */
+  const needCommissioning = [];
+  DB.preparation.forEach(p=>{
+    const st = pick(p,['Status_Preparation']);
+    if(st!=='Selesai') return;
+    const unitId = pick(p,['Unit_ID (FK)','Unit_ID']);
+    const relatedCom = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId);
+    const stillOld = relatedCom.some(c=>String(pick(c,['Status'])||'').toLowerCase().includes('expired'));
+    if(stillOld){
+      needCommissioning.push({ unitId, site: pick(p,['Site']), area: pick(p,['Area']), tanggalSelesai: pick(p,['Tanggal_Terpasang']) });
+    }
+  });
+  document.getElementById('needCommissioningPanel').innerHTML = needCommissioning.length ? `
+    <div class="need-prep-panel" style="background:linear-gradient(135deg,#e8f4ff,#d6ebff);border-color:var(--blue-600);">
+      <div class="np-title" style="color:var(--blue-600);">📝 ${needCommissioning.length} UNIT SUDAH SELESAI PREPARATION — BELUM ADA COMMISSIONING BARU</div>
+      ${needCommissioning.slice(0,8).map(n=>`
+        <div class="need-prep-row">
+          <b>${n.unitId}</b>
+          <span style="color:var(--text-400)">${n.site} / ${n.area} — selesai ${n.tanggalSelesai||'-'}</span>
+          <button class="btn btn-outline" style="margin-left:auto;font-size:11.5px;padding:6px 12px;" onclick="openCommissioningModal(null,false,'${escJs(n.unitId)}')">+ Input Commissioning Baru</button>
+        </div>`).join('')}
+      ${needCommissioning.length>8 ? `<div style="text-align:center;font-size:11.5px;color:var(--blue-600);margin-top:8px;">+${needCommissioning.length-8} unit lainnya</div>` : ''}
+    </div>` : '';
 
   const total = rows.length;
   const belum = rows.filter(r=>prepStageIndex(r.status)===0).length;
