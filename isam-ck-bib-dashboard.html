@@ -32,6 +32,7 @@ body{
   background:var(--gray-bg);
   color:var(--text-900);
   font-size:14px;
+  overflow-x:hidden; /* jaring pengaman: cegah seluruh halaman ikut geser ke samping kalau ada elemen lebar */
 }
 a{text-decoration:none; color:inherit;}
 
@@ -97,7 +98,7 @@ a{text-decoration:none; color:inherit;}
 .user-chip .un b{ display:block; font-size:12.5px; }
 .user-chip .un small{ color:#a9b3d8; font-size:10.5px; }
 
-.content{ padding:20px 22px 40px; overflow-x:auto; }
+.content{ padding:20px 22px 40px; overflow-x:hidden; }
 .breadcrumb{ font-size:12.5px; color:var(--text-400); margin-bottom:14px; }
 .breadcrumb b{ color:var(--text-900); }
 
@@ -386,8 +387,10 @@ tbody tr:hover{ background:#f9fbff; }
   display:flex; align-items:center; gap:8px;
   opacity:0; transform:translateY(10px); pointer-events:none; transition:.25s;
 }
-#saveToast.show{ opacity:1; transform:translateY(0);}
+#saveToast.show{ opacity:1; transform:translateY(0); pointer-events:auto;}
 #saveToast.err{ background:var(--red);}
+#saveToast .undo-btn{ background:rgba(255,255,255,.2); border:1px solid rgba(255,255,255,.4); color:#fff; padding:4px 10px; border-radius:6px; font-size:11.5px; font-weight:700; cursor:pointer; white-space:nowrap; }
+#saveToast .undo-btn:hover{ background:rgba(255,255,255,.32); }
 .icon-btn:disabled{ opacity:.4; cursor:not-allowed;}
 .icon-btn{ cursor:pointer; }
 
@@ -406,9 +409,30 @@ tbody tr:hover{ background:#f9fbff; }
 }
 .site-tab-bar .stab.active{ background:var(--navy-900); color:#fff; }
 
+/* Wrapper scroll tabel - fade di kanan sebagai petunjuk visual "masih ada kolom lagi ke kanan",
+   HANYA muncul di layar mobile karena di desktop tabel biasanya sudah cukup lebar. */
+.table-scroll-wrap{ overflow-x:auto; position:relative; }
+@media (max-width:900px){
+  .table-scroll-wrap{ position:relative; }
+  .table-scroll-wrap::after{
+    content:''; position:absolute; top:0; right:0; bottom:0; width:26px; pointer-events:none;
+    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(0,0,0,.08));
+  }
+}
+
 .funnel-item{ flex:1; min-width:100px; text-align:center; padding:12px 8px; border-radius:10px; background:var(--gray-bg); }
 .funnel-item .fn-num{ font-size:22px; font-weight:800; }
 .funnel-item .fn-lb{ font-size:10.5px; color:var(--text-400); margin-top:2px; }
+
+.prep-bulk-bar{
+  display:flex; align-items:center; gap:12px; flex-wrap:wrap;
+  background:var(--navy-50, #eaf0ff); border:1px solid var(--blue-600); border-radius:10px;
+  padding:10px 14px; margin-bottom:12px; font-size:12.5px;
+}
+
+.inline-edit-cell{ cursor:pointer; }
+.inline-edit-cell:hover{ background:var(--gray-bg); outline:1px dashed var(--border); }
+.inline-edit-input{ border:1px solid var(--blue-600); border-radius:6px; padding:4px 6px; font-size:12.5px; font-family:inherit; }
 
 .jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; }
 .jenis-card .jc-num{ font-size:20px; font-weight:800; }
@@ -646,7 +670,7 @@ tbody tr:hover{ background:#f9fbff; }
       <div class="tb-control">🕒 <span id="tbTime"></span></div>
       <div class="tb-control" id="connStatus" title="Status koneksi ke Google Apps Script">⏳ Memuat...</div>
       <div class="tb-icon-btn" id="refreshBtn" title="Refresh data dari spreadsheet" onclick="manualRefresh()" style="cursor:pointer">🔄</div>
-      <div class="tb-icon-btn" title="Lihat unit Expired &amp; Near Expired" onclick="goToPage('commissioning')" style="cursor:pointer">🔔<span class="badge-dot" id="notifCount">0</span></div>
+      <div class="tb-icon-btn" title="Lihat unit Expired &amp; Near Expired" onclick="goToCommissioningFiltered('Expired')" style="cursor:pointer">🔔<span class="badge-dot" id="notifCount">0</span></div>
       <div class="user-chip">
         <div class="avatar">A</div>
         <div class="un"><b>Abdul Azis</b><small>Administrator</small></div>
@@ -658,6 +682,10 @@ tbody tr:hover{ background:#f9fbff; }
       <!-- ============ DASHBOARD ============ -->
       <div class="page active" id="page-dashboard">
         <div id="dashExpiredHero"></div>
+        <div class="panel" style="margin-bottom:18px;">
+          <div class="panel-title">⚡ PERLU TINDAKAN HARI INI</div>
+          <div id="alertCenter"></div>
+        </div>
         <div class="stat-grid" id="dashStats"></div>
         <div class="two-col">
           <div class="panel">
@@ -680,7 +708,7 @@ tbody tr:hover{ background:#f9fbff; }
             <div>
               <div class="panel-title">🗂️ DAFTAR KOMISIONING</div>
               <div class="site-tab-bar" id="dashSiteTabs"></div>
-              <div style="overflow-x:auto">
+              <div class="table-scroll-wrap">
                 <table id="dashTable">
                   <thead id="dashTableHead"></thead>
                   <tbody id="dashTableBody"></tbody>
@@ -689,10 +717,6 @@ tbody tr:hover{ background:#f9fbff; }
               <div class="pagination" id="dashPagination"></div>
             </div>
             <div>
-              <div class="panel" style="margin-bottom:12px;">
-                <div class="panel-title">⚡ PERLU TINDAKAN HARI INI</div>
-                <div id="alertCenter"></div>
-              </div>
               <div class="panel">
                 <div class="panel-title">🕓 AKTIVITAS TERBARU <span class="link" onclick="goToPage('pengaturan')">Lihat Semua</span></div>
                 <div id="recentActivity"></div>
@@ -715,7 +739,7 @@ tbody tr:hover{ background:#f9fbff; }
             <button class="btn btn-primary" style="margin-left:auto" onclick="openMasterUnitModal(null)">+ Tambah Unit</button>
           </div>
           <div class="panel-title">DAFTAR MASTER UNIT</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="muTable">
               <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>Jenis Unit</th><th>Serial Number</th><th>Tahun</th><th>Status</th><th>BIB</th><th>TIA</th><th>Total</th><th>Aksi</th></tr></thead>
               <tbody id="muTableBody"></tbody>
@@ -730,7 +754,7 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="juStats"></div>
         <div class="panel">
           <div class="panel-title">DAFTAR JENIS UNIT</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="juTable">
               <thead><tr><th>No</th><th>Jenis Unit</th><th>Total Unit</th><th>Unit Aktif</th><th>Unit Tidak Aktif</th></tr></thead>
               <tbody id="juTableBody"></tbody>
@@ -744,7 +768,7 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="areaStats"></div>
         <div class="panel">
           <div class="panel-title">DAFTAR AREA</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="areaTable">
               <thead><tr><th>No</th><th>Kode Area</th><th>Nama Area</th><th>Site</th><th>Total Unit</th></tr></thead>
               <tbody id="areaTableBody"></tbody>
@@ -760,12 +784,18 @@ tbody tr:hover{ background:#f9fbff; }
           <div class="panel">
             <div class="toolbar">
               <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
+              <select id="comStatusFilter" onchange="renderCommissioning()">
+                <option value="">Semua Status</option>
+                <option value="Expired">Expired</option>
+                <option value="Near Expired">Near Expired</option>
+                <option value="Active">Aktif</option>
+              </select>
               <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
-              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';renderCommissioning()">↻ Reset</button>
+              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';renderCommissioning()">↻ Reset</button>
               <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
             </div>
             <div class="panel-title">DAFTAR KOMISIONING <span style="font-weight:400;font-size:11px;color:var(--text-400)">(Expired &amp; Near Expired ditampilkan lebih dulu)</span></div>
-            <div style="overflow-x:auto">
+            <div class="table-scroll-wrap">
               <table id="comTable">
                 <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
                 <tbody id="comTableBody"></tbody>
@@ -775,9 +805,10 @@ tbody tr:hover{ background:#f9fbff; }
           </div>
           <div>
             <div class="panel">
-              <div class="panel-title">⚠️ UNIT BELUM ADA COMMISSIONING</div>
-              <div style="font-size:11.5px;color:var(--text-400);margin:-6px 0 10px;">Unit ini sudah terdaftar di Master Unit tapi belum pernah diinput commissioning-nya sama sekali</div>
+              <div class="panel-title">⚠️ DATA PERLU DILENGKAPI</div>
+              <div style="font-size:11.5px;color:var(--text-400);margin:-6px 0 10px;">Unit belum ada commissioning sama sekali, atau Registration No masih kosong</div>
               <div id="missingCommissioningList"></div>
+              <div id="incompleteRegNoList" style="margin-top:6px;"></div>
             </div>
             <div class="panel" style="margin-top:12px;">
               <div class="panel-title">📊 RINGKASAN PER SITE</div>
@@ -811,10 +842,12 @@ tbody tr:hover{ background:#f9fbff; }
             <button class="btn btn-outline" onclick="resetPrepFilters()">↻ Reset</button>
             <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('prepTable','preparation_commissioning')">⬇ Export</button>
           </div>
+          <div id="prepBulkBar"></div>
           <div class="panel-title">DAFTAR PREPARATION COMMISSIONING</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="prepTable">
               <thead><tr>
+                <th><input type="checkbox" id="prepSelectAll" onchange="togglePrepSelectAll(this.checked)"></th>
                 <th>No</th><th>Unit ID</th><th>Model / Tipe</th><th>Serial Number</th><th>Site</th><th>Area</th>
                 <th>Foto (4 Sisi)</th><th>Checklist</th><th>BAST</th><th>History Maintenance</th>
                 <th>Progress</th><th>Tahap Tracking</th><th>Status Preparation</th><th>Prioritas</th><th>Hari di Preparation</th><th>Aksi</th>
@@ -849,7 +882,7 @@ tbody tr:hover{ background:#f9fbff; }
         <div class="stat-grid" id="lapStats"></div>
         <div class="panel">
           <div class="panel-title">DETAIL LAPORAN</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="lapTable">
               <thead id="lapTableHead"><tr><th>No</th><th>Keterangan</th><th>Jumlah Unit</th><th>Persentase</th></tr></thead>
               <tbody id="lapTableBody"></tbody>
@@ -870,7 +903,7 @@ tbody tr:hover{ background:#f9fbff; }
         </div>
         <div class="panel">
           <div class="panel-title">RIWAYAT EXPORT</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="exHistTable">
               <thead><tr><th>No</th><th>Nama Export</th><th>Jenis Data</th><th>Format</th><th>Dibuat Oleh</th><th>Tanggal Export</th><th>Status</th></tr></thead>
               <tbody id="exHistTableBody"></tbody>
@@ -890,7 +923,7 @@ tbody tr:hover{ background:#f9fbff; }
             <button class="btn btn-primary" style="margin-left:auto" onclick="openUserModal(null)">+ Tambah User</button>
           </div>
           <div class="panel-title">DAFTAR USER</div>
-          <div style="overflow-x:auto">
+          <div class="table-scroll-wrap">
             <table id="userTable">
               <thead><tr><th>No</th><th>Nama Lengkap</th><th>Username</th><th>Email</th><th>Role</th><th>Site</th><th>Area</th><th>Status</th><th>Aksi</th></tr></thead>
               <tbody id="userTableBody"></tbody>
@@ -1365,21 +1398,30 @@ function prepMiniStepper(status){
     return `<div class="mini-step ${cls}" title="${lb}"><span class="dot"></span><span class="lb">${lb}</span></div>`;
   }).join('') + `</div>`;
 }
-async function advancePrepStage(unitId, toStatus, dateField){
-  if(!confirm(`Ubah status unit ${unitId} menjadi "${toStatus}"? Pastikan tahap sebelumnya sudah benar-benar selesai di lapangan.`)) return;
+async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
   const prevRaw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
   const prevStatus = prevRaw ? (pick(prevRaw,['Status_Preparation'])||'Belum Lengkap') : '?';
-  showSaveToast('⏳ Memperbarui status...');
+  const prevDateField = prevRaw ? pick(prevRaw,[dateField]) : '';
   const data = { Status_Preparation: toStatus };
   const now = new Date();
   data[dateField] = now.toISOString().slice(0,16).replace('T',' ');
   const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data });
   if(result.success){
-    showSaveToast('✓ Status '+unitId+' berhasil diperbarui ke '+toStatus);
     logActivity('Update Status', `${unitId}: ${prevStatus} -> ${toStatus}`);
-    manualRefresh();
+    if(!skipUndo){
+      manualRefresh();
+      showUndoToast(`✓ ${unitId}: ${prevStatus} → ${toStatus}`, async ()=>{
+        showSaveToast('⏳ Membatalkan...');
+        await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data:{ Status_Preparation: prevStatus, [dateField]: prevDateField } });
+        logActivity('Batalkan Update Status', `${unitId}: kembali ke ${prevStatus}`);
+        manualRefresh();
+        showSaveToast('↩️ Dibatalkan, kembali ke '+prevStatus);
+      });
+    }
+    return true;
   }else{
-    showSaveToast('⚠ Gagal update status: '+(result.message||'Terjadi kesalahan'), true);
+    if(!skipUndo) showSaveToast('⚠ Gagal update status: '+(result.message||'Terjadi kesalahan'), true);
+    return false;
   }
 }
 
@@ -1490,6 +1532,15 @@ let currentPageKey = 'dashboard';
 function getGlobalFilteredUnitIds(){
   return null;
 }
+/* Navigasi ke Commissioning SEKALIGUS langsung terfilter sesuai status yang diklik,
+   supaya klik dari alert Dashboard tidak cuma "dilempar" ke halaman umum lalu harus
+   dicari-cari ulang manual. */
+function goToCommissioningFiltered(status){
+  goToPage('commissioning');
+  const sel = document.getElementById('comStatusFilter');
+  if(sel){ sel.value = status || ''; }
+  renderCommissioning();
+}
 function goToPage(key){
   currentPageKey = key;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
@@ -1585,7 +1636,7 @@ function renderDashboard(){
           <div class="eh-sub">${nearExp} unit lagi berstatus Near Expired (≤30 hari)</div>
         </div>
       </div>
-      <button class="eh-cta" onclick="goToPage('commissioning')">Lihat Detail →</button>
+      <button class="eh-cta" onclick="goToCommissioningFiltered('Expired')">Lihat Detail →</button>
     </div>`;
 
   document.getElementById('dashStats').innerHTML = [
@@ -1636,16 +1687,18 @@ function renderDashboard(){
     return st!=='Selesai' && hari>7;
   });
 
-  /* PERLU TINDAKAN HARI INI - daftar aksi konkret, bukan cuma angka statistik */
+  /* PERLU TINDAKAN HARI INI - daftar aksi konkret, bukan cuma angka statistik.
+     'action' berisi JS yang dijalankan saat diklik, langsung membawa konteks filter -
+     tidak cuma pindah halaman lalu harus dicari-cari lagi manual. */
   const actionItems = [];
-  if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, page:'commissioning'});
-  if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, page:'commissioning'});
-  if(stuckUnits.length>0) actionItems.push({icon:'🐢',bg:'var(--orange-bg)',color:'var(--orange)',text:`${stuckUnits.length} unit macet >7 hari di Preparation — cek kendalanya`, page:'preparation'});
-  if(waitingSticker>0) actionItems.push({icon:'📦',bg:'#eaf0ff',color:'var(--blue-600)',text:`${waitingSticker} unit menunggu stiker fisik dikirim`, page:'preparation'});
-  if(actionItems.length===0) actionItems.push({icon:'✅',bg:'var(--green-bg)',color:'var(--green)',text:'Semua unit dalam kondisi baik, tidak ada tindakan mendesak', page:null});
+  if(expired>0) actionItems.push({icon:'❌',bg:'var(--red-bg)',color:'var(--red)',text:`${expired} unit Expired — segera proses commissioning ulang`, action:`goToCommissioningFiltered('Expired')`});
+  if(nearExp>0) actionItems.push({icon:'⚠️',bg:'var(--orange-bg)',color:'var(--orange)',text:`${nearExp} unit Near Expired (≤30 hari) — mulai ajukan sekarang`, action:`goToCommissioningFiltered('Near Expired')`});
+  if(stuckUnits.length>0) actionItems.push({icon:'🐢',bg:'var(--orange-bg)',color:'var(--orange)',text:`${stuckUnits.length} unit macet >7 hari di Preparation — cek kendalanya`, action:`goToPage('preparation')`});
+  if(waitingSticker>0) actionItems.push({icon:'📦',bg:'#eaf0ff',color:'var(--blue-600)',text:`${waitingSticker} unit menunggu stiker fisik dikirim`, action:`goToPage('preparation')`});
+  if(actionItems.length===0) actionItems.push({icon:'✅',bg:'var(--green-bg)',color:'var(--green)',text:'Semua unit dalam kondisi baik, tidak ada tindakan mendesak', action:null});
 
   document.getElementById('alertCenter').innerHTML = actionItems.map(a=>`
-    <div class="alert-item" ${a.page?`style="cursor:pointer" onclick="goToPage('${a.page}')"`:''}>
+    <div class="alert-item" ${a.action?`style="cursor:pointer" onclick="${a.action}"`:''}>
       <div class="alert-ic" style="background:${a.bg};color:${a.color}">${a.icon}</div>
       <div><b>${a.text}</b></div>
     </div>`).join('');
@@ -1813,11 +1866,21 @@ function renderCommissioning(){
     statCard("EXPIRED", exp, "Data", `${pct(exp,total)}% dari total komisioning`, "red","❌")
   ].join('');
   const term = document.getElementById('comSearch').value;
+  const statusFilter = document.getElementById('comStatusFilter').value;
   let filtered = rows.filter(r=>{
     if(!term) return true;
     const t = term.toLowerCase();
     return [pick(r,['Unit_ID']),pick(r,['Registration_No'])].some(v=>String(v||'').toLowerCase().includes(t));
   });
+  if(statusFilter){
+    filtered = filtered.filter(r=>{
+      const s = String(pick(r,['Status'])||'').toLowerCase();
+      if(statusFilter==='Expired') return s.includes('expired') && !s.includes('near');
+      if(statusFilter==='Near Expired') return s.includes('near');
+      if(statusFilter==='Active') return s==='active'||s==='aktif';
+      return true;
+    });
+  }
   /* SORT PRIORITAS: Expired dulu, lalu Near Expired, baru sisanya (Active/dll) -
      supaya yang paling butuh perhatian langsung kelihatan di atas, bukan tersembunyi di halaman lain */
   function priorityRank(r){
@@ -1838,7 +1901,9 @@ function renderCommissioning(){
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
     const sisa = pick(r,['Sisa_Hari']);
     return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
-    <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td><td>${pick(r,['Registration_No'])}</td><td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
+    <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td>
+    <td class="inline-edit-cell" data-comm-id="${escJs(commId)}" data-field="Registration_No" onclick="startInlineEdit(this)" title="Klik untuk edit">${pick(r,['Registration_No']) || '<span style="color:var(--text-300);font-style:italic;">+ isi Reg. No</span>'}</td>
+    <td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
     <td style="color:${Number(sisa)<0?'var(--red)':Number(sisa)<=30?'var(--orange)':'inherit'}">${sisa} Hari</td>
     <td>${pillFor(pick(r,['Status']))}</td><td><button class="icon-btn blue" title="Lihat Detail (read-only)" onclick="viewCommissioning('${escJs(commId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openCommissioningModal('${escJs(commId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteCommissioning('${escJs(commId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="12" class="empty-state">Tidak ada data</td></tr>`;
@@ -1849,12 +1914,26 @@ function renderCommissioning(){
   const unitIdsWithCommissioning = new Set(DB.commissioning.map(c=>pick(c,['Unit_ID'])));
   const missingUnits = DB.masterUnit.filter(m=>!unitIdsWithCommissioning.has(pick(m,['Unit_ID'])));
   document.getElementById('missingCommissioningList').innerHTML = missingUnits.length
-    ? missingUnits.slice(0,15).map(m=>`
-        <div class="alert-item" style="cursor:pointer" onclick="openCommissioningModal(null)">
+    ? missingUnits.slice(0,10).map(m=>`
+        <div class="alert-item" style="cursor:pointer" onclick="openCommissioningModal(null,false,'${escJs(pick(m,['Unit_ID']))}')">
           <div class="alert-ic" style="background:var(--red-bg);color:var(--red)">❗</div>
-          <div><b>${pick(m,['Unit_ID'])}</b><br><small>${pick(m,['Model_Unit'])} — belum ada Registration No</small></div>
-        </div>`).join('') + (missingUnits.length>15 ? `<div style="text-align:center;font-size:11.5px;color:var(--text-400);margin-top:8px;">+${missingUnits.length-15} unit lainnya</div>` : '')
-    : `<div class="empty-state" style="padding:24px 0;">✅ Semua unit di Master Unit sudah punya data commissioning</div>`;
+          <div><b>${pick(m,['Unit_ID'])}</b><br><small>${pick(m,['Model_Unit'])} — belum ada commissioning sama sekali, klik untuk isi</small></div>
+        </div>`).join('') + (missingUnits.length>10 ? `<div style="text-align:center;font-size:11.5px;color:var(--text-400);margin-top:8px;">+${missingUnits.length-10} unit lainnya</div>` : '')
+    : `<div class="empty-state" style="padding:12px 0;">✅ Semua unit di Master Unit sudah punya data commissioning</div>`;
+
+  /* REGISTRATION NO KOSONG - baris commissioning yang SUDAH ada tapi Registration_No-nya
+     belum diisi (mis. baris Site=TIA yang tanggalnya sudah terisi tapi No Regist-nya belum). */
+  const incompleteRegNo = DB.commissioning.filter(c=>!pick(c,['Registration_No']));
+  document.getElementById('incompleteRegNoList').innerHTML = incompleteRegNo.length
+    ? `<div style="font-size:11px;font-weight:700;color:var(--orange);margin:8px 0 4px;">📝 Registration No kosong (${incompleteRegNo.length})</div>` +
+      incompleteRegNo.slice(0,10).map(c=>{
+        const commId = pick(c,['Commissioning_ID']);
+        return `<div class="alert-item" style="cursor:pointer" onclick="openCommissioningModal('${escJs(commId)}')">
+          <div class="alert-ic" style="background:var(--orange-bg);color:var(--orange)">📝</div>
+          <div><b>${pick(c,['Unit_ID'])} (${pick(c,['Site'])})</b><br><small>Registration No belum diisi</small></div>
+        </div>`;
+      }).join('') + (incompleteRegNo.length>10 ? `<div style="text-align:center;font-size:11.5px;color:var(--text-400);margin-top:8px;">+${incompleteRegNo.length-10} data lainnya</div>` : '')
+    : '';
 
   /* RINGKASAN PER SITE - isi ruang kosong + kasih gambaran cepat perbandingan BIB vs TIA */
   const siteList = [...new Set(rows.map(r=>pick(r,['Site'])))].filter(Boolean);
@@ -1882,6 +1961,61 @@ function renderCommissioning(){
    RENDER: PREPARATION
 ===================================================================== */
 let prepPage=1;
+let selectedPrepUnits = new Set();
+function togglePrepRow(unitId, checked){
+  if(checked) selectedPrepUnits.add(unitId); else selectedPrepUnits.delete(unitId);
+  updatePrepBulkBar();
+}
+function togglePrepSelectAll(checked){
+  document.querySelectorAll('.prep-row-check').forEach(cb=>{
+    cb.checked = checked;
+    if(checked) selectedPrepUnits.add(cb.dataset.unitId); else selectedPrepUnits.delete(cb.dataset.unitId);
+  });
+  updatePrepBulkBar();
+}
+/* Bulk action cuma masuk akal kalau semua unit yang dicentang berada di TAHAP YANG SAMA
+   (karena "tahap berikutnya" beda-beda tergantung posisi sekarang). Kalau campur, kasih tahu
+   pengguna kenapa tombolnya tidak muncul, bukan diam-diam tidak ngapa-ngapain. */
+function updatePrepBulkBar(){
+  const bar = document.getElementById('prepBulkBar');
+  if(!bar) return;
+  if(selectedPrepUnits.size===0){ bar.innerHTML = ''; return; }
+  const statuses = new Set();
+  selectedPrepUnits.forEach(uid=>{
+    const raw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===uid);
+    statuses.add(raw ? (pick(raw,['Status_Preparation'])||'Belum Lengkap') : '?');
+  });
+  if(statuses.size===1){
+    const commonStatus = [...statuses][0];
+    const next = prepNextAction(commonStatus);
+    bar.innerHTML = `
+      <div class="prep-bulk-bar">
+        <b>${selectedPrepUnits.size} unit dipilih</b> (semua di tahap "${commonStatus}")
+        ${next ? `<button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="bulkAdvancePrepStage('${next.to}','${next.field}')">${next.label} (${selectedPrepUnits.size} unit)</button>`
+               : `<span style="font-size:12px;color:var(--text-400)">Tidak ada aksi lanjutan untuk tahap ini</span>`}
+        <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;margin-left:auto" onclick="selectedPrepUnits.clear();renderPreparation();">Batal Pilih</button>
+      </div>`;
+  } else {
+    bar.innerHTML = `
+      <div class="prep-bulk-bar">
+        <b>${selectedPrepUnits.size} unit dipilih</b>
+        <span style="font-size:12px;color:var(--orange)">⚠ Tahapnya beda-beda (${[...statuses].join(', ')}) — bulk action cuma bisa kalau semua unit di tahap yang sama</span>
+        <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;margin-left:auto" onclick="selectedPrepUnits.clear();renderPreparation();">Batal Pilih</button>
+      </div>`;
+  }
+}
+async function bulkAdvancePrepStage(toStatus, dateField){
+  const units = [...selectedPrepUnits];
+  showSaveToast(`⏳ Memproses ${units.length} unit...`);
+  let successCount = 0;
+  for(const unitId of units){
+    const result = await advancePrepStage(unitId, toStatus, dateField, true); // skipUndo=true, proses tanpa toast per-unit
+    if(result===true) successCount++;
+  }
+  selectedPrepUnits.clear();
+  manualRefresh();
+  showSaveToast(`✓ ${successCount}/${units.length} unit berhasil diperbarui ke ${toStatus}`);
+}
 function resetPrepFilters(){
   document.getElementById('prepSearch').value='';
   document.getElementById('prepSite').value='';
@@ -1953,6 +2087,7 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
   }
   return `
   <tr>
+    <td><input type="checkbox" class="prep-row-check" data-unit-id="${escJs(r.unitId)}" ${selectedPrepUnits.has(r.unitId)?'checked':''} onchange="togglePrepRow('${escJs(r.unitId)}', this.checked)"></td>
     <td>${(prepPage-1)*perPage+i+1}</td>
     <td class="unit-id">${r.unitId}</td>
     <td>${r.model}</td>
@@ -1980,7 +2115,7 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
       </div>
     </td>
   </tr>`;
-}).join('') || `<tr><td colspan="16" class="empty-state">Tidak ada data preparation</td></tr>`;
+}).join('') || `<tr><td colspan="17" class="empty-state">Tidak ada data preparation</td></tr>`;
 
   /* FUNNEL PROGRES TAHAP - isi ruang kosong bawah + kasih gambaran distribusi semua unit per tahap */
   const funnelStages = ['Belum Lengkap','Waiting Admin','Waiting History','Ready ZIP','Diajukan','Disetujui','Waiting Sticker','Selesai'];
@@ -1988,6 +2123,8 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
     const n = rows.filter(r=>r.status===s).length;
     return `<div class="funnel-item"><div class="fn-num">${n}</div><div class="fn-lb">${s}</div></div>`;
   }).join('');
+
+  updatePrepBulkBar();
 }
 
 /* =====================================================================
@@ -2306,6 +2443,20 @@ function showSaveToast(msg, isErr){
   clearTimeout(window.__saveToastTimer);
   window.__saveToastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 3000);
 }
+/* Toast dengan tombol "Batalkan" - dipakai untuk aksi cepat 1-klik (tanpa popup konfirmasi)
+   tapi tetap ada jeda buat batalin kalau salah pencet. */
+function showUndoToast(msg, undoFn){
+  const el = document.getElementById('saveToast');
+  el.innerHTML = `<span>${msg}</span><button class="undo-btn" id="toastUndoBtn">↩️ Batalkan</button>`;
+  el.className = 'show';
+  clearTimeout(window.__saveToastTimer);
+  const btn = document.getElementById('toastUndoBtn');
+  if(btn) btn.onclick = async ()=>{
+    el.classList.remove('show');
+    await undoFn();
+  };
+  window.__saveToastTimer = setTimeout(()=>{ el.classList.remove('show'); }, 6000);
+}
 
 /* =====================================================================
    CRUD GENERIK: Tambah / Edit / Hapus baris data
@@ -2532,7 +2683,7 @@ function deleteMasterUnit(unitId){
 }
 
 /* ---------- COMMISSIONING: Tambah / Edit / Hapus ---------- */
-function openCommissioningModal(commId, readonly){
+function openCommissioningModal(commId, readonly, presetUnitId){
   const raw = commId ? DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId) : null;
   const unitOptions = DB.masterUnit.map(m=>pick(m,['Unit_ID'])).filter(Boolean);
   const siteOptions = DB.masterSite.map(s=>pick(s,['Site_Code'])).filter(Boolean);
@@ -2545,7 +2696,7 @@ function openCommissioningModal(commId, readonly){
     readonly: !!readonly,
     fields: [
       {key:'Commissioning_ID', hidden:true, generator:()=>'CMS-'+Date.now()},
-      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true, onchange:'autoFillCommissioningFromUnit(this.value)'},
+      {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true, default:presetUnitId||'', onchange:'autoFillCommissioningFromUnit(this.value)'},
       {key:'Site', label:'Site (otomatis, boleh diubah)', type:'select', options: siteOptions, required:true},
       {key:'Area', label:'Area (otomatis, boleh diubah)', type:'select', options: areaOptions, required:true},
       {key:'Registration_No', label:'Registration No (selalu baru)', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
@@ -2558,7 +2709,8 @@ function openCommissioningModal(commId, readonly){
       }
       return null;
     },
-    onDone: manualRefresh
+    onDone: manualRefresh,
+    onRendered: ()=>{ if(presetUnitId) autoFillCommissioningFromUnit(presetUnitId); }
   });
 }
 /* Kalau Unit ID dipilih (khusus saat TAMBAH baru), otomatis isi Site & Area dari
@@ -2574,6 +2726,41 @@ function autoFillCommissioningFromUnit(unitId){
   if(areaEl) areaEl.value = pick(latest,['Area']);
 }
 function viewCommissioning(commId){ openCommissioningModal(commId, true); }
+
+/* =====================================================================
+   INLINE EDIT - klik sel di tabel Commissioning, ketik, simpan otomatis
+   (tanpa buka modal) - dipakai buat isi Registration_No yang masih kosong secara cepat.
+===================================================================== */
+function startInlineEdit(td){
+  if(td.querySelector('input')) return; // sudah dalam mode edit
+  const commId = td.dataset.commId;
+  const field = td.dataset.field;
+  const raw = DB.commissioning.find(c=>pick(c,['Commissioning_ID'])===commId);
+  const currentValue = raw ? (pick(raw,[field])||'') : '';
+  td.innerHTML = `<input type="text" class="inline-edit-input" value="${String(currentValue).replace(/"/g,'&quot;')}" style="width:100%;">`;
+  const input = td.querySelector('input');
+  input.focus();
+  input.select();
+  const save = async ()=>{
+    const newValue = input.value.trim();
+    if(newValue === currentValue){ renderCommissioning(); return; }
+    td.innerHTML = `<span style="color:var(--text-400);">⏳ Menyimpan...</span>`;
+    const result = await crudPost('updateRow', { sheet:'Commissioning', pk: commId, data:{ [field]: newValue } });
+    if(result.success){
+      logActivity('Edit Inline', `${commId}: ${field} = "${newValue}"`);
+      showSaveToast('✓ Tersimpan');
+      manualRefresh();
+    }else{
+      showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
+      renderCommissioning();
+    }
+  };
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', (e)=>{
+    if(e.key==='Enter') input.blur();
+    if(e.key==='Escape'){ input.removeEventListener('blur', save); renderCommissioning(); }
+  });
+}
 function deleteCommissioning(commId){
   crudDeleteRow('Commissioning', commId, `Commissioning ${commId}`, manualRefresh);
 }
@@ -2734,7 +2921,7 @@ function renderSettingsSubmission(){
   document.getElementById('settingsTabContent').innerHTML = `
     <div class="panel">
       <div class="panel-title">RIWAYAT SUBMISSION DARI LAPANGAN <span style="font-weight:400;font-size:11px;color:var(--text-400)">(${rows.length} submission)</span></div>
-      <div style="overflow-x:auto">
+      <div class="table-scroll-wrap">
         <table>
           <thead><tr><th>No</th><th>Unit ID</th><th>Site</th><th>Area</th><th>Tanggal Submit</th><th>Disubmit Oleh</th></tr></thead>
           <tbody>
@@ -2810,7 +2997,7 @@ function renderSettingsUmum(keepScroll){
         <input type="text" id="utSearch" placeholder="Cari jenis unit..." style="max-width:220px;margin-left:auto" oninput="renderSettingsUmum()">
         <button class="btn btn-primary" onclick="unitTypeSubtab='tambah';unitTypeEditIndex=null;unitTypeFormIcon='motor_grader';renderSettingsUmum();">+ Tambah Jenis Unit</button>
       </div>
-      <div style="overflow-x:auto">
+      <div class="table-scroll-wrap">
         <table id="utTable">
           <thead><tr><th>No</th><th>Icon</th><th>Jenis Unit</th><th>Deskripsi</th><th>Status</th><th>Aksi</th></tr></thead>
           <tbody id="utTableBody"></tbody>
@@ -3060,7 +3247,7 @@ function renderSettingsReminder(){
   const logPanel = `
     <div class="panel">
       <div class="panel-title">🕓 RIWAYAT PENGIRIMAN REMINDER <span class="link" onclick="exportTableCSV('reminderLogTable','riwayat_reminder')">⬇ Export Log</span></div>
-      <div style="overflow-x:auto">
+      <div class="table-scroll-wrap">
         <table id="reminderLogTable">
           <thead><tr><th>No</th><th>Tanggal</th><th>Jam</th><th>Unit ID</th><th>PIC</th><th>Jenis Reminder</th><th>Channel</th><th>Status</th></tr></thead>
           <tbody>
@@ -3144,7 +3331,7 @@ function renderSettingsActivityLog(){
     </div>
     <div class="panel">
       <div class="panel-title">LOG AKTIVITAS (AUDIT TRAIL) <button class="btn btn-outline" style="font-size:11.5px;padding:5px 10px" onclick="manualRefresh()">🔄 Refresh</button></div>
-      <div style="overflow-x:auto">
+      <div class="table-scroll-wrap">
         <table>
           <thead><tr><th>Waktu</th><th>User</th><th>Aksi</th><th>Detail</th></tr></thead>
           <tbody>
@@ -3285,18 +3472,39 @@ function renderExportData(){
     <div class="export-card ${selectedExportType===t.key?'sel':''}" onclick="selectedExportType='${t.key}';renderExportData()">
       <div class="t">${t.t}</div><div class="d">${t.d}</div><div class="chk">✓</div></div>`).join('');
 
-  document.getElementById('exHistTableBody').innerHTML = DB.exportHistory.map((r,i)=>`
-    <tr><td>${i+1}</td><td>${r.nama}</td><td>${r.jenis}</td><td><span class="pill ${r.format==='XLSX'?'green':'red'}">${r.format}</span></td>
-    <td>${r.oleh}</td><td>${r.tanggal}</td><td>${pillFor(r.status)}</td></tr>`).join('');
+  document.getElementById('exHistTableBody').innerHTML = DB.exportHistory.map((r,i)=>{
+    const nama = pick(r,['Nama_File','nama']);
+    const jenis = pick(r,['Jenis_Data','jenis']);
+    const format = pick(r,['Format','format']);
+    const oleh = pick(r,['Oleh','oleh']);
+    const tanggal = pick(r,['Tanggal','tanggal']);
+    const status = pick(r,['Status','status']);
+    return `<tr><td>${i+1}</td><td>${nama}</td><td>${jenis}</td><td><span class="pill ${format==='XLSX'?'green':'red'}">${format}</span></td>
+    <td>${oleh}</td><td>${tanggal}</td><td>${pillFor(status)}</td></tr>`;
+  }).join('') || `<tr><td colspan="7" class="empty-state">Belum ada riwayat export</td></tr>`;
 }
-function doExportNow(){
+async function doExportNow(){
   const map = {masterUnit:'muTable', commissioning:'comTable', preparation:'prepTable'};
   const tId = map[selectedExportType];
   if(selectedExportType==='masterUnit') renderMasterUnit();
   if(selectedExportType==='commissioning') renderCommissioning();
   if(selectedExportType==='preparation') renderPreparation();
   exportTableCSV(tId, selectedExportType+'_export');
-  DB.exportHistory.unshift({nama:`Export ${selectedExportType} - manual`, jenis:selectedExportType, format:document.getElementById('exFormat').value.toUpperCase(), oleh:"Abdul Azis", tanggal:new Date().toLocaleString('id-ID'), status:"Selesai"});
+  const format = document.getElementById('exFormat').value.toUpperCase();
+  const historyData = {
+    Export_ID: 'EXP-'+Date.now(),
+    Nama_File: `Export ${selectedExportType} - manual`,
+    Jenis_Data: selectedExportType,
+    Format: format,
+    Oleh: CURRENT_USER_NAME,
+    Tanggal: new Date().toLocaleString('id-ID'),
+    Status: 'Selesai'
+  };
+  const result = await crudPost('addRow', { sheet:'Export_History', data:historyData });
+  if(result.success){
+    logActivity('Export Data', `${selectedExportType} (${format})`);
+  }
+  DB.exportHistory.unshift(historyData); // langsung tampil di UI tanpa nunggu refresh, walau gagal simpan ke sheet
   renderExportData();
 }
 
