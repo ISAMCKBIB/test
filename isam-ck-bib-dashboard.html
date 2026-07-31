@@ -1421,12 +1421,16 @@ function prepMiniStepper(status){
    Near Expired/Expired - data Site/Area/Model diambil otomatis dari Commissioning &
    Master Unit yang sudah ada, admin tidak perlu isi ulang dari nol. */
 async function startPreparationForUnit(unitId){
-  /* Guard: kalau unit ini SUDAH ada di DB.preparation (misal race condition klik ganda,
-     atau data barusan berhasil ditambahkan tapi tombolnya sempat ke-klik lagi), jangan
-     kirim addRow kedua kali - itu penyebab duplikasi di sheet. */
-  const alreadyExists = DB.preparation.some(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
+  /* Guard: cek apakah unit ini SUDAH punya siklus preparation yang masih AKTIF
+     (status != 'Selesai'). Riwayat yang sudah 'Selesai' itu WAJAR ada banyak
+     (tiap kali commissioning expired lagi, unit itu preparation lagi) - jadi
+     yang perlu dicegah cuma duplikat siklus yang BELUM selesai, bukan riwayat lama. */
+  const alreadyExists = DB.preparation.some(p=>{
+    const st = pick(p,['Status_Preparation']) || 'Belum Lengkap';
+    return pick(p,['Unit_ID (FK)','Unit_ID'])===unitId && st!=='Selesai';
+  });
   if(alreadyExists){
-    showSaveToast('⚠ '+unitId+' sudah ada di Preparation, tidak ditambahkan lagi', true);
+    showSaveToast('⚠ '+unitId+' masih punya siklus preparation yang berjalan, tidak ditambahkan lagi', true);
     document.getElementById('need-prep-row-'+unitId)?.remove();
     return;
   }
@@ -1436,7 +1440,10 @@ async function startPreparationForUnit(unitId){
   const c = DB.commissioning.find(x=>pick(x,['Unit_ID'])===unitId);
   const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
   const isExpired = c ? String(pick(c,['Status'])||'').toLowerCase().includes('expired') && !String(pick(c,['Status'])||'').toLowerCase().includes('near') : false;
+  const prepId = 'PREP-'+Date.now();
+  const nowStr = new Date().toISOString().slice(0,16).replace('T',' ');
   const data = {
+    'Prep_ID': prepId,
     'Unit_ID (FK)': unitId,
     'Model_Type': mu ? pick(mu,['Model_Unit']) : '',
     'Serial_Number': mu ? pick(mu,['Serial_Number']) : '',
@@ -1447,7 +1454,8 @@ async function startPreparationForUnit(unitId){
     'BAST': 'Belum',
     'History_Maintenance': 'Belum',
     'Status_Preparation': 'Belum Lengkap',
-    'Prioritas': isExpired ? 'Tinggi' : 'Sedang'
+    'Prioritas': isExpired ? 'Tinggi' : 'Sedang',
+    'Tgl_Mulai_Preparation': nowStr
   };
   showSaveToast('⏳ Memulai preparation untuk '+unitId+'...');
   const result = await crudPost('addRow', { sheet:'Preparation_Tracking', data });
@@ -1466,14 +1474,14 @@ async function startPreparationForUnit(unitId){
     if(btn){ btn.disabled = false; btn.innerText = '+ Mulai Preparation'; }
   }
 }
-async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
-  const prevRaw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
+async function advancePrepStage(prepId, unitId, toStatus, dateField, skipUndo){
+  const prevRaw = DB.preparation.find(p=>pick(p,['Prep_ID'])===prepId);
   const prevStatus = prevRaw ? (pick(prevRaw,['Status_Preparation'])||'Belum Lengkap') : '?';
   const prevDateField = prevRaw ? pick(prevRaw,[dateField]) : '';
   const data = { Status_Preparation: toStatus };
   const now = new Date();
   data[dateField] = now.toISOString().slice(0,16).replace('T',' ');
-  const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data });
+  const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: prepId, data });
   if(result.success){
     logActivity('Update Status', `${unitId}: ${prevStatus} -> ${toStatus}`);
     if(toStatus==='Selesai'){
@@ -1486,7 +1494,7 @@ async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
         : `✓ ${unitId}: ${prevStatus} → ${toStatus}`;
       showUndoToast(undoMsg, async ()=>{
         showSaveToast('⏳ Membatalkan...');
-        await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: unitId, data:{ Status_Preparation: prevStatus, [dateField]: prevDateField } });
+        await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: prepId, data:{ Status_Preparation: prevStatus, [dateField]: prevDateField } });
         logActivity('Batalkan Update Status', `${unitId}: kembali ke ${prevStatus}`);
         manualRefresh();
         showSaveToast('↩️ Dibatalkan, kembali ke '+prevStatus);
@@ -1763,7 +1771,7 @@ function renderDashboard(){
 
   /* Hitung unit Near Expired/Expired yang belum ada di Preparation_Tracking sama sekali
      (jembatan Commissioning <-> Preparation, sama seperti logika di renderPreparation) */
-  const existingPrepUnitIdsForCount = new Set(prepRows.map(p=>pick(p,['Unit_ID (FK)','Unit_ID'])));
+  const existingPrepUnitIdsForCount = new Set(prepRows.filter(p=>(pick(p,['Status_Preparation'])||'Belum Lengkap')!=='Selesai').map(p=>pick(p,['Unit_ID (FK)','Unit_ID'])));
   const needPrepSeenForCount = new Set();
   DB.commissioning.forEach(c=>{
     const s = String(pick(c,['Status'])||'').toLowerCase();
@@ -2048,15 +2056,15 @@ function renderCommissioning(){
    RENDER: PREPARATION
 ===================================================================== */
 let prepPage=1;
-let selectedPrepUnits = new Set();
-function togglePrepRow(unitId, checked){
-  if(checked) selectedPrepUnits.add(unitId); else selectedPrepUnits.delete(unitId);
+let selectedPrepUnits = new Set(); // isinya sekarang Prep_ID (unik per baris), bukan Unit_ID
+function togglePrepRow(prepId, checked){
+  if(checked) selectedPrepUnits.add(prepId); else selectedPrepUnits.delete(prepId);
   updatePrepBulkBar();
 }
 function togglePrepSelectAll(checked){
   document.querySelectorAll('.prep-row-check').forEach(cb=>{
     cb.checked = checked;
-    if(checked) selectedPrepUnits.add(cb.dataset.unitId); else selectedPrepUnits.delete(cb.dataset.unitId);
+    if(checked) selectedPrepUnits.add(cb.dataset.prepId); else selectedPrepUnits.delete(cb.dataset.prepId);
   });
   updatePrepBulkBar();
 }
@@ -2068,8 +2076,8 @@ function updatePrepBulkBar(){
   if(!bar) return;
   if(selectedPrepUnits.size===0){ bar.innerHTML = ''; return; }
   const statuses = new Set();
-  selectedPrepUnits.forEach(uid=>{
-    const raw = DB.preparation.find(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===uid);
+  selectedPrepUnits.forEach(pid=>{
+    const raw = DB.preparation.find(p=>pick(p,['Prep_ID'])===pid);
     statuses.add(raw ? (pick(raw,['Status_Preparation'])||'Belum Lengkap') : '?');
   });
   if(statuses.size===1){
@@ -2092,16 +2100,18 @@ function updatePrepBulkBar(){
   }
 }
 async function bulkAdvancePrepStage(toStatus, dateField){
-  const units = [...selectedPrepUnits];
-  showSaveToast(`⏳ Memproses ${units.length} unit...`);
+  const prepIds = [...selectedPrepUnits];
+  showSaveToast(`⏳ Memproses ${prepIds.length} unit...`);
   let successCount = 0;
-  for(const unitId of units){
-    const result = await advancePrepStage(unitId, toStatus, dateField, true); // skipUndo=true, proses tanpa toast per-unit
+  for(const prepId of prepIds){
+    const raw = DB.preparation.find(p=>pick(p,['Prep_ID'])===prepId);
+    const unitId = raw ? pick(raw,['Unit_ID (FK)','Unit_ID']) : prepId;
+    const result = await advancePrepStage(prepId, unitId, toStatus, dateField, true); // skipUndo=true, proses tanpa toast per-unit
     if(result===true) successCount++;
   }
   selectedPrepUnits.clear();
   manualRefresh();
-  showSaveToast(`✓ ${successCount}/${units.length} unit berhasil diperbarui ke ${toStatus}`);
+  showSaveToast(`✓ ${successCount}/${prepIds.length} unit berhasil diperbarui ke ${toStatus}`);
 }
 function resetPrepFilters(){
   document.getElementById('prepSearch').value='';
@@ -2115,6 +2125,7 @@ function resetPrepFilters(){
 function renderPreparation(){
   const rows = DB.preparation.map((r,idx)=>({
   _rawIndex: idx,
+  prepId: pick(r,['Prep_ID']),
   unitId: pick(r,['Unit_ID (FK)','Unit_ID']),
   model: pick(r,['Model_Type']),
   sn: pick(r,['Serial_Number']),
@@ -2135,7 +2146,7 @@ function renderPreparation(){
      Ini jembatan antara sheet Commissioning dan Preparation_Tracking yang sebelumnya
      tidak nyambung sama sekali - dulu unit begini cuma kelihatan statusnya merah/oranye
      di Commissioning, tapi nggak pernah otomatis masuk antrian persiapan ulang. */
-  const existingPrepUnitIds = new Set(rows.map(r=>r.unitId));
+  const existingPrepUnitIds = new Set(rows.filter(r=>r.status!=='Selesai').map(r=>r.unitId));
   const needPrepSeen = new Set();
   const needPrep = [];
   DB.commissioning.forEach(c=>{
@@ -2168,13 +2179,16 @@ function renderPreparation(){
      Ini pengingat manual (bukan auto-draft) - sesuai keputusan kita, karena format nomor
      & waktu terbitnya belum tentu sama tiap kali. */
   const needCommissioning = [];
+  const needCommissioningSeen = new Set();
   DB.preparation.forEach(p=>{
     const st = pick(p,['Status_Preparation']);
     if(st!=='Selesai') return;
     const unitId = pick(p,['Unit_ID (FK)','Unit_ID']);
+    if(needCommissioningSeen.has(unitId)) return; // 1 unit bisa punya banyak riwayat "Selesai", cukup tampil sekali
     const relatedCom = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId);
     const stillOld = relatedCom.some(c=>String(pick(c,['Status'])||'').toLowerCase().includes('expired'));
     if(stillOld){
+      needCommissioningSeen.add(unitId);
       needCommissioning.push({ unitId, site: pick(p,['Site']), area: pick(p,['Area']), tanggalSelesai: pick(p,['Tanggal_Terpasang']) });
     }
   });
@@ -2228,13 +2242,13 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
   if(r.status==='Selesai'){
     actionBtn = `<span class="pill green" style="white-space:nowrap">✓ Selesai</span>`;
   } else if(next){
-    actionBtn = `<button class="btn btn-outline" style="font-size:11.5px;padding:6px 10px;white-space:nowrap" onclick="advancePrepStage('${escJs(r.unitId)}','${escJs(next.to)}','${next.field}')">${next.label}</button>`;
+    actionBtn = `<button class="btn btn-outline" style="font-size:11.5px;padding:6px 10px;white-space:nowrap" onclick="advancePrepStage('${escJs(r.prepId)}','${escJs(r.unitId)}','${escJs(next.to)}','${next.field}')">${next.label}</button>`;
   } else {
     actionBtn = `<span class="readonly-badge" title="Lengkapi Foto, Checklist, BAST, dan History dulu">Lengkapi dokumen dulu</span>`;
   }
   return `
   <tr>
-    <td><input type="checkbox" class="prep-row-check" data-unit-id="${escJs(r.unitId)}" ${selectedPrepUnits.has(r.unitId)?'checked':''} onchange="togglePrepRow('${escJs(r.unitId)}', this.checked)"></td>
+    <td><input type="checkbox" class="prep-row-check" data-prep-id="${escJs(r.prepId)}" ${selectedPrepUnits.has(r.prepId)?'checked':''} onchange="togglePrepRow('${escJs(r.prepId)}', this.checked)"></td>
     <td>${(prepPage-1)*perPage+i+1}</td>
     <td class="unit-id">${r.unitId}</td>
     <td>${r.model}</td>
@@ -2287,6 +2301,11 @@ function prepIsSheetRow(raw){
 }
 function prepGetUnitId(raw){
   return pick(raw,['Unit_ID (FK)','Unit_ID']) || raw.unitId || '';
+}
+/* Prep_ID = kunci unik sebenarnya per baris (beda dari Unit_ID yang bisa berulang
+   di banyak baris untuk unit yang sama sepanjang riwayat). */
+function prepGetPrepId(raw){
+  return pick(raw,['Prep_ID']) || '';
 }
 function prepReadField(raw, sheetKeys, demoKey, boolMode){
   if(prepIsSheetRow(raw)){
@@ -2400,6 +2419,7 @@ function fileToBase64(file){
 }
 async function uploadPrepDocsToServer(raw, files){
   const unitId = prepGetUnitId(raw);
+  const prepId = prepGetPrepId(raw);
   const submissionId = pick(raw, ['Submission_ID (FK)','Submission_ID']) || raw.submissionId || '';
   const site = pick(raw,['Site']) || raw.site || '';
 
@@ -2415,6 +2435,7 @@ async function uploadPrepDocsToServer(raw, files){
       body: JSON.stringify({
         action:'uploadAdminDocs',
         payload:{
+          prepId: prepId,
           submissionId: submissionId,
           unitId: unitId,
           site: site,
@@ -2939,9 +2960,14 @@ function deleteUser(userId, nama){
 }
 async function syncPreparationToSheet(raw){
   const unitId = prepGetUnitId(raw);
+  const prepId = prepGetPrepId(raw);
   if(!CONFIG.API_URL || CONFIG.API_URL.startsWith('PASTE_')){
     // Belum terhubung ke Google Apps Script - tersimpan secara lokal saja (mode demo)
     showSaveToast('✓ Perubahan '+unitId+' tersimpan (mode demo, lokal)');
+    return;
+  }
+  if(!prepId){
+    showSaveToast('⚠ Baris '+unitId+' tidak punya Prep_ID, tidak bisa disimpan ke spreadsheet (data lama sebelum fitur Prep_ID?)', true);
     return;
   }
   try{
@@ -2950,14 +2976,18 @@ async function syncPreparationToSheet(raw){
       method:'POST',
       headers:{'Content-Type':'text/plain;charset=utf-8'},
       body: JSON.stringify({
-        action: 'updatePreparation',
-        sheet: CONFIG.SCRIPTS.preparation.sheet,
-        unitId: unitId,
-        data: raw
+        action: 'updateRow',
+        payload: { sheet: 'Preparation_Tracking', pk: prepId, data: raw }
       })
     });
     if(!res.ok) throw new Error('HTTP '+res.status);
-    showSaveToast('✓ '+unitId+' tersimpan otomatis ke spreadsheet');
+    const json = await res.json();
+    if(json.success){
+      showSaveToast('✓ '+unitId+' tersimpan otomatis ke spreadsheet');
+      logActivity('Edit Data Preparation', unitId);
+    }else{
+      showSaveToast('⚠ Gagal sync ke spreadsheet: '+(json.message||'Terjadi kesalahan'), true);
+    }
   }catch(err){
     console.warn('Gagal auto-save ke spreadsheet', err);
     showSaveToast('⚠ Gagal sync ke spreadsheet, perubahan tersimpan lokal', true);
