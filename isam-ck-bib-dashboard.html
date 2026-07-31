@@ -447,6 +447,9 @@ tbody tr:hover{ background:#f9fbff; }
 .need-prep-row .np-badge{ font-size:10.5px; font-weight:800; padding:2px 8px; border-radius:6px; white-space:nowrap; }
 .need-prep-row .np-badge.exp{ background:var(--red-bg); color:var(--red); }
 .need-prep-row .np-badge.near{ background:var(--orange-bg); color:var(--orange); }
+.need-prep-scroll{ max-height:340px; overflow-y:auto; padding-right:4px; }
+.need-prep-scroll::-webkit-scrollbar{ width:6px; }
+.need-prep-scroll::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.2); border-radius:4px; }
 
 .jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; }
 .jenis-card .jc-num{ font-size:20px; font-weight:800; }
@@ -1418,6 +1421,18 @@ function prepMiniStepper(status){
    Near Expired/Expired - data Site/Area/Model diambil otomatis dari Commissioning &
    Master Unit yang sudah ada, admin tidak perlu isi ulang dari nol. */
 async function startPreparationForUnit(unitId){
+  /* Guard: kalau unit ini SUDAH ada di DB.preparation (misal race condition klik ganda,
+     atau data barusan berhasil ditambahkan tapi tombolnya sempat ke-klik lagi), jangan
+     kirim addRow kedua kali - itu penyebab duplikasi di sheet. */
+  const alreadyExists = DB.preparation.some(p=>pick(p,['Unit_ID (FK)','Unit_ID'])===unitId);
+  if(alreadyExists){
+    showSaveToast('⚠ '+unitId+' sudah ada di Preparation, tidak ditambahkan lagi', true);
+    document.getElementById('need-prep-row-'+unitId)?.remove();
+    return;
+  }
+  const btn = document.getElementById('btn-start-prep-'+unitId);
+  if(btn){ if(btn.disabled) return; btn.disabled = true; btn.innerText = '⏳ Memproses...'; }
+
   const c = DB.commissioning.find(x=>pick(x,['Unit_ID'])===unitId);
   const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
   const isExpired = c ? String(pick(c,['Status'])||'').toLowerCase().includes('expired') && !String(pick(c,['Status'])||'').toLowerCase().includes('near') : false;
@@ -1439,9 +1454,16 @@ async function startPreparationForUnit(unitId){
   if(result.success){
     logActivity('Mulai Preparation', `${unitId} (${isExpired?'Expired':'Near Expired'}) ditambahkan ke antrian preparation`);
     showSaveToast('✓ '+unitId+' masuk antrian preparation');
-    manualRefresh();
+    /* Optimistic update: langsung masukkan ke DB.preparation lokal + hilangkan dari daftar
+       "perlu mulai" TANPA nunggu refetch penuh - supaya user langsung lihat hasilnya dan
+       tidak ada jendela waktu di mana tombol bisa ke-klik lagi untuk unit yang sama. */
+    DB.preparation.push(data);
+    document.getElementById('need-prep-row-'+unitId)?.remove();
+    renderPreparation();
+    manualRefresh(); // tetap refresh penuh di belakang layar untuk sinkron sama data server yang sebenarnya (termasuk kolom formula)
   }else{
     showSaveToast('⚠ Gagal memulai preparation: '+(result.message||'Terjadi kesalahan'), true);
+    if(btn){ btn.disabled = false; btn.innerText = '+ Mulai Preparation'; }
   }
 }
 async function advancePrepStage(unitId, toStatus, dateField, skipUndo){
@@ -2124,19 +2146,20 @@ function renderPreparation(){
     needPrepSeen.add(unitId);
     needPrep.push({ unitId, isExpired: s.includes('expired') && !s.includes('near'), site: pick(c,['Site']), area: pick(c,['Area']), sisa: pick(c,['Sisa_Hari']) });
   });
-  needPrep.sort((a,b)=> (a.isExpired===b.isExpired) ? 0 : (a.isExpired?-1:1)); // Expired dulu
+  needPrep.sort((a,b)=> Number(a.sisa) - Number(b.sisa)); // sisa hari paling sedikit (paling urgent/paling minus) di atas
 
   document.getElementById('needPrepPanel').innerHTML = needPrep.length ? `
     <div class="need-prep-panel">
-      <div class="np-title">🔔 ${needPrep.length} UNIT PERLU MULAI PREPARATION (masa berlaku Near Expired / Expired, belum ada di antrian persiapan)</div>
-      ${needPrep.slice(0,8).map(n=>`
-        <div class="need-prep-row">
-          <span class="np-badge ${n.isExpired?'exp':'near'}">${n.isExpired?'EXPIRED':'NEAR EXPIRED'}</span>
-          <b>${n.unitId}</b>
-          <span style="color:var(--text-400)">${n.site} / ${n.area} — sisa ${n.sisa} hari</span>
-          <button class="btn btn-primary" style="margin-left:auto;font-size:11.5px;padding:6px 12px;" onclick="startPreparationForUnit('${escJs(n.unitId)}')">+ Mulai Preparation</button>
-        </div>`).join('')}
-      ${needPrep.length>8 ? `<div style="text-align:center;font-size:11.5px;color:#9a5b0f;margin-top:8px;">+${needPrep.length-8} unit lainnya perlu mulai preparation juga</div>` : ''}
+      <div class="np-title">🔔 ${needPrep.length} UNIT PERLU MULAI PREPARATION (diurutkan dari sisa hari paling sedikit / paling mendesak)</div>
+      <div class="need-prep-scroll" id="needPrepScroll">
+        ${needPrep.map(n=>`
+          <div class="need-prep-row" id="need-prep-row-${escJs(n.unitId)}">
+            <span class="np-badge ${n.isExpired?'exp':'near'}">${n.isExpired?'EXPIRED':'NEAR EXPIRED'}</span>
+            <b>${n.unitId}</b>
+            <span style="color:var(--text-400)">${n.site} / ${n.area} — sisa ${n.sisa} hari</span>
+            <button class="btn btn-primary" id="btn-start-prep-${escJs(n.unitId)}" style="margin-left:auto;font-size:11.5px;padding:6px 12px;" onclick="startPreparationForUnit('${escJs(n.unitId)}')">+ Mulai Preparation</button>
+          </div>`).join('')}
+      </div>
     </div>` : '';
 
   /* PERLU INPUT COMMISSIONING BARU - kebalikan dari panel di atas: unit yang preparation-nya
