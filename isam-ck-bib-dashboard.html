@@ -1454,7 +1454,6 @@ async function startPreparationForUnit(unitId){
     'BAST': 'Belum',
     'History_Maintenance': 'Belum',
     'Status_Preparation': 'Belum Lengkap',
-    'Prioritas': isExpired ? 'Tinggi' : 'Sedang',
     'Tgl_Mulai_Preparation': nowStr
   };
   showSaveToast('⏳ Memulai preparation untuk '+unitId+'...');
@@ -1517,6 +1516,14 @@ function pillPrep(status){
 function pillPrioritas(p){
   const cls = p==="Tinggi" ? "red" : p==="Sedang" ? "orange" : "green";
   return `<span class="pill ${cls}">${p}</span>`;
+}
+/* Prioritas DIHITUNG OTOMATIS dari berapa lama unit sudah nyangkut di Preparation
+   (kolom Hari_di_Preparation, formula di sheet) - bukan disimpan statis, supaya
+   makin lama macet, makin keliatan urgent, bukan label mati yang di-set sekali doang. */
+function computePrioritasFromHari(hari){
+  if(hari>=14) return 'Tinggi';
+  if(hari>=7) return 'Sedang';
+  return 'Rendah';
 }
 function checkBadge(ok){
   return ok ? `<span class="check-badge yes">✓</span>` : `<span class="check-badge no">✗</span>`;
@@ -2137,9 +2144,8 @@ function renderPreparation(){
   history: pick(r,['History_Maintenance'])==='Sudah',
   progress: Math.round((Number(pick(r,['Progress_Percent']))||0)*100),
   status: pick(r,['Status_Preparation']) || 'Belum Lengkap',
-  prioritas: pick(r,['Prioritas']),
-  hari: pick(r,['Hari_di_Preparation'])
-}));
+  hari: Number(pick(r,['Hari_di_Preparation','hari']))||0
+}).map(r=>({...r, prioritas: computePrioritasFromHari(r.hari)})));
 
   /* UNIT PERLU MULAI PREPARATION - deteksi otomatis dari status Commissioning
      (Near Expired / Expired) yang UNIT-nya belum punya baris di Preparation_Tracking.
@@ -2337,7 +2343,8 @@ function prepModalFieldsHTML(raw, disabled){
   const bastName = prepReadField(raw, ['BAST_File_Name'], 'bastFileName') || '';
   const histUrl = prepReadField(raw, ['History_File_URL'], 'historyFileUrl') || '';
   const histName = prepReadField(raw, ['History_File_Name'], 'historyFileName') || '';
-  const prioritas = pick(raw,['Prioritas']) || raw.prioritas || 'Sedang';
+  const hariNow = Number(prepReadField(raw, ['Hari_di_Preparation'], 'hari')) || 0;
+  const prioritasAuto = computePrioritasFromHari(hariNow);
 
   return `
     <div class="modal-section">
@@ -2375,14 +2382,7 @@ function prepModalFieldsHTML(raw, disabled){
       </div>
     </div>
 
-    <div class="form-group">
-      <label>Prioritas</label>
-      <select id="pf_prioritas" ${dis}>
-        <option ${prioritas==='Tinggi'?'selected':''}>Tinggi</option>
-        <option ${prioritas==='Sedang'?'selected':''}>Sedang</option>
-        <option ${prioritas==='Rendah'?'selected':''}>Rendah</option>
-      </select>
-    </div>
+    <div class="modal-readonly-row"><span>Prioritas (otomatis dari lama di Preparation)</span><span>${pillPrioritas(prioritasAuto)}</span></div>
   `;
 }
 function prepToggleSection(which){
@@ -2550,7 +2550,6 @@ async function savePrepChanges(){
 
   const foto = document.getElementById('pf_foto').checked;
   const checklist = document.getElementById('pf_checklist').checked;
-  const prioritas = document.getElementById('pf_prioritas').value;
 
   let bastBase64=null, bastFileName=null, historyBase64=null, historyFileName=null;
   if(prepPendingFiles.bast){
@@ -2581,12 +2580,11 @@ async function savePrepChanges(){
     raw['History_Maintenance'] = history ? 'Sudah' : 'Belum';
     raw['Progress_Percent'] = progress/100;
     raw['Status_Preparation'] = status;
-    raw['Prioritas'] = prioritas;
     if(bastFileName) raw['BAST_File_Name'] = bastFileName;
     if(historyFileName) raw['History_File_Name'] = historyFileName;
   } else {
     raw.foto=foto; raw.checklist=checklist; raw.bast=bast; raw.history=history;
-    raw.progress=progress; raw.status=status; raw.prioritas=prioritas;
+    raw.progress=progress; raw.status=status;
     if(bastFileName) raw.bastFileName=bastFileName;
     if(historyFileName) raw.historyFileName=historyFileName;
   }
