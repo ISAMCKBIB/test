@@ -414,6 +414,8 @@ tbody tr:hover{ background:#f9fbff; }
 /* Wrapper scroll tabel - fade di kanan sebagai petunjuk visual "masih ada kolom lagi ke kanan",
    HANYA muncul di layar mobile karena di desktop tabel biasanya sudah cukup lebar. */
 .table-scroll-wrap{ overflow-x:auto; position:relative; }
+.com-table-scroll{ max-height:640px; overflow-y:auto; }
+.com-table-scroll thead th{ position:sticky; top:0; background:var(--gray-bg); z-index:2; }
 @media (max-width:900px){
   .table-scroll-wrap{ position:relative; }
   .table-scroll-wrap::after{
@@ -839,7 +841,7 @@ tbody tr:hover{ background:#f9fbff; }
               <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
             </div>
             <div class="panel-title">DAFTAR KOMISIONING</div>
-            <div class="table-scroll-wrap">
+            <div class="table-scroll-wrap com-table-scroll">
               <table id="comTable">
                 <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
                 <tbody id="comTableBody"></tbody>
@@ -1374,14 +1376,33 @@ function guessIconForJenis(jenisName){
 }
 /* Sama seperti guessIconForJenis, tapi coba tampilkan GAMBAR (dari folder icons/, misal
    hasil download dari Flaticon) dulu - kalau gambarnya belum ada/gagal dimuat (404), otomatis
-   balik tampilin emoji seperti biasa. Jadi begitu Anda upload file PNG dengan nama yang cocok
-   ke folder "icons/" di repo, iconnya otomatis kepakai TANPA perlu ubah kode lagi. */
+   balik tampilin emoji seperti biasa.
+   Nama file itu case-sensitive, jadi supaya nggak kaku, dicoba beberapa kemungkinan nama
+   berurutan: (1) persis nama Jenis Unit dari sheet - misal "Heavy Dump Truck.png", paling
+   fleksibel karena otomatis ngikutin apapun nama di Master_Jenis_Unit Anda, (2) nama Label
+   yang ke-tebak (misal "Dump Truck.png"), (3) key huruf kecil (misal "dump_truck.png") -
+   baru kalau semua gagal, balik ke emoji. */
 function iconHtmlForJenis(jenisName){
   const n = String(jenisName||'').toLowerCase();
   const match = ICON_LIBRARY.find(ic => ic.key!=='lainnya' && (n.includes(ic.key.replace(/_/g,' ')) || n.includes(ic.label.toLowerCase())));
-  const key = match ? match.key : 'lainnya';
   const emojiFallback = match ? match.icon : '🚚';
-  return `<img src="icons/${key}.png" alt="${key}" style="width:26px;height:26px;object-fit:contain;" onerror="this.outerHTML='<span style=&quot;font-size:22px;line-height:1;&quot;>${emojiFallback}</span>'">`;
+  const candidates = [];
+  if(jenisName) candidates.push(`icons/${jenisName}.png`);
+  if(match){ candidates.push(`icons/${match.label}.png`); candidates.push(`icons/${match.key}.png`); }
+  candidates.push(`icons/lainnya.png`);
+  const uid = 'icn'+Math.random().toString(36).slice(2,9);
+  window.__iconFallback = window.__iconFallback || {};
+  window.__iconFallback[uid] = { queue: candidates.slice(1).map(c=>encodeURI(c)), emoji: emojiFallback };
+  return `<img id="${uid}" src="${encodeURI(candidates[0])}" alt="icon" style="width:26px;height:26px;object-fit:contain;" onerror="tryNextIconSrc('${uid}', this)">`;
+}
+function tryNextIconSrc(uid, img){
+  const state = window.__iconFallback && window.__iconFallback[uid];
+  if(state && state.queue.length){
+    img.src = state.queue.shift();
+  } else {
+    img.outerHTML = `<span style="font-size:22px;line-height:1;">${state ? state.emoji : '🚚'}</span>`;
+    if(state) delete window.__iconFallback[uid];
+  }
 }
 
 /* =====================================================================
@@ -2069,16 +2090,14 @@ function renderCommissioning(){
   }
   filtered = filtered.slice().sort((a,b)=>priorityRank(a)-priorityRank(b));
 
-  const perPage=10;
-  buildPagination('comPagination', filtered.length, perPage, comPage, 'window.__comSetPage');
-  window.__comSetPage=(p)=>{comPage=p; renderCommissioning();};
-  const pageRows = paginate(filtered, comPage, perPage);
+  document.getElementById('comPagination').innerHTML = `<div style="font-size:11.5px;color:var(--text-400)">Menampilkan ${filtered.length} data (scroll untuk lihat semua)</div>`;
+  const pageRows = filtered; // model scroll - semua hasil filter langsung ditampilkan, nggak dipotong per halaman
   document.getElementById('comTableBody').innerHTML = pageRows.map((r,i)=>{
     const unitId = pick(r,['Unit_ID']);
     const commId = pick(r,['Commissioning_ID']);
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
     const sisa = pick(r,['Sisa_Hari']);
-    return `<tr><td>${(comPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
+    return `<tr><td>${i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
     <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td>
     <td class="inline-edit-cell" data-comm-id="${escJs(commId)}" data-field="Registration_No" onclick="startInlineEdit(this)" title="Klik untuk edit">${pick(r,['Registration_No']) || '<span style="color:var(--text-300);font-style:italic;">+ isi Reg. No</span>'}</td>
     <td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
@@ -2262,7 +2281,7 @@ function renderPreparation(){
           <div class="need-prep-row" id="need-prep-row-${escJs(n.unitId)}">
             <span class="np-badge ${n.isExpired?'exp':'near'}">${n.isExpired?'EXPIRED':'NEAR EXPIRED'}</span>
             <b>${n.unitId}</b>
-            <span style="color:var(--text-400)">${n.site} / ${n.area} — sisa ${n.sisa} hari</span>
+            <span style="color:${Number(n.sisa)<0?'var(--red)':'var(--text-400)'};font-weight:${Number(n.sisa)<0?'700':'400'}">${n.site} / ${n.area} — sisa ${n.sisa} hari${Number(n.sisa)<0?' (sudah lewat)':''}</span>
             <button class="btn btn-primary" id="btn-start-prep-${escJs(n.unitId)}" style="margin-left:auto;font-size:11.5px;padding:6px 12px;" onclick="startPreparationForUnit('${escJs(n.unitId)}')">+ Mulai Preparation</button>
           </div>`).join('')}
       </div>
