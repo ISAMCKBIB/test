@@ -807,14 +807,11 @@ tbody tr:hover{ background:#f9fbff; }
                 <option value="Near Expired">Near Expired</option>
                 <option value="Active">Aktif</option>
               </select>
-              <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-600);white-space:nowrap;">
-                <input type="checkbox" id="comShowHistory" onchange="renderCommissioning()"> Tampilkan Semua Riwayat
-              </label>
               <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
-              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';document.getElementById('comShowHistory').checked=false;renderCommissioning()">↻ Reset</button>
+              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';renderCommissioning()">↻ Reset</button>
               <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
             </div>
-            <div class="panel-title">DAFTAR KOMISIONING <span style="font-weight:400;font-size:11px;color:var(--text-400)" id="comPanelSubtitle">(Cuma yang aktif sekarang - centang "Tampilkan Semua Riwayat" untuk lihat histori)</span></div>
+            <div class="panel-title">DAFTAR KOMISIONING</div>
             <div class="table-scroll-wrap">
               <table id="comTable">
                 <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
@@ -1366,18 +1363,14 @@ function isActiveStatus(status){
   return s === 'active' || s === 'aktif';
 }
 
-/* Sumber kebenaran TUNGGAL soal "mana commissioning yang dianggap aktif sekarang"
-   untuk unit yang punya banyak baris riwayat (BIB & TIA masing-masing, atau riwayat
-   perpanjangan berkali-kali). Kolom Status_Terkini itu FORMULA di sheet
-   (MAXIFS berdasarkan Masa_Berlaku per Unit_ID+Site) - dashboard & spreadsheet jadi
-   selalu sepakat mana yang "Aktif Saat Ini" vs "Riwayat Lama". */
-function isLatestCommissioning(c){
-  return pick(c,['Status_Terkini'])==='Aktif Saat Ini';
-}
-/* Daftar commissioning yang aktif SEKARANG saja (bukan riwayat lama) - dipakai sebagai
-   default di hampir semua perhitungan dashboard supaya tidak baca data dobel. */
+/* Dulu di sini ada filter berdasarkan kolom Status_Terkini (buat pisahin commissioning
+   "aktif sekarang" vs "riwayat lama"). Sekarang sistem sudah pindah ke model OVERWRITE
+   (submit baru = timpa baris lama untuk Unit_ID+Site yang sama, bukan nambah baris baru) -
+   jadi setiap baris di sheet Commissioning otomatis SELALU yang aktif/terbaru. Fungsi ini
+   dipertahankan (nama & tempat pemanggilannya) supaya kode di banyak tempat lain tidak perlu
+   diubah satu-satu, tapi sekarang cuma langsung return semua data apa adanya. */
 function getCurrentCommissioning(){
-  return DB.commissioning.filter(isLatestCommissioning);
+  return DB.commissioning;
 }
 
 /* Amankan tanda kutip pada nilai yang disisipkan ke atribut onclick='...' */
@@ -1971,11 +1964,7 @@ function renderArea(){
 ===================================================================== */
 let comPage=1;
 function renderCommissioning(){
-  const showHistory = document.getElementById('comShowHistory').checked;
-  const rows = showHistory ? DB.commissioning : getCurrentCommissioning();
-  document.getElementById('comPanelSubtitle').innerText = showHistory
-    ? '(Menampilkan SEMUA riwayat, termasuk yang sudah tergantikan)'
-    : '(Cuma yang aktif sekarang - centang "Tampilkan Semua Riwayat" untuk lihat histori)';
+  const rows = DB.commissioning;
   const total = rows.length;
   const aktif = rows.filter(r=>pick(r,['Status'])==="Active"||pick(r,['Status'])==="Aktif").length;
   const near = rows.filter(r=>String(pick(r,['Status'])||'').toLowerCase().includes('near')).length;
