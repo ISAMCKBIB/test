@@ -807,11 +807,14 @@ tbody tr:hover{ background:#f9fbff; }
                 <option value="Near Expired">Near Expired</option>
                 <option value="Active">Aktif</option>
               </select>
+              <label style="display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--text-600);white-space:nowrap;">
+                <input type="checkbox" id="comShowHistory" onchange="renderCommissioning()"> Tampilkan Semua Riwayat
+              </label>
               <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
-              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';renderCommissioning()">↻ Reset</button>
+              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';document.getElementById('comShowHistory').checked=false;renderCommissioning()">↻ Reset</button>
               <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
             </div>
-            <div class="panel-title">DAFTAR KOMISIONING <span style="font-weight:400;font-size:11px;color:var(--text-400)">(Expired &amp; Near Expired ditampilkan lebih dulu)</span></div>
+            <div class="panel-title">DAFTAR KOMISIONING <span style="font-weight:400;font-size:11px;color:var(--text-400)" id="comPanelSubtitle">(Cuma yang aktif sekarang - centang "Tampilkan Semua Riwayat" untuk lihat histori)</span></div>
             <div class="table-scroll-wrap">
               <table id="comTable">
                 <thead><tr><th>No</th><th>Unit ID</th><th>Model</th><th>SN</th><th>Site</th><th>Area</th><th>Registration No</th><th>Mulai</th><th>Selesai</th><th>Sisa Hari</th><th>Status</th><th>Aksi</th></tr></thead>
@@ -1363,6 +1366,20 @@ function isActiveStatus(status){
   return s === 'active' || s === 'aktif';
 }
 
+/* Sumber kebenaran TUNGGAL soal "mana commissioning yang dianggap aktif sekarang"
+   untuk unit yang punya banyak baris riwayat (BIB & TIA masing-masing, atau riwayat
+   perpanjangan berkali-kali). Kolom Status_Terkini itu FORMULA di sheet
+   (MAXIFS berdasarkan Masa_Berlaku per Unit_ID+Site) - dashboard & spreadsheet jadi
+   selalu sepakat mana yang "Aktif Saat Ini" vs "Riwayat Lama". */
+function isLatestCommissioning(c){
+  return pick(c,['Status_Terkini'])==='Aktif Saat Ini';
+}
+/* Daftar commissioning yang aktif SEKARANG saja (bukan riwayat lama) - dipakai sebagai
+   default di hampir semua perhitungan dashboard supaya tidak baca data dobel. */
+function getCurrentCommissioning(){
+  return DB.commissioning.filter(isLatestCommissioning);
+}
+
 /* Amankan tanda kutip pada nilai yang disisipkan ke atribut onclick='...' */
 function escJs(v){
   return String(v==null?'':v).replace(/'/g,"\\'");
@@ -1684,7 +1701,8 @@ function setDashSiteTab(s){
 }
 function renderDashboard(){
   const filterIds = getGlobalFilteredUnitIds();
-  const rowsAll = DB.commissioning.map(r=>{
+  const currentCommissioning = getCurrentCommissioning(); // cuma "Aktif Saat Ini", riwayat lama diabaikan
+  const rowsAll = currentCommissioning.map(r=>{
   const unitId = pick(r,['Unit_ID']);
   const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
   return {
@@ -1701,7 +1719,7 @@ function renderDashboard(){
   const rows = filterIds ? rowsAll.filter(r=>filterIds.has(r.unitId)) : rowsAll;
 
   const muRows = filterIds ? DB.masterUnit.filter(m=>filterIds.has(pick(m,['Unit_ID']))) : DB.masterUnit;
-  const expiredRows = filterIds ? DB.expired.filter(e=>filterIds.has(pick(e,['Unit_ID','unitId']))) : DB.expired;
+  const expiredRows = filterIds ? currentCommissioning.filter(e=>filterIds.has(pick(e,['Unit_ID','unitId']))) : currentCommissioning;
   const prepRows = filterIds ? DB.preparation.filter(p=>filterIds.has(pick(p,['Unit_ID (FK)','Unit_ID']))) : DB.preparation;
 
   const total = muRows.length;
@@ -1780,7 +1798,7 @@ function renderDashboard(){
      (jembatan Commissioning <-> Preparation, sama seperti logika di renderPreparation) */
   const existingPrepUnitIdsForCount = new Set(prepRows.filter(p=>(pick(p,['Status_Preparation'])||'Belum Lengkap')!=='Selesai').map(p=>pick(p,['Unit_ID (FK)','Unit_ID'])));
   const needPrepSeenForCount = new Set();
-  DB.commissioning.forEach(c=>{
+  getCurrentCommissioning().forEach(c=>{
     const s = String(pick(c,['Status'])||'').toLowerCase();
     if(!s.includes('expired')) return;
     const uid = pick(c,['Unit_ID']);
@@ -1953,7 +1971,11 @@ function renderArea(){
 ===================================================================== */
 let comPage=1;
 function renderCommissioning(){
-  const rows = DB.commissioning;
+  const showHistory = document.getElementById('comShowHistory').checked;
+  const rows = showHistory ? DB.commissioning : getCurrentCommissioning();
+  document.getElementById('comPanelSubtitle').innerText = showHistory
+    ? '(Menampilkan SEMUA riwayat, termasuk yang sudah tergantikan)'
+    : '(Cuma yang aktif sekarang - centang "Tampilkan Semua Riwayat" untuk lihat histori)';
   const total = rows.length;
   const aktif = rows.filter(r=>pick(r,['Status'])==="Active"||pick(r,['Status'])==="Aktif").length;
   const near = rows.filter(r=>String(pick(r,['Status'])||'').toLowerCase().includes('near')).length;
@@ -2155,7 +2177,7 @@ function renderPreparation(){
   const existingPrepUnitIds = new Set(rows.filter(r=>r.status!=='Selesai').map(r=>r.unitId));
   const needPrepSeen = new Set();
   const needPrep = [];
-  DB.commissioning.forEach(c=>{
+  getCurrentCommissioning().forEach(c=>{
     const s = String(pick(c,['Status'])||'').toLowerCase();
     if(!s.includes('expired')) return; // ambil yang Near Expired ATAU Expired
     const unitId = pick(c,['Unit_ID']);
@@ -2193,12 +2215,12 @@ function renderPreparation(){
     const site = pick(p,['Site']);
     const seenKey = unitId+'|'+site;
     if(needCommissioningSeen.has(seenKey)) return; // 1 unit bisa punya banyak riwayat "Selesai", cukup tampil sekali per site
-    // Cek apakah SEKARANG sudah ada commissioning yang MASIH VALID (bukan Expired/Near
-    // Expired) untuk unit+site ini - bukan cuma "pernah ada yang expired" (baris lama
-    // TIDAK PERNAH dihapus, jadi cek "pernah expired" akan selalu true selamanya).
-    const relatedCom = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])===site);
-    const hasValidCurrent = relatedCom.some(c=>!String(pick(c,['Status'])||'').toLowerCase().includes('expired'));
-    if(!hasValidCurrent){
+    // Cek apakah baris "Aktif Saat Ini" untuk unit+site ini statusnya masih Expired/Near
+    // Expired - pakai Status_Terkini (formula MAXIFS di sheet) sebagai sumber kebenaran
+    // tunggal, biar dashboard & spreadsheet selalu sepakat, bukan ngitung ulang manual.
+    const currentRecord = getCurrentCommissioning().find(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])===site);
+    const stillNeedsRenewal = !currentRecord || String(pick(currentRecord,['Status'])||'').toLowerCase().includes('expired');
+    if(stillNeedsRenewal){
       needCommissioningSeen.add(seenKey);
       needCommissioning.push({ unitId, site, area: pick(p,['Area']), tanggalSelesai: pick(p,['Tanggal_Terpasang']) });
     }
@@ -2806,11 +2828,15 @@ async function submitCrudModal(){
   if(isEdit){
     const pkValue = pick(cfg.data,[cfg.pkField]);
     result = await crudPost('updateRow', { sheet: cfg.sheet, pk: pkValue, data });
+  }else if(cfg.addAction){
+    // Beberapa sheet (misal Commissioning) pakai action khusus (upsert) untuk "Tambah",
+    // bukan addRow biasa - supaya cek dulu ada data lama atau nggak sebelum nulis.
+    result = await crudPost(cfg.addAction, { sheet: cfg.sheet, data });
   }else{
     result = await crudPost('addRow', { sheet: cfg.sheet, data });
   }
   if(result.success){
-    showSaveToast(isEdit ? '✓ Data berhasil diperbarui' : '✓ Data berhasil ditambahkan');
+    showSaveToast('✓ '+(result.message || (isEdit ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan')));
     closeCrudModal();
     const pkDisplay = data[cfg.pkField] || pick(cfg.data||{},[cfg.pkField]) || '';
     logActivity(isEdit ? 'Edit Data' : 'Tambah Data', `${cfg.sheet}: ${pkDisplay}`);
@@ -2868,6 +2894,7 @@ function openCommissioningModal(commId, readonly, presetUnitId){
     pkField: 'Commissioning_ID',
     data: raw,
     readonly: !!readonly,
+    addAction: 'upsertCommissioning', // cek dulu Unit_ID+Site sudah ada atau belum - timpa kalau sudah ada
     fields: [
       {key:'Commissioning_ID', hidden:true, generator:()=>'CMS-'+Date.now()},
       {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true, default:presetUnitId||'', onchange:'autoFillCommissioningFromUnit(this.value)'},
@@ -3577,7 +3604,7 @@ function renderLaporan(){
   /* Terapkan filter Site & Status (kalau dipilih) ke data Commissioning yang jadi basis laporan */
   const siteFilter = document.getElementById('lapSite').value;
   const statusFilter = document.getElementById('lapStatus').value;
-  let comRows = DB.commissioning.filter(r=>{
+  let comRows = getCurrentCommissioning().filter(r=>{
     if(siteFilter!=='ALL' && pick(r,['Site'])!==siteFilter) return false;
     if(statusFilter){
       const s = String(pick(r,['Status'])||'').toLowerCase();
@@ -3628,16 +3655,18 @@ function renderLaporan(){
       || `<tr><td colspan="4" class="empty-state">Tidak ada unit Expired/Near Expired sesuai filter</td></tr>`;
     tableHead = `<th>No</th><th>Unit</th><th>Sisa Hari</th><th>Status</th>`;
   } else if(selectedLaporanType==='perSite'){
-    const siteList = [...new Set(DB.commissioning.map(r=>pick(r,['Site'])))].filter(Boolean);
+    const activeCom = getCurrentCommissioning();
+    const siteList = [...new Set(activeCom.map(r=>pick(r,['Site'])))].filter(Boolean);
     rowsDetail = siteList.map((site,i)=>{
-      const n = DB.commissioning.filter(r=>pick(r,['Site'])===site).length;
-      return `<tr><td>${i+1}</td><td>Site ${site}</td><td>${n}</td><td>${pct(n,DB.commissioning.length)}%</td></tr>`;
+      const n = activeCom.filter(r=>pick(r,['Site'])===site).length;
+      return `<tr><td>${i+1}</td><td>Site ${site}</td><td>${n}</td><td>${pct(n,activeCom.length)}%</td></tr>`;
     }).join('');
   } else if(selectedLaporanType==='perArea'){
-    const areaList = [...new Set(DB.commissioning.map(r=>pick(r,['Area'])))].filter(Boolean);
+    const activeCom = getCurrentCommissioning();
+    const areaList = [...new Set(activeCom.map(r=>pick(r,['Area'])))].filter(Boolean);
     rowsDetail = areaList.map((area,i)=>{
-      const n = DB.commissioning.filter(r=>pick(r,['Area'])===area).length;
-      return `<tr><td>${i+1}</td><td>${area}</td><td>${n}</td><td>${pct(n,DB.commissioning.length)}%</td></tr>`;
+      const n = activeCom.filter(r=>pick(r,['Area'])===area).length;
+      return `<tr><td>${i+1}</td><td>${area}</td><td>${n}</td><td>${pct(n,activeCom.length)}%</td></tr>`;
     }).join('');
   }
 
