@@ -2190,12 +2190,17 @@ function renderPreparation(){
     const st = pick(p,['Status_Preparation']);
     if(st!=='Selesai') return;
     const unitId = pick(p,['Unit_ID (FK)','Unit_ID']);
-    if(needCommissioningSeen.has(unitId)) return; // 1 unit bisa punya banyak riwayat "Selesai", cukup tampil sekali
-    const relatedCom = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId);
-    const stillOld = relatedCom.some(c=>String(pick(c,['Status'])||'').toLowerCase().includes('expired'));
-    if(stillOld){
-      needCommissioningSeen.add(unitId);
-      needCommissioning.push({ unitId, site: pick(p,['Site']), area: pick(p,['Area']), tanggalSelesai: pick(p,['Tanggal_Terpasang']) });
+    const site = pick(p,['Site']);
+    const seenKey = unitId+'|'+site;
+    if(needCommissioningSeen.has(seenKey)) return; // 1 unit bisa punya banyak riwayat "Selesai", cukup tampil sekali per site
+    // Cek apakah SEKARANG sudah ada commissioning yang MASIH VALID (bukan Expired/Near
+    // Expired) untuk unit+site ini - bukan cuma "pernah ada yang expired" (baris lama
+    // TIDAK PERNAH dihapus, jadi cek "pernah expired" akan selalu true selamanya).
+    const relatedCom = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])===site);
+    const hasValidCurrent = relatedCom.some(c=>!String(pick(c,['Status'])||'').toLowerCase().includes('expired'));
+    if(!hasValidCurrent){
+      needCommissioningSeen.add(seenKey);
+      needCommissioning.push({ unitId, site, area: pick(p,['Area']), tanggalSelesai: pick(p,['Tanggal_Terpasang']) });
     }
   });
   document.getElementById('needCommissioningPanel').innerHTML = needCommissioning.length ? `
@@ -2358,10 +2363,11 @@ function prepModalFieldsHTML(raw, disabled){
 
     <div class="modal-section">
       <div class="modal-section-title"><b>🧾 BAST (Berita Acara Serah Terima)</b>
-        <span class="readonly-badge" style="background:${bast?'var(--green-bg)':'var(--red-bg)'};color:${bast?'var(--green)':'var(--red)'}">${bast?'✓ Sudah ada file':'Belum ada file'}</span>
+        <label class="switch"><input type="checkbox" id="pf_bast_manual" ${bast?'checked':''} ${dis}><span class="slider"></span></label>
       </div>
+      <div style="font-size:11px;color:var(--text-400);margin:-6px 0 8px;">Nyalakan toggle di atas kalau BAST sudah ada (fisik/di tempat lain) tanpa perlu upload file di sini - atau upload file PDF-nya langsung di bawah.</div>
       <div class="form-group" style="margin-bottom:4px;">
-        <label>Upload File BAST (PDF)</label>
+        <label>Upload File BAST (PDF) — opsional</label>
         <input type="file" id="pf_bastFile" accept="application/pdf" ${dis} onchange="handlePrepFileSelect('bast', this)">
         <div id="pf_bastFileInfo" style="font-size:11.5px;color:var(--text-400);margin-top:6px;">
           ${bastUrl ? `<a href="${bastUrl}" target="_blank">📄 Lihat file BAST saat ini${bastName? ' — '+bastName:''}</a>` : (bast ? '📄 File tersimpan (tanpa link, mode demo)' : 'Belum ada file diupload')}
@@ -2371,10 +2377,11 @@ function prepModalFieldsHTML(raw, disabled){
 
     <div class="modal-section">
       <div class="modal-section-title"><b>🛠️ History Maintenance</b>
-        <span class="readonly-badge" style="background:${history?'var(--green-bg)':'var(--red-bg)'};color:${history?'var(--green)':'var(--red)'}">${history?'✓ Sudah ada file':'Belum ada file'}</span>
+        <label class="switch"><input type="checkbox" id="pf_history_manual" ${history?'checked':''} ${dis}><span class="slider"></span></label>
       </div>
+      <div style="font-size:11px;color:var(--text-400);margin:-6px 0 8px;">Nyalakan toggle di atas kalau History Maintenance sudah ada tanpa perlu upload file di sini - atau upload file PDF-nya langsung di bawah.</div>
       <div class="form-group" style="margin-bottom:4px;">
-        <label>Upload File History Maintenance (PDF)</label>
+        <label>Upload File History Maintenance (PDF) — opsional</label>
         <input type="file" id="pf_historyFile" accept="application/pdf" ${dis} onchange="handlePrepFileSelect('history', this)">
         <div id="pf_historyFileInfo" style="font-size:11.5px;color:var(--text-400);margin-top:6px;">
           ${histUrl ? `<a href="${histUrl}" target="_blank">📄 Lihat file History saat ini${histName? ' — '+histName:''}</a>` : (history ? '📄 File tersimpan (tanpa link, mode demo)' : 'Belum ada file diupload')}
@@ -2408,6 +2415,9 @@ function handlePrepFileSelect(type, input){
   prepPendingFiles[type] = file;
   const infoId = type==='bast' ? 'pf_bastFileInfo' : 'pf_historyFileInfo';
   document.getElementById(infoId).innerHTML = `📄 ${file.name} <span style="color:var(--green)">(siap diupload)</span>`;
+  const toggleId = type==='bast' ? 'pf_bast_manual' : 'pf_history_manual';
+  const toggle = document.getElementById(toggleId);
+  if(toggle) toggle.checked = true; // upload file otomatis nandain "sudah ada" juga
 }
 function fileToBase64(file){
   return new Promise((resolve, reject)=>{
@@ -2561,10 +2571,8 @@ async function savePrepChanges(){
     historyFileName = prepPendingFiles.history.name;
   }
 
-  const bastAlready = prepReadField(raw, ['BAST'], 'bast', true);
-  const historyAlready = prepReadField(raw, ['History_Maintenance'], 'history', true);
-  const bast = !!bastBase64 || !!bastAlready;
-  const history = !!historyBase64 || !!historyAlready;
+  const bast = document.getElementById('pf_bast_manual').checked;
+  const history = document.getElementById('pf_history_manual').checked;
 
   const { progress, status: autoStatus } = computePrepStatus(foto, checklist, bast, history);
   const prevStatus = pick(raw, ['Status_Preparation']) || raw.status || '';
@@ -2865,7 +2873,7 @@ function openCommissioningModal(commId, readonly, presetUnitId){
       {key:'Unit_ID', label:'Unit ID', type:'select', options: unitOptions, required:true, default:presetUnitId||'', onchange:'autoFillCommissioningFromUnit(this.value)'},
       {key:'Site', label:'Site (otomatis, boleh diubah)', type:'select', options: siteOptions, required:true},
       {key:'Area', label:'Area (otomatis, boleh diubah)', type:'select', options: areaOptions, required:true},
-      {key:'Registration_No', label:'Registration No (selalu baru)', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
+      {key:'Registration_No', label:'Registration No (dari nomor lama, boleh diedit/dihapus)', required:true, placeholder:'Contoh: BIB/CKT/2026/VII/120931'},
       {key:'Tanggal_Terbit', label:'Tanggal Terbit', inputType:'date', required:true},
       {key:'Masa_Berlaku', label:'Masa Berlaku / Expired', inputType:'date', required:true}
     ],
@@ -2879,17 +2887,21 @@ function openCommissioningModal(commId, readonly, presetUnitId){
     onRendered: ()=>{ if(presetUnitId) autoFillCommissioningFromUnit(presetUnitId); }
   });
 }
-/* Kalau Unit ID dipilih (khusus saat TAMBAH baru), otomatis isi Site & Area dari
-   riwayat commissioning unit itu sebelumnya - jadi admin tidak perlu pilih ulang,
-   cukup pastikan Registration No + tanggal yang memang selalu baru. */
+/* Kalau Unit ID dipilih (khusus saat TAMBAH baru), otomatis isi Site, Area, DAN
+   Registration No dari riwayat commissioning unit itu sebelumnya - jadi admin tidak
+   perlu ketik ulang dari nol. Registration No SENGAJA ikut ke-isi (bukan dikosongkan)
+   karena kadang nomornya tetap sama, cuma tahunnya yang berubah - admin tinggal edit
+   bagian yang perlu, atau hapus semua & ketik baru kalau memang beda total. */
 function autoFillCommissioningFromUnit(unitId){
   const prevRecords = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId);
   if(!prevRecords.length) return;
   const latest = prevRecords[prevRecords.length-1];
   const siteEl = document.getElementById('crud_Site');
   const areaEl = document.getElementById('crud_Area');
+  const regEl = document.getElementById('crud_Registration_No');
   if(siteEl) siteEl.value = pick(latest,['Site']);
   if(areaEl) areaEl.value = pick(latest,['Area']);
+  if(regEl && !regEl.value) regEl.value = pick(latest,['Registration_No']);
 }
 function viewCommissioning(commId){ openCommissioningModal(commId, true); }
 
