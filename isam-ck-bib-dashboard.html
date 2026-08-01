@@ -2145,7 +2145,7 @@ function renderPreparation(){
   progress: Math.round((Number(pick(r,['Progress_Percent']))||0)*100),
   status: pick(r,['Status_Preparation']) || 'Belum Lengkap',
   hari: Number(pick(r,['Hari_di_Preparation','hari']))||0
-}).map(r=>({...r, prioritas: computePrioritasFromHari(r.hari)})));
+})).map(r=>({...r, prioritas: computePrioritasFromHari(r.hari)}));
 
   /* UNIT PERLU MULAI PREPARATION - deteksi otomatis dari status Commissioning
      (Near Expired / Expired) yang UNIT-nya belum punya baris di Preparation_Tracking.
