@@ -825,6 +825,9 @@ tbody tr:hover{ background:#f9fbff; }
           <div class="panel">
             <div class="toolbar">
               <input type="text" id="comSearch" placeholder="Cari Unit ID, SN, atau Registration No..." oninput="liveComSearch()">
+              <select id="comSiteFilter" onchange="renderCommissioning()">
+                <option value="">Semua Site</option>
+              </select>
               <select id="comStatusFilter" onchange="renderCommissioning()">
                 <option value="">Semua Status</option>
                 <option value="Expired">Expired</option>
@@ -832,7 +835,7 @@ tbody tr:hover{ background:#f9fbff; }
                 <option value="Active">Aktif</option>
               </select>
               <button class="btn btn-primary" onclick="renderCommissioning()">🔎 Filter</button>
-              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comStatusFilter').value='';renderCommissioning()">↻ Reset</button>
+              <button class="btn btn-outline" onclick="document.getElementById('comSearch').value='';document.getElementById('comSiteFilter').value='';document.getElementById('comStatusFilter').value='';renderCommissioning()">↻ Reset</button>
               <button class="btn btn-primary" style="margin-left:auto" onclick="openCommissioningModal(null)">+ Tambah Komisioning</button>
             </div>
             <div class="panel-title">DAFTAR KOMISIONING</div>
@@ -1369,6 +1372,17 @@ function guessIconForJenis(jenisName){
   const match = ICON_LIBRARY.find(ic => ic.key!=='lainnya' && (n.includes(ic.key.replace(/_/g,' ')) || n.includes(ic.label.toLowerCase())));
   return match ? match.icon : '🚚';
 }
+/* Sama seperti guessIconForJenis, tapi coba tampilkan GAMBAR (dari folder icons/, misal
+   hasil download dari Flaticon) dulu - kalau gambarnya belum ada/gagal dimuat (404), otomatis
+   balik tampilin emoji seperti biasa. Jadi begitu Anda upload file PNG dengan nama yang cocok
+   ke folder "icons/" di repo, iconnya otomatis kepakai TANPA perlu ubah kode lagi. */
+function iconHtmlForJenis(jenisName){
+  const n = String(jenisName||'').toLowerCase();
+  const match = ICON_LIBRARY.find(ic => ic.key!=='lainnya' && (n.includes(ic.key.replace(/_/g,' ')) || n.includes(ic.label.toLowerCase())));
+  const key = match ? match.key : 'lainnya';
+  const emojiFallback = match ? match.icon : '🚚';
+  return `<img src="icons/${key}.png" alt="${key}" style="width:26px;height:26px;object-fit:contain;" onerror="this.outerHTML='<span style=&quot;font-size:22px;line-height:1;&quot;>${emojiFallback}</span>'">`;
+}
 
 /* =====================================================================
    HELPERS
@@ -1883,7 +1897,7 @@ function renderDashboard(){
   }).filter(j=>j.total>0).sort((a,b)=>b.total-a.total);
   document.getElementById('dashJenisBreakdown').innerHTML = jenisBreakdown.length ? jenisBreakdown.map(j=>`
     <div class="jenis-card">
-      <div style="font-size:22px;line-height:1;margin-bottom:4px;">${guessIconForJenis(j.jenis)}</div>
+      <div style="margin-bottom:4px;">${iconHtmlForJenis(j.jenis)}</div>
       <div class="jc-num">${j.total}</div>
       <div class="jc-lb">${j.jenis}</div>
       <div class="progress-track"><div class="progress-fill" style="width:${pct(j.active,j.total)}%"></div></div>
@@ -2026,12 +2040,16 @@ function renderCommissioning(){
     statCard("EXPIRED", exp, "Data", `${pct(exp,total)}% dari total komisioning`, "red","❌")
   ].join('');
   const term = document.getElementById('comSearch').value;
+  const siteFilter = document.getElementById('comSiteFilter').value;
   const statusFilter = document.getElementById('comStatusFilter').value;
   let filtered = rows.filter(r=>{
     if(!term) return true;
     const t = term.toLowerCase();
     return [pick(r,['Unit_ID']),pick(r,['Registration_No'])].some(v=>String(v||'').toLowerCase().includes(t));
   });
+  if(siteFilter){
+    filtered = filtered.filter(r=>pick(r,['Site'])===siteFilter);
+  }
   if(statusFilter){
     filtered = filtered.filter(r=>{
       const s = String(pick(r,['Status'])||'').toLowerCase();
@@ -2227,7 +2245,14 @@ function renderPreparation(){
     needPrepSeen.add(unitId);
     needPrep.push({ unitId, isExpired: s.includes('expired') && !s.includes('near'), site: pick(c,['Site']), area: pick(c,['Area']), sisa: pick(c,['Sisa_Hari']) });
   });
-  needPrep.sort((a,b)=> Number(a.sisa) - Number(b.sisa)); // sisa hari paling sedikit (paling urgent/paling minus) di atas
+  needPrep.sort((a,b)=>{
+    const av = Number(a.sisa), bv = Number(b.sisa);
+    const aNan = isNaN(av), bNan = isNaN(bv);
+    if(aNan && bNan) return 0;
+    if(aNan) return 1;  // nilai nggak valid ditaruh di paling belakang, bukan acak
+    if(bNan) return -1;
+    return av - bv; // paling kecil/paling minus (paling mendesak) di atas
+  });
 
   document.getElementById('needPrepPanel').innerHTML = needPrep.length ? `
     <div class="need-prep-panel">
@@ -3827,6 +3852,8 @@ function populateTopFilters(){
   prepSite.innerHTML = '<option value="">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
   const prepArea = document.getElementById('prepArea');
   prepArea.innerHTML = '<option value="">Semua Area</option>' + areas.map(a=>`<option>${a}</option>`).join('');
+  const comSite = document.getElementById('comSiteFilter');
+  comSite.innerHTML = '<option value="">Semua Site</option>' + sites.map(s=>`<option>${s}</option>`).join('');
 }
 function applyFilters(){ renderDashboard(); }
 function resetFilters(){ document.getElementById('dashSearch').value=''; renderDashboard(); }
