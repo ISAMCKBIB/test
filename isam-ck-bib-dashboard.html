@@ -19,6 +19,8 @@
   --red-bg:#fdecec;
   --green:#1fa251;
   --green-bg:#e8f8ee;
+  --purple:#8b5cf6;
+  --purple-bg:#f1ebfe;
   --gray-bg:#f4f6fb;
   --border:#e7ebf3;
   --text-900:#101828;
@@ -540,6 +542,28 @@ tbody tr:hover{ background:#f9fbff; }
 .mini-step.done .lb{ color:var(--green); font-weight:600; }
 .mini-step.current .lb{ color:var(--orange); font-weight:700; }
 
+/* Warna konsisten per-tahap: dipakai bareng di tombol aksi, status pill, DAN titik
+   "current" mini-stepper - supaya ketiganya kelihatan nyambung/sinkron secara visual,
+   bukan cuma benar secara logika tapi nggak nyambung keliatannya. */
+.stage-btn{ border:none; color:#fff; font-weight:700; }
+.stage-btn.stage-1{ background:var(--blue-600); }
+.stage-btn.stage-2{ background:var(--orange); }
+.stage-btn.stage-3{ background:var(--purple); }
+.stage-btn.stage-4{ background:var(--green); }
+.stage-btn:hover{ opacity:.88; }
+.pill.stage-1{ background:#e9effe; color:var(--blue-600); }
+.pill.stage-2{ background:var(--orange-bg); color:var(--orange); }
+.pill.stage-3{ background:var(--purple-bg); color:var(--purple); }
+.pill.stage-4{ background:var(--green-bg); color:var(--green); }
+.mini-step.current.stage-1 .dot{ background:var(--blue-600); box-shadow:0 0 0 3px #e9effe; }
+.mini-step.current.stage-1 .lb{ color:var(--blue-600); }
+.mini-step.current.stage-2 .dot{ background:var(--orange); box-shadow:0 0 0 3px var(--orange-bg); }
+.mini-step.current.stage-2 .lb{ color:var(--orange); }
+.mini-step.current.stage-3 .dot{ background:var(--purple); box-shadow:0 0 0 3px var(--purple-bg); }
+.mini-step.current.stage-3 .lb{ color:var(--purple); }
+.mini-step.current.stage-4 .dot{ background:var(--green); box-shadow:0 0 0 3px var(--green-bg); }
+.mini-step.current.stage-4 .lb{ color:var(--green); }
+
 /* =====================================================================
    HERO EXPIRED (dashboard) - supaya unit Expired langsung menonjol
 ===================================================================== */
@@ -862,7 +886,8 @@ tbody tr:hover{ background:#f9fbff; }
             <button class="btn btn-outline" style="margin-left:auto" onclick="exportTableCSV('prepTable','preparation_commissioning')">⬇ Export</button>
           </div>
           <div id="prepBulkBar"></div>
-          <div class="panel-title">DAFTAR PREPARATION COMMISSIONING</div>
+          <div class="site-tab-bar" id="prepStatusTabs"></div>
+          <div class="panel-title" id="prepTableTitle">DAFTAR PREPARATION COMMISSIONING</div>
           <div class="table-scroll-wrap">
             <table id="prepTable">
               <thead><tr>
@@ -1408,10 +1433,10 @@ function prepStageIndex(status){
 /* Tombol aksi berikutnya sesuai tahap saat ini. null kalau belum siap diajukan atau sudah selesai. */
 function prepNextAction(status){
   const map = {
-    'Ready ZIP':       { to:'Diajukan',        label:'Ajukan ke Portal BIB',              field:'Tanggal_Diajukan' },
-    'Diajukan':        { to:'Disetujui',       label:'Tandai Disetujui',                  field:'Tanggal_Disetujui' },
-    'Disetujui':       { to:'Waiting Sticker', label:'Tandai Waiting Sticker (OSHE CK)',  field:'Tanggal_Waiting_Sticker' },
-    'Waiting Sticker': { to:'Selesai',         label:'✓ Tandai Stiker Terpasang',         field:'Tanggal_Terpasang' }
+    'Ready ZIP':       { to:'Diajukan',        label:'Ajukan ke Portal BIB',              field:'Tanggal_Diajukan',        cls:'stage-1' },
+    'Diajukan':        { to:'Disetujui',       label:'Tandai Disetujui',                  field:'Tanggal_Disetujui',       cls:'stage-2' },
+    'Disetujui':       { to:'Waiting Sticker', label:'Tandai Waiting Sticker (OSHE CK)',  field:'Tanggal_Waiting_Sticker', cls:'stage-3' },
+    'Waiting Sticker': { to:'Selesai',         label:'✓ Tandai Stiker Terpasang',         field:'Tanggal_Terpasang',       cls:'stage-4' }
   };
   return map[status] || null;
 }
@@ -1423,7 +1448,7 @@ function prepMiniStepper(status){
   return `<div class="mini-stepper">` + labels.map((lb,i)=>{
     let cls = 'pending';
     if(i <= doneUpTo) cls = 'done';
-    else if(i === doneUpTo+1) cls = 'current';
+    else if(i === doneUpTo+1) cls = `current stage-${i}`; // nomor stage = posisi step current (1-4)
     return `<div class="mini-step ${cls}" title="${lb}"><span class="dot"></span><span class="lb">${lb}</span></div>`;
   }).join('') + `</div>`;
 }
@@ -1490,6 +1515,17 @@ async function advancePrepStage(prepId, unitId, toStatus, dateField, skipUndo){
   const data = { Status_Preparation: toStatus };
   const now = new Date();
   data[dateField] = now.toISOString().slice(0,16).replace('T',' ');
+
+  /* OPTIMISTIC UPDATE: ubah data lokal + render tabelnya SEKARANG JUGA, sebelum nunggu
+     server jawab. Ini yang bikin tombol & status langsung sinkron tanpa jeda - sebelumnya
+     manualRefresh() jalan di belakang layar (tanpa await) sementara toast sudah muncul
+     duluan, jadi sempat kelihatan "belum sinkron" selama beberapa detik. */
+  if(prevRaw){
+    prevRaw['Status_Preparation'] = toStatus;
+    prevRaw[dateField] = data[dateField];
+    if(document.getElementById('page-preparation')?.classList.contains('active')) renderPreparation();
+  }
+
   const result = await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: prepId, data });
   if(result.success){
     logActivity('Update Status', `${unitId}: ${prevStatus} -> ${toStatus}`);
@@ -1497,30 +1533,41 @@ async function advancePrepStage(prepId, unitId, toStatus, dateField, skipUndo){
       logActivity('Perlu Input Commissioning', `${unitId}: preparation selesai, tunggu nomor registrasi baru lalu input manual di Commissioning`);
     }
     if(!skipUndo){
-      manualRefresh();
       const undoMsg = toStatus==='Selesai'
         ? `✓ ${unitId}: Selesai. Jangan lupa input Commissioning baru begitu nomor registrasi terbit!`
         : `✓ ${unitId}: ${prevStatus} → ${toStatus}`;
       showUndoToast(undoMsg, async ()=>{
         showSaveToast('⏳ Membatalkan...');
+        if(prevRaw){
+          prevRaw['Status_Preparation'] = prevStatus;
+          prevRaw[dateField] = prevDateField;
+          renderPreparation();
+        }
         await crudPost('updateRow', { sheet:'Preparation_Tracking', pk: prepId, data:{ Status_Preparation: prevStatus, [dateField]: prevDateField } });
         logActivity('Batalkan Update Status', `${unitId}: kembali ke ${prevStatus}`);
-        manualRefresh();
         showSaveToast('↩️ Dibatalkan, kembali ke '+prevStatus);
       });
+      manualRefresh(); // tetap sinkron ke server di belakang layar (buat kolom formula, dll), tapi tampilan sudah benar duluan
     }
     return true;
   }else{
+    // Gagal simpan - balikin perubahan optimistic-nya, jangan biarkan UI nunjukin data yang salah
+    if(prevRaw){
+      prevRaw['Status_Preparation'] = prevStatus;
+      prevRaw[dateField] = prevDateField;
+      if(document.getElementById('page-preparation')?.classList.contains('active')) renderPreparation();
+    }
     if(!skipUndo) showSaveToast('⚠ Gagal update status: '+(result.message||'Terjadi kesalahan'), true);
     return false;
   }
 }
 
 function pillPrep(status){
-  if(status==="Selesai") return `<span class="pill green">✓ ${status}</span>`;
+  if(status==="Selesai") return `<span class="pill stage-4">✓ ${status}</span>`;
   if(status==="Ready ZIP") return `<span class="pill green">${status}</span>`;
   if(status==="Belum Lengkap") return `<span class="pill red">${status}</span>`;
-  if(status==="Waiting Sticker") return `<span class="pill blue">${status}</span>`;
+  const next = prepNextAction(status);
+  if(next) return `<span class="pill ${next.cls}">${status}</span>`;
   return `<span class="pill orange">${status}</span>`;
 }
 function pillPrioritas(p){
@@ -2074,6 +2121,12 @@ function renderCommissioning(){
    RENDER: PREPARATION
 ===================================================================== */
 let prepPage=1;
+let prepViewTab='active'; // 'active' (sedang berjalan) atau 'selesai'
+function setPrepViewTab(tab){
+  prepViewTab = tab;
+  prepPage = 1;
+  renderPreparation();
+}
 let selectedPrepUnits = new Set(); // isinya sekarang Prep_ID (unik per baris), bukan Unit_ID
 function togglePrepRow(prepId, checked){
   if(checked) selectedPrepUnits.add(prepId); else selectedPrepUnits.delete(prepId);
@@ -2104,7 +2157,7 @@ function updatePrepBulkBar(){
     bar.innerHTML = `
       <div class="prep-bulk-bar">
         <b>${selectedPrepUnits.size} unit dipilih</b> (semua di tahap "${commonStatus}")
-        ${next ? `<button class="btn btn-primary" style="font-size:12px;padding:7px 14px;" onclick="bulkAdvancePrepStage('${next.to}','${next.field}')">${next.label} (${selectedPrepUnits.size} unit)</button>`
+        ${next ? `<button class="stage-btn ${next.cls}" style="font-size:12px;padding:7px 14px;border-radius:8px;cursor:pointer;" onclick="bulkAdvancePrepStage('${next.to}','${next.field}')">${next.label} (${selectedPrepUnits.size} unit)</button>`
                : `<span style="font-size:12px;color:var(--text-400)">Tidak ada aksi lanjutan untuk tahap ini</span>`}
         <button class="btn btn-outline" style="font-size:12px;padding:7px 14px;margin-left:auto" onclick="selectedPrepUnits.clear();renderPreparation();">Batal Pilih</button>
       </div>`;
@@ -2241,15 +2294,27 @@ function renderPreparation(){
   ].join('');
 
   const term = document.getElementById('prepSearch').value;
-let filtered = filterRows(rows, term, ['unitId','model','sn']);
-const site = document.getElementById('prepSite').value;
-const area = document.getElementById('prepArea').value;
-const status = document.getElementById('prepStatus').value;
-const prioritas = document.getElementById('prepPrioritas').value;
-if(site) filtered = filtered.filter(r=>r.site===site);
-if(area) filtered = filtered.filter(r=>r.area===area);
-if(status) filtered = filtered.filter(r=>r.status===status);
-if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
+  const site = document.getElementById('prepSite').value;
+  const area = document.getElementById('prepArea').value;
+  const status = document.getElementById('prepStatus').value;
+  const prioritas = document.getElementById('prepPrioritas').value;
+
+  /* TAB Sedang Berjalan / Selesai - supaya nggak digabung jadi 1 tabel panjang yang
+     harus di-page-hunt buat cari yang masih aktif di antara tumpukan yang udah kelar. */
+  document.getElementById('prepStatusTabs').innerHTML = [
+    {key:'active', label:`Sedang Berjalan (${total-selesai})`},
+    {key:'selesai', label:`Selesai (${selesai})`}
+  ].map(t=>`<div class="stab ${prepViewTab===t.key?'active':''}" onclick="setPrepViewTab('${t.key}')">${t.label}</div>`).join('');
+  document.getElementById('prepTableTitle').innerText = prepViewTab==='selesai'
+    ? 'DAFTAR PREPARATION — SELESAI'
+    : 'DAFTAR PREPARATION — SEDANG BERJALAN';
+
+  const baseRows = prepViewTab==='selesai' ? rows.filter(r=>r.status==='Selesai') : rows.filter(r=>r.status!=='Selesai');
+  let filtered = filterRows(baseRows, term, ['unitId','model','sn']);
+  if(site) filtered = filtered.filter(r=>r.site===site);
+  if(area) filtered = filtered.filter(r=>r.area===area);
+  if(status) filtered = filtered.filter(r=>r.status===status);
+  if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
 
   const perPage=10;
   buildPagination('prepPagination', filtered.length, perPage, prepPage, 'window.__prepSetPage');
@@ -2264,7 +2329,7 @@ if(prioritas) filtered = filtered.filter(r=>r.prioritas===prioritas);
   if(r.status==='Selesai'){
     actionBtn = `<span class="pill green" style="white-space:nowrap">✓ Selesai</span>`;
   } else if(next){
-    actionBtn = `<button class="btn btn-outline" style="font-size:11.5px;padding:6px 10px;white-space:nowrap" onclick="advancePrepStage('${escJs(r.prepId)}','${escJs(r.unitId)}','${escJs(next.to)}','${next.field}')">${next.label}</button>`;
+    actionBtn = `<button class="stage-btn ${next.cls}" style="font-size:11.5px;padding:6px 10px;white-space:nowrap;border-radius:8px;cursor:pointer;" onclick="advancePrepStage('${escJs(r.prepId)}','${escJs(r.unitId)}','${escJs(next.to)}','${next.field}')">${next.label}</button>`;
   } else {
     actionBtn = `<span class="readonly-badge" title="Lengkapi Foto, Checklist, BAST, dan History dulu">Lengkapi dokumen dulu</span>`;
   }
