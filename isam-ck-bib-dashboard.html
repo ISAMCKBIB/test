@@ -576,6 +576,34 @@ tbody tr:hover{ background:#f9fbff; }
   color:#fff;
 }
 .expired-hero.zero{ background:linear-gradient(135deg, var(--green), #178a45); }
+/* Pulsa halus (bukan berkedip kasar) - CUMA jalan kalau ada unit expired (bg belum .zero),
+   biar mata kepancing lihat yang genuinely urgent, tapi nggak norak/ganggu terus-terusan. */
+.expired-hero:not(.zero){ animation:hero-pulse 2.6s ease-in-out infinite; }
+@keyframes hero-pulse{
+  0%, 100% { box-shadow:0 0 0 0 rgba(224,71,63,.35); }
+  50% { box-shadow:0 0 0 10px rgba(224,71,63,0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .expired-hero:not(.zero){ animation:none; }
+}
+
+/* Highlight baris yang BARU SAJA diupdate (misal habis klik "Ajukan ke Portal BIB" atau
+   edit inline Registration No) - biar admin langsung lihat baris MANA yang berubah,
+   nggak perlu nyari manual di antara ratusan baris lain. Nyala sebentar terus fade out. */
+.row-flash{ animation:row-flash-bg 1.8s ease-out; }
+@keyframes row-flash-bg{
+  0% { background-color:#d6ebff; }
+  100% { background-color:transparent; }
+}
+.row-flash .pill{ animation:pill-pop .4s ease-out; }
+@keyframes pill-pop{
+  0% { transform:scale(0.85); opacity:.4; }
+  60% { transform:scale(1.08); }
+  100% { transform:scale(1); opacity:1; }
+}
+@media (prefers-reduced-motion: reduce){
+  .row-flash, .row-flash .pill{ animation:none; }
+}
 .expired-hero .eh-left{ display:flex; align-items:center; gap:16px; }
 .expired-hero .eh-icon{ font-size:34px; line-height:1; }
 .expired-hero .eh-num{ font-size:36px; font-weight:800; line-height:1; }
@@ -1020,6 +1048,14 @@ const CONFIG = {
 };
 
 let DEMO_MODE = true;
+/* Nandain baris mana yang BARU SAJA diupdate, biar pas re-render dia bisa dikasih
+   animasi flash sebentar (row-flash) - hilang otomatis setelah beberapa detik supaya
+   nggak nyala terus-terusan kalau ada re-render lain yang nggak berhubungan. */
+window.__flashRowKey = null;
+function markRowForFlash(key){
+  window.__flashRowKey = key;
+  setTimeout(()=>{ if(window.__flashRowKey===key) window.__flashRowKey=null; }, 2500);
+}
 let DB = {};
 let FETCH_HAD_ERROR = false;
 let CURRENT_USER_NAME = 'Abdul Azis (Admin)'; // dipakai untuk mencatat siapa yang melakukan perubahan di Activity Log
@@ -1146,6 +1182,7 @@ async function manualRefresh(){
     populateTopFilters();
     updateNotif();
     renderPage(currentPageKey || 'dashboard');
+    animateStatCounters();
     if(DEMO_MODE){
       showSaveToast('⚠ Gagal konek ke Apps Script, menampilkan data demo', true);
     }else{
@@ -1558,6 +1595,7 @@ async function advancePrepStage(prepId, unitId, toStatus, dateField, skipUndo){
   if(prevRaw){
     prevRaw['Status_Preparation'] = toStatus;
     prevRaw[dateField] = data[dateField];
+    markRowForFlash(prepId);
     if(document.getElementById('page-preparation')?.classList.contains('active')) renderPreparation();
   }
 
@@ -1675,11 +1713,32 @@ function pct(part, total){
   return Math.round((part/total)*1000)/10;
 }
 function statCard(label, value, unit, sub, colorClass, icon){
+  const isNum = /^-?\d+$/.test(String(value).trim());
+  const valHtml = isNum ? `<span class="count-up" data-target="${value}">${value}</span>` : value;
   return `<div class="stat-card ${colorClass||''}">
     <div class="lbl">${icon||''} ${label}</div>
-    <div class="val">${value} <span class="unit">${unit||''}</span></div>
+    <div class="val">${valHtml} <span class="unit">${unit||''}</span></div>
     <div class="sub">${sub||''}</div>
   </div>`;
+}
+/* Animasi hitung naik (0 -> angka asli) untuk semua kartu statistik yang lagi ada di
+   layar. Sengaja DIPANGGIL MANUAL (bukan otomatis tiap render) supaya nggak muter-muter
+   tiap kali user ngetik di kolom cari - cuma jalan pas data BENERAN di-refresh dari server. */
+function animateStatCounters(){
+  document.querySelectorAll('.count-up').forEach(el=>{
+    const target = parseInt(el.dataset.target, 10);
+    if(isNaN(target)) return;
+    const duration = 650;
+    const start = performance.now();
+    function tick(now){
+      const progress = Math.min((now-start)/duration, 1);
+      const eased = 1 - Math.pow(1-progress, 3); // ease-out cubic, kesan "ngerem" di akhir
+      el.textContent = Math.round(target*eased);
+      if(progress<1) requestAnimationFrame(tick);
+      else el.textContent = target;
+    }
+    requestAnimationFrame(tick);
+  });
 }
 function prepStatCard(label, value, unit, sub, iconBg, iconColor, icon, barColor, barPct){
   return `<div class="prep-stat-card">
@@ -1988,7 +2047,8 @@ function renderMasterUnit(){
     const unitId = pick(r,['Unit_ID']);
     const bibCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='BIB').length;
     const tiaCount = DB.commissioning.filter(c=>pick(c,['Unit_ID'])===unitId && pick(c,['Site'])==='TIA').length;
-    return `<tr><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${pick(r,['Model_Unit','Model'])}</td><td>${pick(r,['Jenis_Unit'])}</td>
+    const flashCls = unitId && unitId===window.__flashRowKey ? ' class="row-flash"' : '';
+    return `<tr${flashCls}><td>${(muPage-1)*perPage+i+1}</td><td class="unit-id">${unitId}</td><td>${pick(r,['Model_Unit','Model'])}</td><td>${pick(r,['Jenis_Unit'])}</td>
     <td>${pick(r,['Serial_Number'])}</td><td>${pick(r,['Tahun'])}</td><td>${pillFor(pick(r,['Status']))}</td><td>${bibCount}</td><td>${tiaCount}</td><td>${bibCount+tiaCount}</td>
     <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openMasterUnitModal('${escJs(unitId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteMasterUnit('${escJs(unitId)}')">🗑</button></td></tr>`;
   }).join('') || `<tr><td colspan="11" class="empty-state">Tidak ada data</td></tr>`;
@@ -2097,7 +2157,8 @@ function renderCommissioning(){
     const commId = pick(r,['Commissioning_ID']);
     const mu = DB.masterUnit.find(m=>pick(m,['Unit_ID'])===unitId);
     const sisa = pick(r,['Sisa_Hari']);
-    return `<tr><td>${i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
+    const flashCls = commId && commId===window.__flashRowKey ? ' class="row-flash"' : '';
+    return `<tr${flashCls}><td>${i+1}</td><td class="unit-id">${unitId}</td><td>${mu?pick(mu,['Model_Unit']):''}</td><td>${mu?pick(mu,['Serial_Number']):''}</td>
     <td><span class="pill blue">${pick(r,['Site'])}</span></td><td>${pick(r,['Area'])}</td>
     <td class="inline-edit-cell" data-comm-id="${escJs(commId)}" data-field="Registration_No" onclick="startInlineEdit(this)" title="Klik untuk edit">${pick(r,['Registration_No']) || '<span style="color:var(--text-300);font-style:italic;">+ isi Reg. No</span>'}</td>
     <td>${pick(r,['Tanggal_Terbit'])}</td><td>${pick(r,['Masa_Berlaku'])}</td>
@@ -2378,7 +2439,7 @@ function renderPreparation(){
     actionBtn = `<span class="readonly-badge" title="Lengkapi Foto, Checklist, BAST, dan History dulu">Lengkapi dokumen dulu</span>`;
   }
   return `
-  <tr>
+  <tr${r.prepId && r.prepId===window.__flashRowKey ? ' class="row-flash"' : ''}>
     <td><input type="checkbox" class="prep-row-check" data-prep-id="${escJs(r.prepId)}" ${selectedPrepUnits.has(r.prepId)?'checked':''} onchange="togglePrepRow('${escJs(r.prepId)}', this.checked)"></td>
     <td>${(prepPage-1)*perPage+i+1}</td>
     <td class="unit-id">${r.unitId}</td>
@@ -2937,6 +2998,7 @@ async function submitCrudModal(){
     showSaveToast('✓ '+(result.message || (isEdit ? 'Data berhasil diperbarui' : 'Data berhasil ditambahkan')));
     closeCrudModal();
     const pkDisplay = data[cfg.pkField] || pick(cfg.data||{},[cfg.pkField]) || '';
+    if(pkDisplay) markRowForFlash(pkDisplay);
     logActivity(isEdit ? 'Edit Data' : 'Tambah Data', `${cfg.sheet}: ${pkDisplay}`);
     if(cfg.onDone) cfg.onDone();
   }else{
@@ -3052,6 +3114,7 @@ function startInlineEdit(td){
     if(result.success){
       logActivity('Edit Inline', `${commId}: ${field} = "${newValue}"`);
       showSaveToast('✓ Tersimpan');
+      markRowForFlash(commId);
       manualRefresh();
     }else{
       showSaveToast('⚠ Gagal simpan: '+(result.message||'Terjadi kesalahan'), true);
@@ -3835,7 +3898,7 @@ function renderUsers(){
   const term = document.getElementById('userSearch').value;
   const filtered = filterRows(rows, term, ['nama','username','email']);
   document.getElementById('userTableBody').innerHTML = filtered.map((r,i)=>`
-    <tr><td>${i+1}</td><td>${r.nama}</td><td>${r.username}</td><td>${r.email}</td>
+    <tr${r.userId && r.userId===window.__flashRowKey ? ' class="row-flash"' : ''}><td>${i+1}</td><td>${r.nama}</td><td>${r.username}</td><td>${r.email}</td>
     <td><span class="pill blue">${r.role}</span></td><td>${r.site}</td><td>${r.area}</td><td>${pillFor(r.status)}</td>
     <td><button class="icon-btn blue" title="Lihat/Edit" onclick="openUserModal('${escJs(r.userId)}')">👁</button><button class="icon-btn blue" title="Edit" onclick="openUserModal('${escJs(r.userId)}')">✏️</button><button class="icon-btn red" title="Hapus" onclick="deleteUser('${escJs(r.userId)}','${escJs(r.nama)}')">🗑</button></td></tr>
   `).join('') || `<tr><td colspan="9" class="empty-state">Tidak ada data</td></tr>`;
@@ -3903,6 +3966,7 @@ function updateNotif(){
   populateTopFilters();
   updateNotif();
   renderDashboard();
+  animateStatCounters();
   hideAppLoader();
 })();
 </script>
