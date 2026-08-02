@@ -1239,11 +1239,11 @@ const DEMO_DATA = {
     {ID:"2", Site_Code:"TIA", Site_Name:"TIA (Owner)", Status:"Aktif"}
   ],
   picReminder: [
-    {PIC_ID:"P001", Nama:"Abdul Azis", Role:"PIC", Email:"abdul.azis@ck.co.id", Status:"Aktif"},
-    {PIC_ID:"P002", Nama:"Hendro", Role:"PIC", Email:"hendro@ck.co.id", Status:"Aktif"},
-    {PIC_ID:"P003", Nama:"Rommy", Role:"PIC", Email:"rommy@ck.co.id", Status:"Aktif"},
-    {PIC_ID:"P004", Nama:"Supervisor GRB", Role:"Supervisor", Email:"supervisor.grb@ck.co.id", Status:"Aktif"},
-    {PIC_ID:"P005", Nama:"Admin Commissioning", Role:"Admin", Email:"admin.commissioning@ck.co.id", Status:"Aktif"}
+    {'PIC_ID (PK)':"PIC-001", Nama:"Abdul Azis", Role:"Administrator", Site:"ALL", Area:"ALL", Email:"abdulaziz2037@gmail.com", No_HP_Telegram_ID:"628226614403"},
+    {'PIC_ID (PK)':"PIC-002", Nama:"Dimas", Role:"PIC Lapangan", Site:"BIB", Area:"GRB", Email:"dimayy17@gmail.com", No_HP_Telegram_ID:"6281234500022"},
+    {'PIC_ID (PK)':"PIC-003", Nama:"Citra Dewi", Role:"PIC Lapangan", Site:"BIB", Area:"KGB", Email:"citra.dewi@isam.co.id", No_HP_Telegram_ID:"6281234500033"},
+    {'PIC_ID (PK)':"PIC-004", Nama:"Eddy", Role:"PIC Lapangan", Site:"TIA", Area:"GRB", Email:"dimayy17@gmail.com", No_HP_Telegram_ID:"6281234500044"},
+    {'PIC_ID (PK)':"PIC-005", Nama:"Eka Wulandari", Role:"Admin Commissioning", Site:"TIA", Area:"KGB", Email:"eka.wulandari@isam.co.id", No_HP_Telegram_ID:"6281234500055"}
   ],
   masterChecklist: [
     {Checklist_No:"1", Item:"Kondisi Ban / Track", Kategori:"Safety"},
@@ -3403,30 +3403,22 @@ function updateJadwalValue(idx, val){
 }
 /* Penerima reminder sekarang berdasarkan Master_PIC_Reminder asli (bukan hardcode demo).
    Toggle "Aktif" langsung disimpan ke sheet lewat updateRow, sama seperti fitur CRUD lain. */
-async function togglePenerimaItem(picId){
-  const p = DB.picReminder.find(x=>pick(x,['PIC_ID'])===picId);
-  if(!p) return;
-  const curStatus = pick(p,['Status']);
-  const newStatus = isActiveStatus(curStatus) ? 'Non Aktif' : 'Aktif';
-  const result = await crudPost('updateRow', { sheet:'Master_PIC_Reminder', pk: picId, data:{ Status:newStatus } });
-  if(result.success){
-    p.Status = newStatus; // update lokal biar UI langsung responsif tanpa nunggu refresh penuh
-    logActivity('Update PIC Reminder', `${pick(p,['Nama'])}: ${newStatus}`);
-  }else{
-    showSaveToast('⚠ Gagal update (mode demo): '+(result.message||''), true);
-    p.Status = newStatus; // tetap update tampilan di mode demo biar terasa responsif
-  }
-  renderSettingsReminder();
+/* Sheet Master_PIC_Reminder TIDAK punya kolom Status - jadi preferensi "aktif terima
+   reminder atau tidak" disimpan di localStorage browser ini saja (per-device), bukan
+   ke spreadsheet. Kalau nanti sheet-nya ditambah kolom Status, ini bisa disambungkan
+   ke crudPost('updateRow',...) seperti fitur lain. */
+function getPrepReminderLocalChecked(picId){
+  try{
+    const unchecked = JSON.parse(localStorage.getItem('reminderPenerimaUnchecked')||'[]');
+    return !unchecked.includes(picId);
+  }catch(e){ return true; }
 }
-async function toggleAllPenerima(){
-  const allChecked = DB.picReminder.every(p=>isActiveStatus(pick(p,['Status'])));
-  const newStatus = allChecked ? 'Non Aktif' : 'Aktif';
-  showSaveToast('⏳ Memperbarui semua penerima...');
-  for(const p of DB.picReminder){
-    await crudPost('updateRow', { sheet:'Master_PIC_Reminder', pk: pick(p,['PIC_ID']), data:{ Status:newStatus } });
-    p.Status = newStatus;
-  }
-  showSaveToast('✓ Semua penerima diperbarui');
+function togglePenerimaItem(picId){
+  try{
+    let unchecked = JSON.parse(localStorage.getItem('reminderPenerimaUnchecked')||'[]');
+    unchecked = unchecked.includes(picId) ? unchecked.filter(id=>id!==picId) : [...unchecked, picId];
+    localStorage.setItem('reminderPenerimaUnchecked', JSON.stringify(unchecked));
+  }catch(e){}
   renderSettingsReminder();
 }
 function toggleJadwalPengiriman(idx){
@@ -3434,7 +3426,7 @@ function toggleJadwalPengiriman(idx){
   renderSettingsReminder();
 }
 function saveReminderSettings(){
-  alert('Jadwal & channel reminder tersimpan (mode demo - belum tersambung ke spreadsheet).\n\nCatatan: daftar Penerima Reminder SUDAH tersambung ke Master_PIC_Reminder dan tersimpan otomatis setiap dicentang/dilepas.');
+  alert('Jadwal & channel reminder tersimpan (mode demo - belum tersambung ke spreadsheet).\n\nCatatan: daftar Penerima Reminder diambil dari sheet Master_PIC_Reminder (real). Centang/lepas centangnya disimpan di browser ini saja, karena sheet-nya belum punya kolom Status.');
 }
 function renderSettingsReminder(){
   const rs = DB.reminderSettings;
@@ -3475,21 +3467,17 @@ function renderSettingsReminder(){
   const col3 = `
     <div class="panel">
       <div class="panel-title">👥 PENERIMA REMINDER</div>
-      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Pilih penerima reminder dari Master PIC Reminder. Perubahan langsung tersimpan ke spreadsheet.</p>
+      <p style="color:var(--text-400);font-size:12px;margin:-8px 0 10px;">Daftar PIC dari sheet Master_PIC_Reminder. Centang berarti PIC itu akan menerima reminder (disimpan di browser ini saja, bukan ke spreadsheet - sheet Anda belum punya kolom Status).</p>
       ${DB.picReminder.map(p=>{
-        const picId = pick(p,['PIC_ID']);
-        const isChecked = isActiveStatus(pick(p,['Status']));
+        const picId = pick(p,['PIC_ID (PK)','PIC_ID']);
+        const isChecked = getPrepReminderLocalChecked(picId);
         return `
         <div class="penerima-item">
           <input type="checkbox" ${isChecked?'checked':''} onchange="togglePenerimaItem('${escJs(picId)}')">
           <div><span class="nm">${pick(p,['Nama'])}</span><span class="role-pill">${pick(p,['Role'])}</span></div>
-          <span class="em">${pick(p,['Email'])}</span>
+          <span class="em">${pick(p,['Email'])} · ${pick(p,['Site'])}/${pick(p,['Area'])}</span>
         </div>`;
       }).join('') || `<div class="empty-state" style="padding:16px 0;">Belum ada PIC terdaftar</div>`}
-      ${DB.picReminder.length ? `<div class="penerima-item" style="border-top:1px solid var(--border);margin-top:4px;padding-top:10px;">
-        <input type="checkbox" ${DB.picReminder.every(p=>isActiveStatus(pick(p,['Status'])))?'checked':''} onchange="toggleAllPenerima()">
-        <b>Pilih Semua</b>
-      </div>` : ''}
     </div>`;
 
   const col4 = `
@@ -3907,6 +3895,10 @@ function updateNotif(){
   /* DB.unitTypes murni referensi lokal (pilihan icon), TIDAK tersambung ke Google Sheets manapun.
      Diinisialisasi terpisah di sini supaya halaman Pengaturan > Umum tidak crash. */
   if(!DB.unitTypes) DB.unitTypes = DEMO_DATA.unitTypes.slice();
+  /* DB.reminderSettings (jadwal H-, channel) juga murni lokal - bukan bagian CONFIG.SCRIPTS,
+     jadi TIDAK PERNAH keisi otomatis dari loadAllData(). Tanpa ini, halaman Pengaturan >
+     Reminder bakal crash total (blank) karena DB.reminderSettings selalu undefined. */
+  if(!DB.reminderSettings) DB.reminderSettings = JSON.parse(JSON.stringify(DEMO_DATA.reminderSettings));
   applyPrepOverridesFromStorage();
   populateTopFilters();
   updateNotif();
