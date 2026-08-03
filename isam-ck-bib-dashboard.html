@@ -221,6 +221,14 @@ tbody tr:hover{ background:var(--row-hover-bg); }
 .cfg-banner b{cursor:pointer; color:var(--blue-600); text-decoration:underline;}
 
 .page{ display:none; }
+.page.active{ display:block; animation:page-fade-in .3s ease; }
+@keyframes page-fade-in{
+  from{ opacity:0; transform:translateY(6px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+@media (prefers-reduced-motion: reduce){
+  .page.active{ animation:none; }
+}
 .page.active{ display:block; }
 
 ::-webkit-scrollbar{ height:8px; width:8px;}
@@ -239,7 +247,8 @@ tbody tr:hover{ background:var(--row-hover-bg); }
 .check-badge.yes{ background:var(--green-bg); color:var(--green);}
 .check-badge.no{ background:var(--red-bg); color:var(--red);}
 .progress-track{ background:#eef0f5; height:6px; border-radius:4px; width:80px; overflow:hidden;}
-.progress-fill{ height:100%; border-radius:4px; background:var(--blue-600);}
+.progress-fill{ height:100%; border-radius:4px; background:var(--blue-600); width:var(--fill-w,0); animation:fill-bar .7s ease .3s backwards; }
+@keyframes fill-bar{ from{ width:0; } to{ width:var(--fill-w,0); } }
 .progress-pct{ font-size:11.5px; color:var(--text-600); margin-bottom:4px; display:block;}
 
 /* ===== SETTINGS / PENGATURAN ===== */
@@ -492,8 +501,9 @@ tbody tr:hover{ background:var(--row-hover-bg); }
 .need-prep-scroll::-webkit-scrollbar{ width:6px; }
 .need-prep-scroll::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.2); border-radius:4px; }
 
-.jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; transition:var(--transition-smooth); }
+.jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; transition:var(--transition-smooth); animation:card-fade-in .4s ease backwards; }
 .jenis-card:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(16,24,64,.08); }
+@keyframes card-fade-in{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
 .jenis-card .jc-num{ font-size:20px; font-weight:800; }
 .jenis-card .jc-lb{ font-size:11px; color:var(--text-600); margin:2px 0 8px; }
 .jenis-card .jc-pct{ font-size:10.5px; color:var(--text-400); margin-top:4px; }
@@ -644,6 +654,8 @@ tbody tr:hover{ background:var(--row-hover-bg); }
   .stat-card, .panel, .btn, .jenis-card, .nav-item, tbody tr{ transition:none !important; }
   .stat-card:hover, .jenis-card:hover, .btn:hover{ transform:none !important; }
   .forecast-bar{ animation:none !important; height:var(--bar-h) !important; }
+  .jenis-card{ animation:none !important; }
+  .progress-fill{ animation:none !important; width:var(--fill-w,0) !important; }
 }
 
 /* Bar grafik Proyeksi Expired tumbuh dari 0 ke tinggi aslinya, satu-satu berurutan
@@ -1774,11 +1786,27 @@ function buildPagination(containerId, total, perPage, current, onPage){
 function exportTableCSV(tableId, filename){
   const table = document.getElementById(tableId);
   let csv = [];
+  // Baris pertama "sep=;" itu instruksi khusus yang dikenali Excel - maksa dia pakai
+  // titik-koma sebagai pemisah kolom, apapun setting bahasa/regional Excel-nya (Excel
+  // Indonesia defaultnya baca CSV pakai ";", bukan ",", makanya sebelumnya numpuk 1 kolom).
+  csv.push('sep=;');
   table.querySelectorAll('tr').forEach(tr=>{
-    const row = [...tr.children].map(td => `"${td.innerText.replace(/"/g,'""')}"`);
-    csv.push(row.join(','));
+    const row = [...tr.children].map(td=>{
+      // Kalau ada data-export (versi teks bersih khusus buat export), pakai itu -
+      // kalau nggak ada, baru ambil dari innerText (tapi dirapikan dulu).
+      let text = td.dataset.export !== undefined ? td.dataset.export : td.innerText;
+      text = text
+        .replace(/([a-z])([A-Z])/g, '$1 $2') // pisahin kata yang numpuk tanpa spasi (misal dari stepper)
+        .replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}]/gu, '') // buang emoji
+        .replace(/\s+/g, ' ')
+        .trim();
+      return `"${text.replace(/"/g,'""')}"`;
+    });
+    csv.push(row.join(';'));
   });
-  const blob = new Blob([csv.join('\n')], {type:'text/csv;charset=utf-8;'});
+  // \uFEFF di depan = UTF-8 BOM, biar Excel (termasuk versi Indonesia) otomatis kenali
+  // file ini UTF-8 dan nggak nampilin karakter aneh buat huruf/simbol non-standar.
+  const blob = new Blob(['\uFEFF' + csv.join('\r\n')], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = filename + '.csv'; a.click();
@@ -2052,12 +2080,12 @@ function renderDashboard(){
     const activeJ = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis && isActiveStatus(pick(u,['Status']))).length;
     return { jenis, total: totalJ, active: activeJ };
   }).filter(j=>j.total>0).sort((a,b)=>b.total-a.total);
-  document.getElementById('dashJenisBreakdown').innerHTML = jenisBreakdown.length ? jenisBreakdown.map(j=>`
-    <div class="jenis-card">
+  document.getElementById('dashJenisBreakdown').innerHTML = jenisBreakdown.length ? jenisBreakdown.map((j,i)=>`
+    <div class="jenis-card" style="animation-delay:${i*60}ms">
       <div style="margin-bottom:4px;">${iconHtmlForJenis(j.jenis)}</div>
       <div class="jc-num">${j.total}</div>
       <div class="jc-lb">${j.jenis}</div>
-      <div class="progress-track"><div class="progress-fill" style="width:${pct(j.active,j.total)}%"></div></div>
+      <div class="progress-track"><div class="progress-fill" style="--fill-w:${pct(j.active,j.total)}%"></div></div>
       <div class="jc-pct">${pct(j.active,j.total)}% aktif (${j.active}/${j.total})</div>
     </div>`).join('') : `<div class="empty-state" style="padding:16px 0;">Belum ada data jenis unit</div>`;
 
@@ -2535,7 +2563,7 @@ function renderPreparation(){
       <span class="progress-pct">${Math.round(progress)}%</span>
       <div class="progress-track"><div class="progress-fill" style="width:${progress}%"></div></div>
     </td>
-    <td>${prepMiniStepper(r.status)}</td>
+    <td data-export="${escJs(r.status)}">${prepMiniStepper(r.status)}</td>
     <td>${pillPrep(r.status)}</td>
     <td>${pillPrioritas(r.prioritas)}</td>
     <td>${r.hari} Hari</td>
