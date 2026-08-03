@@ -8,42 +8,45 @@
     />
     <title>ISAM CK BIB — Dashboard</title>
     <link rel="manifest" href="manifest.json" />
-    <meta name="theme-color" content="#1B4FD8" />
+    <meta name="theme-color" content="#14181f" />
     <link rel="icon" href="icon-192.png" />
     <link rel="apple-touch-icon" href="icon-192.png" />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap"
       rel="stylesheet"
     />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <style>
       :root {
-        /* ── Corporate Blue & White ── */
-        --primary: #1b4fd8; /* biru utama */
-        --primary-dark: #1338b0;
-        --primary-light: #eef3ff;
-        --secondary: #0ea5e9; /* biru muda accent */
-        --bg: #f0f4ff;
+        /* ── Industrial / K3 Safety ── */
+        --primary: #14181f; /* charcoal ink — pengganti biru korporat */
+        --primary-dark: #0a0d12;
+        --primary-light: #fdf3e0; /* tint amber lembut */
+        --secondary: #f5a623; /* amber safety — accent identitas */
+        --bg: #f6f4ef; /* kanvas hangat ala kertas checklist */
         --surface: #ffffff;
-        --surface2: #f7f9ff;
-        --border: #d4dcef;
-        --text: #0f1a3c;
-        --muted: #5a6a8a;
-        --muted2: #8fa0be;
+        --surface2: #f6f4ef;
+        --border: #e6e2d8;
+        --text: #14181f;
+        --muted: #46566b;
+        --muted2: #8b97a8;
 
         /* Status */
-        --green: #16a34a;
-        --green-bg: #f0fdf4;
-        --green-bd: #bbf7d0;
-        --red: #dc2626;
-        --red-bg: #fef2f2;
-        --red-bd: #fecaca;
-        --yellow: #d97706;
-        --yellow-bg: #fffbeb;
-        --yellow-bd: #fde68a;
-        --purple: #7c3aed;
-        --purple-bg: #f5f3ff;
+        --green: #1e8e5a;
+        --green-bg: #eaf6ef;
+        --green-bd: #b9e3cc;
+        --red: #e23f3f;
+        --red-bg: #fdeceb;
+        --red-bd: #f6c3c1;
+        --yellow: #c9820f;
+        --yellow-bg: #fef6e7;
+        --yellow-bd: #f5d99b;
+        --purple: #6b5ecf;
+        --purple-bg: #efedfb;
+
+        /* Aksen safety amber (dipakai terbatas di elemen sinyal) */
+        --safety: #f5a623;
 
         /* Layout */
         --nav-h: 64px;
@@ -69,25 +72,25 @@
 
       /* ── DARK MODE ── */
       [data-theme="dark"] {
-        --primary: #3b82f6;
-        --primary-dark: #2563eb;
-        --primary-light: #1e293b;
-        --secondary: #38bdf8;
-        --bg: #0f172a;
-        --surface: #1e293b;
-        --surface2: #18233a;
-        --border: #2d3b54;
-        --text: #e8edf5;
-        --muted: #94a3b8;
-        --muted2: #64748b;
+        --primary: #f5a623;
+        --primary-dark: #c9820f;
+        --primary-light: #2a2418;
+        --secondary: #f5a623;
+        --bg: #14171c;
+        --surface: #1c2129;
+        --surface2: #191d24;
+        --border: #2c333e;
+        --text: #edeee9;
+        --muted: #98a3b3;
+        --muted2: #66707f;
 
-        --green-bg: #102a1c;
-        --green-bd: #1e5631;
-        --red-bg: #2a1414;
-        --red-bd: #5c2323;
+        --green-bg: #10261c;
+        --green-bd: #1e5232;
+        --red-bg: #2a1616;
+        --red-bd: #5c2626;
         --yellow-bg: #2a2210;
         --yellow-bd: #5c4a18;
-        --purple-bg: #1e1832;
+        --purple-bg: #1e1c32;
       }
       [data-theme="dark"] .topbar-logo,
       [data-theme="dark"] .topbar-btn,
@@ -156,14 +159,15 @@
         pointer-events: all;
       }
          .more-menu-title {
+        font-family: "Oswald", sans-serif;
         font-size: 11px;
-        font-weight: 700;
+        font-weight: 600;
         color: var(--muted2);
         text-transform: uppercase;
         letter-spacing: 1px;
         padding: 8px 12px 4px;
       }
-      . {
+      .more-menu-grid {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
         gap: 4px;
@@ -193,6 +197,25 @@
         font-weight: 500;
         color: var(--text);
         text-align: center;
+      }
+      /* Signature: hazard stripe — dipakai HANYA di elemen paling kritis */
+      #criticalAlert {
+        position: relative;
+        overflow: hidden;
+        padding-left: 22px !important;
+      }
+      #criticalAlert::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 8px;
+        background: repeating-linear-gradient(
+          45deg,
+          var(--safety) 0 6px,
+          #14181f 6px 12px
+        );
       }
       .more-menu-close {
         width: 100%;
@@ -253,8 +276,11 @@
         min-width: 0;
       }
       .topbar-title {
+        font-family: "Oswald", sans-serif;
         font-size: 13px;
-        font-weight: 700;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
         color: #fff;
         white-space: nowrap;
         overflow: hidden;
@@ -434,8 +460,11 @@
           font-size: 20px;
         }
         .sidebar-logo-text .slt-name {
+          font-family: "Oswald", sans-serif;
           font-size: 14px;
-          font-weight: 700;
+          font-weight: 600;
+          letter-spacing: 0.3px;
+          text-transform: uppercase;
           color: #fff;
         }
         .sidebar-logo-text .slt-sub {
@@ -663,10 +692,12 @@
         background: var(--green-bg);
       }
       .stat-value {
-        font-size: 28px;
+        font-family: "JetBrains Mono", monospace;
+        font-size: 26px;
         font-weight: 700;
         line-height: 1;
         margin-bottom: 2px;
+        font-variant-numeric: tabular-nums;
       }
       .stat-value.c-blue {
         color: var(--primary);
@@ -681,11 +712,12 @@
         color: var(--green);
       }
       .stat-label {
+        font-family: "Oswald", sans-serif;
         font-size: 11px;
         font-weight: 600;
         color: var(--muted);
         text-transform: uppercase;
-        letter-spacing: 0.3px;
+        letter-spacing: 0.6px;
       }
       .stat-sub {
         font-size: 11px;
@@ -701,8 +733,10 @@
         margin-bottom: 10px;
       }
       .sec-title {
+        font-family: "Oswald", sans-serif;
         font-size: 14px;
-        font-weight: 700;
+        font-weight: 600;
+        letter-spacing: 0.2px;
       }
       .sec-count {
         font-size: 12px;
@@ -1903,12 +1937,14 @@
         >
           <div class="more-menu-icon">🗺️</div>
           <div class="more-menu-label">KPI Area</div>
+        </button>
         <button
-    class="more-menu-item"
-    onclick="window.location.href='comissioning.html','_blank">
-    <div class="more-menu-icon">🛠️</div>
-    <div class="more-menu-label">Commissioning</div>
-</button>
+          class="more-menu-item"
+          onclick="window.open('comissioning.html', '_blank')"
+        >
+          <div class="more-menu-icon">🛠️</div>
+          <div class="more-menu-label">Commissioning</div>
+        </button>
         <button
           class="more-menu-item"
           onclick="triggerViewFromMore('adminKPIPIC')"
@@ -4185,7 +4221,7 @@
 
     <script>
       const APPS_SCRIPT_URL =
-        "https://script.google.com/macros/s/AKfycbyNU-pRMPcmFBC0qzmcN2QxDa73K8JhkTTBsPcSi1kw8PyJMei5KJgqH25gdocyu_cB/exec";
+        "https://script.google.com/macros/s/AKfycbxXYIMZh1r63PBehuExXDXJ8NqAHrJ5AwhivLGh5XcFYD61TTNCo_YWS5j2HLIczJur0Q/exec";
       let SESSION = null,
         allTemuan = [],
         closeFotos = [],
@@ -4247,7 +4283,7 @@
         if (meta)
           meta.setAttribute(
             "content",
-            theme === "dark" ? "#0f172a" : "#1B4FD8",
+            theme === "dark" ? "#14171c" : "#14181f",
           );
       }
       function toggleTheme() {
@@ -7626,7 +7662,7 @@ NAV_ADMIN_SIDEBAR.forEach((n, i) => {
                   .join("")}
               </div>
               <button onclick="openSertModal('${a.asset_id}')"
-                style="width:100%;padding:8px;border-radius:8px;background:${isExpired ? "var(--red)" : "#d97706"};color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px">
+                style="width:100%;padding:8px;border-radius:8px;background:${isExpired ? "var(--red)" : "var(--yellow)"};color:#fff;border:none;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;display:flex;align-items:center;justify-content:center;gap:5px">
                 ✏️ Update Sertifikasi
               </button>
             </div>`
