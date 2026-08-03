@@ -504,6 +504,7 @@ tbody tr:hover{ background:var(--row-hover-bg); }
 .jenis-card{ flex:1; min-width:130px; background:var(--gray-bg); border-radius:10px; padding:12px 14px; transition:var(--transition-smooth); animation:card-fade-in .4s ease backwards; }
 .jenis-card:hover{ transform:translateY(-2px); box-shadow:0 6px 16px rgba(16,24,64,.08); }
 @keyframes card-fade-in{ from{ opacity:0; transform:translateY(8px); } to{ opacity:1; transform:translateY(0); } }
+.row-enter{ animation:card-fade-in .35s ease backwards; }
 .jenis-card .jc-num{ font-size:20px; font-weight:800; }
 .jenis-card .jc-lb{ font-size:11px; color:var(--text-600); margin:2px 0 8px; }
 .jenis-card .jc-pct{ font-size:10.5px; color:var(--text-400); margin-top:4px; }
@@ -655,6 +656,7 @@ tbody tr:hover{ background:var(--row-hover-bg); }
   .stat-card:hover, .jenis-card:hover, .btn:hover{ transform:none !important; }
   .forecast-bar{ animation:none !important; height:var(--bar-h) !important; }
   .jenis-card{ animation:none !important; }
+  .row-enter{ animation:none !important; }
   .progress-fill{ animation:none !important; width:var(--fill-w,0) !important; }
 }
 
@@ -1962,7 +1964,12 @@ function renderDashboard(){
   const prepRows = filterIds ? DB.preparation.filter(p=>filterIds.has(pick(p,['Unit_ID (FK)','Unit_ID']))) : DB.preparation;
 
   const total = muRows.length;
-  const active = muRows.filter(m=>isActiveStatus(pick(m,['Status','status']))).length;
+  /* PENTING: "Active" di sini artinya status COMMISSIONING-nya "Aktif" (konsisten sama
+     Near Expired/Expired di sebelahnya, yang juga dari Commissioning). SEBELUMNYA ini
+     salah baca dari status Master_Unit (status OPERASIONAL fisik unit - konsep beda sama
+     sekali), makanya kelihatan aneh "Active 965 (100%)" bareng "Near Expired 150" padahal
+     harusnya nggak mungkin dua-duanya 100% kalau emang dari sumber yang sama. */
+  const active = expiredRows.filter(e=>isActiveStatus(pick(e,['Status','status']))).length;
   const nearExp = expiredRows.filter(e=>String(pick(e,['Status','status'])||'').toLowerCase().includes('near')).length;
   const expired = expiredRows.filter(e=>{
     const s = String(pick(e,['Status','status'])||'').toLowerCase();
@@ -2182,7 +2189,7 @@ function renderJenisUnit(){
     const totalUnit = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis).length;
     const aktifUnit = DB.masterUnit.filter(u=>pick(u,['Jenis_Unit'])===jenis && isActiveStatus(pick(u,['Status']))).length;
     const nonAktifUnit = totalUnit - aktifUnit;
-    return `<tr><td>${i+1}</td><td class="unit-id">${guessIconForJenis(jenis)} ${jenis}</td>
+    return `<tr class="row-enter" style="animation-delay:${i*35}ms"><td>${i+1}</td><td class="unit-id" style="display:flex;align-items:center;gap:8px;">${iconHtmlForJenis(jenis)} ${jenis}</td>
     <td>${totalUnit}</td><td>${aktifUnit}</td><td>${nonAktifUnit}</td></tr>`;
   }).join('') || `<tr><td colspan="5" class="empty-state">Belum ada data jenis unit</td></tr>`;
 }
@@ -3590,6 +3597,28 @@ function toggleJadwalPengiriman(idx){
   DB.reminderSettings.jadwalPengiriman[idx].checked = !DB.reminderSettings.jadwalPengiriman[idx].checked;
   renderSettingsReminder();
 }
+async function sendTestReminderEmail(){
+  const adminPic = DB.picReminder.find(p=>pick(p,['Role'])==='Administrator');
+  const defaultEmail = adminPic ? pick(adminPic,['Email']) : '';
+  const email = prompt('Kirim email test ke alamat mana?', defaultEmail);
+  if(!email) return;
+  showSaveToast('⏳ Mengirim email test ke '+email+'...');
+  try{
+    const res = await fetch(CONFIG.API_URL, {
+      method:'POST',
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({ action:'sendTestReminder', payload:{ email } })
+    });
+    const json = await res.json();
+    if(json.success){
+      showSaveToast('✓ '+json.message);
+    }else{
+      showSaveToast('⚠ Gagal: '+(json.message||'Terjadi kesalahan'), true);
+    }
+  }catch(err){
+    showSaveToast('⚠ Gagal kirim - Code.gs belum punya action "sendTestReminder"? Cek lagi patch-nya.', true);
+  }
+}
 function saveReminderSettings(){
   alert('Jadwal & channel reminder tersimpan (mode demo - belum tersambung ke spreadsheet).\n\nCatatan: daftar Penerima Reminder diambil dari sheet Master_PIC_Reminder (real). Centang/lepas centangnya disimpan di browser ini saja, karena sheet-nya belum punya kolom Status.');
 }
@@ -3662,7 +3691,7 @@ function renderSettingsReminder(){
       <textarea class="reminder-template" id="reminderTemplate">${rs.template}</textarea>
       <div style="display:flex;gap:10px;margin-top:12px;justify-content:flex-end;">
         <button class="btn btn-outline" onclick="alert('Preview:\\n\\n'+document.getElementById('reminderTemplate').value)">👁 Preview</button>
-        <button class="btn btn-primary" onclick="alert('Test reminder terkirim ke channel yang aktif (demo).')">📨 Kirim Test</button>
+        <button class="btn btn-primary" onclick="sendTestReminderEmail()">📨 Kirim Test</button>
       </div>
     </div>`;
 
@@ -3852,9 +3881,12 @@ function renderLaporan(){
     <div class="export-card ${selectedLaporanType===c.key?'sel':''}" onclick="selectedLaporanType='${c.key}';renderLaporan()">
       <div class="t">${c.t}</div><div class="d">${c.d}</div><div class="chk">✓</div></div>`).join('');
 
-  /* Terapkan filter Site & Status (kalau dipilih) ke data Commissioning yang jadi basis laporan */
+  /* Terapkan filter Site, Status, DAN Rentang Tanggal (kalau dipilih) ke data Commissioning
+     yang jadi basis laporan. Rentang tanggal berdasarkan Tanggal_Terbit. */
   const siteFilter = document.getElementById('lapSite').value;
   const statusFilter = document.getElementById('lapStatus').value;
+  const startFilter = document.getElementById('lapStart').value; // format YYYY-MM-DD dari <input type="date">
+  const endFilter = document.getElementById('lapEnd').value;
   let comRows = getCurrentCommissioning().filter(r=>{
     if(siteFilter!=='ALL' && pick(r,['Site'])!==siteFilter) return false;
     if(statusFilter){
@@ -3862,6 +3894,12 @@ function renderLaporan(){
       if(statusFilter==='Aktif' && !(s==='active'||s==='aktif')) return false;
       if(statusFilter==='Near Expired' && !s.includes('near')) return false;
       if(statusFilter==='Expired' && !(s.includes('expired') && !s.includes('near'))) return false;
+    }
+    if(startFilter || endFilter){
+      const tglTerbit = parseFlexibleDate(pick(r,['Tanggal_Terbit']));
+      if(!tglTerbit) return false; // tanggalnya nggak valid, nggak bisa dicek rentangnya
+      if(startFilter && tglTerbit < new Date(startFilter)) return false;
+      if(endFilter && tglTerbit > new Date(endFilter+'T23:59:59')) return false;
     }
     return true;
   });
