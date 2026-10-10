@@ -5344,7 +5344,7 @@
             return `<div class="task-card risk-${rc}${isOv ? " overdue" : ""}" onclick="openDrawer('${insId}')">
             <div class="tc-head">
               <span class="tc-badge b-${rc}">${rLabel}</span>
-              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · ${f.nama_kategori || "-"}</div></div>
+              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? " · <span style=\"opacity:.75;font-weight:500\">" + f.no_id + "</span>" : ""}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · ${f.nama_kategori || "-"}</div></div>
               <div class="tc-count"><div class="tc-count-n">${temuan.length}</div><div class="tc-count-l">temuan</div></div>
             </div>
             <div class="tc-findings">${findings}${more}</div>
@@ -5436,7 +5436,7 @@
             return `<div class="task-card risk-${rc}" onclick="openDrawer('${insId}')">
             <div class="tc-head">
               <span class="tc-badge b-${rc}">${rLabel}</span>
-              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · PIC: ${f.nama_pic || "-"}</div></div>
+              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? " · " + f.no_id : ""}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · PIC: ${f.nama_pic || "-"}</div></div>
               <div style="font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;flex-shrink:0;${isCl ? "background:var(--green-bg);color:var(--green)" : "background:var(--red-bg);color:var(--red)"}">${isCl ? "✅ CLOSED" : "🔴 OPEN"}</div>
             </div>
             <div class="tc-foot"><div class="tc-due ontime">📅 ${f.tanggal_temuan || "-"}</div><div class="tc-ins">${temuan.length} temuan · ${f.nama_inspektor || "-"}</div></div>
@@ -5771,7 +5771,7 @@
 
         // Info grid
         let infoHtml = `
-    <div class="ig-cell"><div class="ig-label">Alat</div><div class="ig-val">${f.nama_alat || "-"}</div></div>
+    <div class="ig-cell"><div class="ig-label">Alat</div><div class="ig-val">${f.nama_alat || "-"}${f.no_id ? " (" + f.no_id + ")" : ""}</div></div>
     <div class="ig-cell"><div class="ig-label">Area</div><div class="ig-val">${f.nama_subarea || "-"}</div></div>
     <div class="ig-cell"><div class="ig-label">Tanggal Temuan</div><div class="ig-val">${f.tanggal_temuan || "-"}</div></div>
     <div class="ig-cell"><div class="ig-label" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "var(--muted)"}">Due Date</div><div class="ig-val" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "inherit"}">${formatTgl(f.due_date, true)}</div></div>`;
@@ -6744,8 +6744,8 @@
             <div class="tc-head">
               <span class="tc-badge b-${rc}">${rLabel}</span>
               <div class="tc-info">
-                <div class="tc-alat">🔧 ${f.nama_alat || "-"}</div>
-                <div class="tc-area">📍 ${f.nama_subarea || "-"} · PIC: <strong>${f.nama_pic || "-"}</strong></div>
+                <div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? " · <span style=\"opacity:.75;font-weight:500\">" + f.no_id + "</span>" : ""}</div>
+                <div class="tc-area">📍 ${f.nama_subarea || "-"}${f.no_id ? " · ID: " + f.no_id : ""} · PIC: <strong>${f.nama_pic || "-"}</strong></div>
               </div>
               <div style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;flex-shrink:0;${isCl ? "background:var(--green-bg);color:var(--green)" : "background:var(--red-bg);color:var(--red)"}">${isCl ? "✅ CLOSED" : "🔴 OPEN"}</div>
             </div>
