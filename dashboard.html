@@ -2988,6 +2988,92 @@
         <div id="monitorList"></div>
       </div>
 
+      <!-- ADMIN RIWAYAT INSPEKSI -->
+      <div class="view" id="viewAdminRiwayat">
+        <div style="display: flex; gap: 8px; margin-bottom: 12px">
+          <div style="flex: 1; position: relative">
+            <input
+              type="text"
+              id="searchRiwayat"
+              placeholder="🔍 Cari alat, no ID, inspektor..."
+              oninput="applyRiwayatFilter()"
+              style="
+                width: 100%;
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                padding: 10px 14px;
+                font-size: 14px;
+                font-family: &quot;Inter&quot;, sans-serif;
+                background: var(--surface);
+                outline: none;
+                color: var(--text);
+              "
+            />
+          </div>
+        </div>
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            overflow-x: auto;
+            padding-bottom: 4px;
+            scrollbar-width: none;
+          "
+        >
+          <select
+            id="riwayatFilterArea"
+            onchange="applyRiwayatFilter()"
+            style="
+              border: 1.5px solid var(--border);
+              border-radius: 8px;
+              padding: 7px 12px;
+              font-size: 12px;
+              background: var(--surface);
+              color: var(--text);
+              font-family: &quot;Inter&quot;, sans-serif;
+              cursor: pointer;
+            "
+          >
+            <option value="">Semua Area</option>
+          </select>
+          <select
+            id="riwayatFilterHasil"
+            onchange="applyRiwayatFilter()"
+            style="
+              border: 1.5px solid var(--border);
+              border-radius: 8px;
+              padding: 7px 12px;
+              font-size: 12px;
+              background: var(--surface);
+              color: var(--text);
+              font-family: &quot;Inter&quot;, sans-serif;
+              cursor: pointer;
+            "
+          >
+            <option value="">Semua Hasil</option>
+            <option value="LAYAK">✅ Layak</option>
+            <option value="TIDAK LAYAK">❌ Tidak Layak</option>
+          </select>
+        </div>
+        <div class="chips" style="margin-bottom: 12px">
+          <div class="chip active" onclick="setRiwayatTab('all', this)">
+            Semua
+          </div>
+          <div class="chip" onclick="setRiwayatTab('layak', this)">
+            ✅ Layak
+          </div>
+          <div class="chip" onclick="setRiwayatTab('tidak', this)">
+            ❌ Ada Temuan
+          </div>
+        </div>
+        <div class="sec-hdr">
+          <div class="sec-title">Riwayat Inspeksi</div>
+          <div class="sec-count" id="riwayatCount">0</div>
+        </div>
+        <div id="riwayatList"></div>
+      </div>
+
       <!-- ADMIN ANALYTICS -->
       <div class="view" id="viewAdminAnalytics">
         <!-- Trend compliance chart -->
@@ -4443,6 +4529,7 @@
           profil: "viewProfil",
           // Admin views
           adminHome: "viewAdminHome",
+          adminRiwayat: "viewAdminRiwayat",
           adminTemuan: "viewAdminTemuan",
           adminAnalytics: "viewAdminAnalytics",
           adminKPIArea: "viewAdminKPIArea",
@@ -4477,6 +4564,7 @@
           notif: "Notifikasi",
           profil: "Profil Saya",
           adminHome: "Dashboard Admin",
+          adminRiwayat: "Riwayat Inspeksi",
           adminTemuan: "Monitoring Temuan",
           adminAnalytics: "Analytics & KPI",
           adminKPIArea: "KPI per Area",
@@ -4502,6 +4590,7 @@
           loadActLog(false);
         }
         if (view === "adminTemuan") renderAdminTemuan();
+        if (view === "adminRiwayat") loadRiwayatInspeksi();
         if (view === "adminMaster")
           loadMasterSheet(masterSheetActive, masterKeyCol);
         if (view === "notif") loadNotif();
@@ -5344,7 +5433,7 @@
             return `<div class="task-card risk-${rc}${isOv ? " overdue" : ""}" onclick="openDrawer('${insId}')">
             <div class="tc-head">
               <span class="tc-badge b-${rc}">${rLabel}</span>
-              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? " · <span style=\"opacity:.75;font-weight:500\">" + f.no_id + "</span>" : ""}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · ${f.nama_kategori || "-"}</div></div>
+              <div class="tc-info"><div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? ' · <span style="opacity:.75;font-weight:500">' + f.no_id + "</span>" : ""}</div><div class="tc-area">📍 ${f.nama_subarea || "-"} · ${f.nama_kategori || "-"}</div></div>
               <div class="tc-count"><div class="tc-count-n">${temuan.length}</div><div class="tc-count-l">temuan</div></div>
             </div>
             <div class="tc-findings">${findings}${more}</div>
@@ -6299,6 +6388,12 @@
         },
         { id: "jadwal2", icon: "📅", label: "Jadwal Inspeksi", view: "jadwal" },
         {
+          id: "riwayat",
+          icon: "📜",
+          label: "Riwayat Inspeksi",
+          view: "adminRiwayat",
+        },
+        {
           id: "actlog",
           icon: "📋",
           label: "Activity Log",
@@ -6315,6 +6410,8 @@
       //  ADMIN — STATE
       // ════════════════════════════════════════════════════════════
       let kpiData = null;
+      let allInspeksi = [];
+      let riwayatTab = "all";
       let masterSheetActive = "MASTER_EMPLOYEE";
       let masterDropdowns = {
         perusahaan: [],
@@ -6645,6 +6742,166 @@
         }
       }
       // ════════════════════════════════════════════════════════════
+      //  ADMIN — RIWAYAT INSPEKSI
+      // ════════════════════════════════════════════════════════════
+      async function loadRiwayatInspeksi() {
+        const el = document.getElementById("riwayatList");
+        if (el) {
+          el.innerHTML =
+            '<div class="empty"><div class="empty-icon">⏳</div><div class="empty-title">Memuat riwayat...</div></div>';
+        }
+        try {
+          const res = await fetch(
+            APPS_SCRIPT_URL + "?action=getInspeksi&limit=200",
+          );
+          const json = await res.json();
+          allInspeksi = json.status === "ok" ? json.data || [] : [];
+        } catch (e) {
+          console.warn("loadRiwayatInspeksi:", e);
+          allInspeksi = [];
+        }
+
+        // Isi filter area
+        const areas = [
+          ...new Set(allInspeksi.map((d) => d.nama_subarea).filter(Boolean)),
+        ].sort();
+        const areaSel = document.getElementById("riwayatFilterArea");
+        if (areaSel) {
+          const cur = areaSel.value;
+          areaSel.innerHTML =
+            '<option value="">Semua Area</option>' +
+            areas.map((a) => `<option value="${a}">${a}</option>`).join("");
+          areaSel.value = cur || "";
+        }
+
+        applyRiwayatFilter();
+      }
+
+      function setRiwayatTab(tab, chipEl) {
+        riwayatTab = tab;
+        document
+          .querySelectorAll("#viewAdminRiwayat .chip")
+          .forEach((c) => c.classList.remove("active"));
+        if (chipEl) chipEl.classList.add("active");
+        applyRiwayatFilter();
+      }
+
+      function applyRiwayatFilter() {
+        const area =
+          (document.getElementById("riwayatFilterArea") || {}).value || "";
+        const hasil =
+          (document.getElementById("riwayatFilterHasil") || {}).value || "";
+        const search =
+          (document.getElementById("searchRiwayat") || {}).value || "";
+
+        let data = [...allInspeksi];
+
+        if (riwayatTab === "layak") {
+          data = data.filter(
+            (d) =>
+              (d.status_hasil || "").toUpperCase() === "LAYAK" ||
+              Number(d.total_tidak || 0) === 0,
+          );
+        } else if (riwayatTab === "tidak") {
+          data = data.filter(
+            (d) =>
+              (d.status_hasil || "").toUpperCase() === "TIDAK LAYAK" ||
+              Number(d.total_tidak || 0) > 0,
+          );
+        }
+
+        if (area) data = data.filter((d) => d.nama_subarea === area);
+        if (hasil) {
+          data = data.filter((d) => {
+            const s = (d.status_hasil || "").toUpperCase();
+            if (hasil === "LAYAK")
+              return s === "LAYAK" || Number(d.total_tidak || 0) === 0;
+            return s === "TIDAK LAYAK" || Number(d.total_tidak || 0) > 0;
+          });
+        }
+        if (search) {
+          const q = search.toLowerCase();
+          data = data.filter(
+            (d) =>
+              (d.nama_alat || "").toLowerCase().includes(q) ||
+              (d.no_id || "").toLowerCase().includes(q) ||
+              (d.nama_inspektor || "").toLowerCase().includes(q) ||
+              (d.nama_subarea || "").toLowerCase().includes(q) ||
+              (d.inspeksi_id || "").toLowerCase().includes(q),
+          );
+        }
+
+        // Sort terbaru dulu
+        data.sort(
+          (a, b) =>
+            new Date(b.tanggal_inspeksi || 0) -
+            new Date(a.tanggal_inspeksi || 0),
+        );
+
+        const cnt = document.getElementById("riwayatCount");
+        if (cnt) cnt.textContent = data.length;
+
+        const el = document.getElementById("riwayatList");
+        if (!el) return;
+
+        if (!data.length) {
+          el.innerHTML =
+            '<div class="empty"><div class="empty-icon">📋</div><div class="empty-title">Tidak ada data inspeksi</div><div class="empty-sub">Coba ubah filter atau kata kunci.</div></div>';
+          return;
+        }
+
+        el.innerHTML = data
+          .map((d) => {
+            const isLayak =
+              (d.status_hasil || "").toUpperCase() === "LAYAK" ||
+              Number(d.total_tidak || 0) === 0;
+            const temuanCount = Number(d.total_tidak || 0);
+            const compliance =
+              d.compliance != null ? d.compliance : d.compliance_rate;
+            const detailTemuan = d.detail_temuan || [];
+
+            const temuanHtml =
+              detailTemuan.length > 0
+                ? `<div style="margin-top:8px;padding-top:8px;border-top:1px dashed var(--border)">
+              ${detailTemuan
+                .slice(0, 4)
+                .map((t) => {
+                  const closed = (t.status_temuan || "") === "CLOSED";
+                  return `<div style="font-size:12px;padding:6px 8px;margin-bottom:4px;border-radius:8px;background:var(--surface2);border-left:3px solid ${closed ? "var(--green)" : "var(--red)"}">
+                    <div style="display:flex;justify-content:space-between;gap:8px">
+                      <span>⚠️ ${t.pertanyaan || "-"}</span>
+                      <span style="font-size:10px;font-weight:700;white-space:nowrap;color:${closed ? "var(--green)" : "var(--red)"}">${closed ? "✅ Closed" : "🔴 Open"}</span>
+                    </div>
+                    ${t.remarks_inspector ? `<div style="font-size:11px;color:var(--muted);margin-top:2px">📝 ${t.remarks_inspector}</div>` : ""}
+                  </div>`;
+                })
+                .join("")}
+              ${detailTemuan.length > 4 ? `<div style="font-size:11px;color:var(--muted);margin-top:4px">+${detailTemuan.length - 4} temuan lainnya</div>` : ""}
+            </div>`
+                : "";
+
+            return `<div class="task-card" style="margin-bottom:10px">
+        <div class="tc-head">
+          <span class="tc-badge" style="background:${isLayak ? "var(--green-bg)" : "var(--red-bg)"};color:${isLayak ? "var(--green)" : "var(--red)"}">${isLayak ? "✅ LAYAK" : "❌ TIDAK LAYAK"}</span>
+          <div class="tc-info">
+            <div class="tc-alat">🔧 ${d.nama_alat || "-"}${d.no_id ? ' · <span style="opacity:.75;font-weight:500">' + d.no_id + "</span>" : ""}</div>
+            <div class="tc-area">📍 ${d.nama_subarea || "-"} · ${d.nama_kategori || "-"}</div>
+          </div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:10px;font-size:12px;color:var(--muted);margin:8px 0 4px">
+          <span>📅 ${d.tanggal_inspeksi || "-"}</span>
+          <span>👤 ${d.nama_inspektor || "-"}</span>
+          <span>✅ ${d.total_ya || 0} OK</span>
+          <span>❌ ${temuanCount} Temuan</span>
+          <span>📊 ${compliance != null ? compliance + "%" : "-"}</span>
+        </div>
+        ${temuanHtml}
+        <div style="font-size:10px;color:var(--muted2);margin-top:6px;font-family:monospace">${d.inspeksi_id || "-"}</div>
+      </div>`;
+          })
+          .join("");
+      }
+      // ════════════════════════════════════════════════════════════
       //  ADMIN MONITORING TEMUAN
       // ════════════════════════════════════════════════════════════
       function renderAdminTemuan() {
@@ -6744,7 +7001,7 @@
             <div class="tc-head">
               <span class="tc-badge b-${rc}">${rLabel}</span>
               <div class="tc-info">
-                <div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? " · <span style=\"opacity:.75;font-weight:500\">" + f.no_id + "</span>" : ""}</div>
+                <div class="tc-alat">🔧 ${f.nama_alat || "-"}${f.no_id ? ' · <span style="opacity:.75;font-weight:500">' + f.no_id + "</span>" : ""}</div>
                 <div class="tc-area">📍 ${f.nama_subarea || "-"}${f.no_id ? " · ID: " + f.no_id : ""} · PIC: <strong>${f.nama_pic || "-"}</strong></div>
               </div>
               <div style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:20px;flex-shrink:0;${isCl ? "background:var(--green-bg);color:var(--green)" : "background:var(--red-bg);color:var(--red)"}">${isCl ? "✅ CLOSED" : "🔴 OPEN"}</div>
