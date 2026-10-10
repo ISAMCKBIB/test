@@ -3075,29 +3075,64 @@
       </div>
 
       <!-- ADMIN ANALYTICS -->
+       <!-- ADMIN ANALYTICS -->
       <div class="view" id="viewAdminAnalytics">
-        <!-- Trend compliance chart -->
-        <div class="chart-card">
-          <div
-            style="
-              display: flex;
-              align-items: center;
-              justify-content: space-between;
-              margin-bottom: 14px;
-            "
-          >
-            <div class="chart-title" style="margin-bottom: 0">
-              📈 Trend Compliance 6 Bulan
-            </div>
-            <div
-              style="font-size: 18px; font-weight: 700; color: var(--primary)"
-              id="analyticsCompliance"
-            >
-              —%
-            </div>
+        <!-- Summary cards -->
+        <div class="stats-grid" style="margin-bottom:16px">
+          <div class="stat-card c-blue">
+            <div class="stat-label">Total Inspeksi</div>
+            <div class="stat-value c-blue" id="anStatInspeksi">—</div>
+            <div class="stat-sub">semua waktu</div>
           </div>
-          <div class="chart-bars" id="trendChart" style="height: 120px"></div>
+          <div class="stat-card c-red">
+            <div class="stat-label">Open Temuan</div>
+            <div class="stat-value c-red" id="anStatOpen">—</div>
+            <div class="stat-sub">belum ditutup</div>
+          </div>
+          <div class="stat-card c-green">
+            <div class="stat-label">Closed Bln Ini</div>
+            <div class="stat-value c-green" id="anStatClosed">—</div>
+            <div class="stat-sub">berhasil diselesaikan</div>
+          </div>
+          <div class="stat-card c-yellow">
+            <div class="stat-label">Compliance</div>
+            <div class="stat-value c-yellow" id="anStatCompliance">—</div>
+            <div class="stat-sub">closed / total temuan</div>
+          </div>
         </div>
+
+        <!-- Trend -->
+        <div class="chart-card">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div class="chart-title" style="margin-bottom:2px">📈 Trend Compliance 6 Bulan</div>
+              <div style="font-size:11px;color:var(--muted)">% temuan closed per bulan (berdasarkan tanggal temuan)</div>
+            </div>
+            <div style="font-size:20px;font-weight:700;color:var(--primary)" id="analyticsCompliance">—%</div>
+          </div>
+          <div class="chart-bars" id="trendChart" style="height:140px"></div>
+        </div>
+
+        <!-- Risiko -->
+        <div class="chart-card">
+          <div class="chart-title">🎯 Temuan Open per Risiko</div>
+          <div style="font-size:11px;color:var(--muted);margin:-6px 0 12px">Hanya temuan yang masih OPEN</div>
+          <div id="risikoBreakdown"></div>
+        </div>
+
+        <!-- Overdue areas -->
+        <div class="sec-hdr" style="margin-bottom:10px">
+          <div class="sec-title">📍 Area Overdue Terbanyak</div>
+        </div>
+        <div id="analyticsAreaOverdue" style="margin-bottom:14px"></div>
+
+        <!-- Top PIC singkat -->
+        <div class="sec-hdr" style="margin-bottom:10px">
+          <div class="sec-title">👥 Top PIC (Compliance)</div>
+          <div class="sec-link" onclick="triggerView('adminKPIPIC')">Lihat semua</div>
+        </div>
+        <div id="analyticsTopPIC" style="margin-bottom:14px"></div>
+      </div>
 
         <!-- By Risiko donut-like -->
         <div class="chart-card">
@@ -7049,93 +7084,146 @@
       //  ADMIN ANALYTICS
       // ════════════════════════════════════════════════════════════
       function renderAdminAnalytics() {
-        if (!kpiData) return;
-        // Compliance
-        const compEl = document.getElementById("analyticsCompliance");
-        if (compEl)
-          compEl.textContent = (kpiData.summary?.compliance || 0) + "%";
-        // Trend chart
-        const trend = kpiData.trend_compliance || [];
-        const tEl = document.getElementById("trendChart");
-        if (tEl && trend.length) {
-          const max = Math.max(...trend.map((t) => t.compliance), 1);
-          tEl.innerHTML = trend
-            .map((t) => {
-              const maxC = Math.max(...trend.map((t) => t.compliance), 1);
-              const h = Math.max(Math.round((t.compliance / maxC) * 90), 4);
-              const c =
-                t.compliance >= 90
-                  ? "var(--green)"
-                  : t.compliance >= 70
-                    ? "var(--primary)"
-                    : "var(--red)";
-              return `<div class="chart-bar-wrap">
-              <div style="font-size:10px;font-weight:700;color:${c}">${t.compliance}%</div>
-              <div style="flex:1;display:flex;align-items:flex-end;width:100%">
-                <div style="width:100%;background:${c};border-radius:4px 4px 0 0;height:${h}px;transition:height .6s ease;min-height:4px"></div>
-              </div>
-              <div class="chart-label">${t.bulan}</div>
-            </div>`;
-            })
-            .join("");
-        }
-        // Risiko breakdown
-        const byRisiko = kpiData.by_risiko || {};
-        const totalR = Object.values(byRisiko).reduce((a, b) => a + b, 0) || 1;
-        const rEl = document.getElementById("risikoBreakdown");
-        if (rEl) {
-          const colors = {
-            CRITICAL: "var(--purple)",
-            HIGH: "var(--red)",
-            MEDIUM: "var(--yellow)",
-            LOW: "var(--green)",
-          };
-          const labels = {
-            CRITICAL: "🔥 Critical",
-            HIGH: "🔴 High",
-            MEDIUM: "🟡 Medium",
-            LOW: "🟢 Low",
-          };
-          rEl.innerHTML = Object.entries(byRisiko)
-            .map(([r, v]) => {
-              const pct = Math.round((v / totalR) * 100);
-              return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
-              <div style="font-size:12px;font-weight:600;width:80px;flex-shrink:0">${labels[r] || r}</div>
-              <div style="flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden">
-                <div style="height:100%;background:${colors[r] || "var(--primary)"};border-radius:5px;width:${pct}%;transition:width .6s ease"></div>
-              </div>
-              <div style="font-size:12px;font-weight:700;color:${colors[r] || "var(--primary)"};width:40px;text-align:right">${v} (${pct}%)</div>
-            </div>`;
-            })
-            .join("");
-        }
-        // Top area overdue
-        const topEl = document.getElementById("analyticsAreaOverdue");
-        const top5 = kpiData.top_area_overdue || [];
-        if (topEl) {
-          if (!top5.length) {
-            topEl.innerHTML =
-              '<div class="empty"><div class="empty-icon">✅</div><div class="empty-title">Tidak ada overdue</div></div>';
-            return;
-          }
-          const max5 = top5[0]?.count || 1;
-          topEl.innerHTML = top5
-            .map(
-              (a, i) => `
-            <div style="background:var(--surface);border-radius:10px;border:1px solid var(--border);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px">
-              <div style="font-size:15px;font-weight:700;color:var(--muted2);width:18px;text-align:center">${i + 1}</div>
-              <div style="flex:1;min-width:0">
-                <div style="font-size:13px;font-weight:600;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${a.area}</div>
-                <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
-                  <div style="height:100%;background:var(--red);border-radius:3px;width:${Math.round((a.count / max5) * 100)}%;transition:width .5s"></div>
-                </div>
-              </div>
-              <div style="background:var(--red-bg);color:var(--red);font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;flex-shrink:0">${a.count}</div>
-            </div>`,
-            )
-            .join("");
-        }
-      }
+  if (!kpiData) return;
+  const s = kpiData.summary || {};
+
+  // Summary cards
+  const set = (id, val) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = val;
+  };
+  set("anStatInspeksi", s.total_inspeksi ?? "—");
+  set("anStatOpen", s.open_temuan ?? "—");
+  set("anStatClosed", s.closed_this_month ?? "—");
+  set("anStatCompliance", (s.compliance != null ? s.compliance : "—") + "%");
+  set("analyticsCompliance", (s.compliance != null ? s.compliance : "—") + "%");
+
+  // Trend chart
+  const trend = kpiData.trend_compliance || [];
+  const tEl = document.getElementById("trendChart");
+  if (tEl) {
+    if (!trend.length) {
+      tEl.innerHTML =
+        '<div style="font-size:13px;color:var(--muted);text-align:center;padding:20px">Belum ada data tren</div>';
+    } else {
+      const maxC = Math.max(...trend.map((t) => t.compliance), 1);
+      tEl.innerHTML = trend
+        .map((t) => {
+          const h = Math.max(Math.round((t.compliance / maxC) * 100), t.total > 0 ? 6 : 2);
+          const c =
+            t.total === 0
+              ? "var(--border)"
+              : t.compliance >= 90
+                ? "var(--green)"
+                : t.compliance >= 70
+                  ? "var(--primary)"
+                  : "var(--red)";
+          return `<div class="chart-bar-wrap" title="${t.bulan}: ${t.closed}/${t.total} closed">
+            <div style="font-size:10px;font-weight:700;color:${t.total ? c : "var(--muted2)"}">${t.total ? t.compliance + "%" : "—"}</div>
+            <div style="flex:1;display:flex;align-items:flex-end;width:100%">
+              <div style="width:100%;background:${c};border-radius:4px 4px 0 0;height:${h}px;min-height:2px"></div>
+            </div>
+            <div class="chart-label">${t.bulan}</div>
+            <div style="font-size:9px;color:var(--muted2)">${t.total || 0} tm</div>
+          </div>`;
+        })
+        .join("");
+    }
+  }
+
+  // Risiko breakdown (open only)
+  const byRisiko = kpiData.by_risiko || {};
+  const totalR = Object.values(byRisiko).reduce((a, b) => a + b, 0) || 0;
+  const rEl = document.getElementById("risikoBreakdown");
+  if (rEl) {
+    const order = ["CRITICAL", "HIGH", "MEDIUM", "LOW"];
+    const colors = {
+      CRITICAL: "var(--purple)",
+      HIGH: "var(--red)",
+      MEDIUM: "var(--yellow)",
+      LOW: "var(--green)",
+    };
+    const labels = {
+      CRITICAL: "🔥 Critical",
+      HIGH: "🔴 High",
+      MEDIUM: "🟡 Medium",
+      LOW: "🟢 Low",
+    };
+    if (!totalR) {
+      rEl.innerHTML =
+        '<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Tidak ada temuan open</div>';
+    } else {
+      rEl.innerHTML = order
+        .map((r) => {
+          const v = byRisiko[r] || 0;
+          const pct = Math.round((v / totalR) * 100);
+          return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+            <div style="font-size:12px;font-weight:600;width:90px;flex-shrink:0">${labels[r]}</div>
+            <div style="flex:1;height:10px;background:var(--border);border-radius:5px;overflow:hidden">
+              <div style="height:100%;width:${pct}%;background:${colors[r]};border-radius:5px"></div>
+            </div>
+            <div style="font-size:12px;font-weight:700;width:48px;text-align:right">${v} <span style="font-weight:500;color:var(--muted)">(${pct}%)</span></div>
+          </div>`;
+        })
+        .join("");
+    }
+  }
+
+  // Area overdue
+  const ovEl = document.getElementById("analyticsAreaOverdue");
+  if (ovEl) {
+    const top = kpiData.top_area_overdue || [];
+    if (!top.length) {
+      ovEl.innerHTML =
+        '<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px;background:var(--surface);border-radius:10px;border:1px solid var(--border)">Tidak ada temuan overdue 🎉</div>';
+    } else {
+      const maxOv = Math.max(...top.map((x) => x.count), 1);
+      ovEl.innerHTML = top
+        .map(
+          (x) => `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+          <div style="flex:1;font-size:13px;font-weight:600">${x.area}</div>
+          <div style="flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;max-width:120px">
+            <div style="height:100%;width:${Math.round((x.count / maxOv) * 100)}%;background:var(--red);border-radius:4px"></div>
+          </div>
+          <div style="font-size:13px;font-weight:700;color:var(--red);min-width:28px;text-align:right">${x.count}</div>
+        </div>`,
+        )
+        .join("");
+    }
+  }
+
+  // Top PIC
+  const picEl = document.getElementById("analyticsTopPIC");
+  if (picEl) {
+    const pics = (kpiData.kpi_pic || [])
+      .slice()
+      .sort((a, b) => b.compliance - a.compliance)
+      .slice(0, 5);
+    if (!pics.length) {
+      picEl.innerHTML =
+        '<div style="font-size:13px;color:var(--muted);text-align:center;padding:12px">Belum ada data PIC</div>';
+    } else {
+      picEl.innerHTML = pics
+        .map((p, i) => {
+          const c =
+            p.compliance >= 90
+              ? "var(--green)"
+              : p.compliance >= 70
+                ? "var(--primary)"
+                : "var(--red)";
+          return `<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:6px">
+            <div style="width:24px;height:24px;border-radius:50%;background:var(--primary-light);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--primary)">${i + 1}</div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600">${p.nama_pic || p.pic_nik}</div>
+              <div style="font-size:11px;color:var(--muted)">${p.nama_subarea || ""} · ${p.closed || 0}/${p.total || 0} closed</div>
+            </div>
+            <div style="font-size:14px;font-weight:700;color:${c}">${p.compliance}%</div>
+          </div>`;
+        })
+        .join("");
+    }
+  }
+}
 
       // ════════════════════════════════════════════════════════════
       //  KPI AREA
