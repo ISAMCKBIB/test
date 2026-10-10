@@ -5737,13 +5737,16 @@
       }
       // ── DRAWER ──
       function openDrawer(insId) {
-        const temuan = allTemuan.filter(
-          (t) => t.inspeksi_id === insId && t.status_temuan === "OPEN",
-        );
-        if (!temuan.length) {
-          showToast("Tidak ada temuan open", "warn");
+        const allForIns = allTemuan.filter((t) => t.inspeksi_id === insId);
+        if (!allForIns.length) {
+          showToast("Temuan tidak ditemukan", "warn");
           return;
         }
+
+        const openOnes = allForIns.filter((t) => t.status_temuan === "OPEN");
+        const isClosedView = openOnes.length === 0;
+        const temuan = isClosedView ? allForIns : openOnes;
+
         activeInsId = insId;
         closeFotos = [];
         const f = temuan[0];
@@ -5754,55 +5757,130 @@
             MEDIUM: "🟡 MEDIUM",
             LOW: "🟢 LOW",
           }[f.risiko] || f.risiko;
+
+        // Judul drawer
+        const titleEl = document.querySelector("#drawer .drawer-title");
+        if (titleEl) {
+          titleEl.textContent = isClosedView
+            ? "Detail Temuan (Closed)"
+            : "Tindak Lanjut Temuan";
+        }
+
         document.getElementById("drawerInsId").textContent =
-          insId + " · " + rLabel;
-        document.getElementById("drawerInfo").innerHTML = `
-          <div class="ig-cell"><div class="ig-label">Alat</div><div class="ig-val">${f.nama_alat || "-"}</div></div>
-          <div class="ig-cell"><div class="ig-label">Area</div><div class="ig-val">${f.nama_subarea || "-"}</div></div>
-          <div class="ig-cell"><div class="ig-label">Tanggal</div><div class="ig-val">${f.tanggal_temuan || "-"}</div></div>
-          <div class="ig-cell"><div class="ig-label" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "var(--muted)"}">Due Date</div><div class="ig-val" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "inherit"}">${formatTgl(f.due_date, true)}</div></div>`;
+          insId + " · " + rLabel + (isClosedView ? " · ✅ CLOSED" : "");
+
+        // Info grid
+        let infoHtml = `
+    <div class="ig-cell"><div class="ig-label">Alat</div><div class="ig-val">${f.nama_alat || "-"}</div></div>
+    <div class="ig-cell"><div class="ig-label">Area</div><div class="ig-val">${f.nama_subarea || "-"}</div></div>
+    <div class="ig-cell"><div class="ig-label">Tanggal Temuan</div><div class="ig-val">${f.tanggal_temuan || "-"}</div></div>
+    <div class="ig-cell"><div class="ig-label" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "var(--muted)"}">Due Date</div><div class="ig-val" style="color:${f.sla_status === "OVERDUE" ? "var(--red)" : "inherit"}">${formatTgl(f.due_date, true)}</div></div>`;
+
+        if (isClosedView) {
+          infoHtml += `
+    <div class="ig-cell"><div class="ig-label">Tgl Closed</div><div class="ig-val">${f.tgl_closed ? formatTgl(f.tgl_closed, true) : "-"}</div></div>
+    <div class="ig-cell"><div class="ig-label">Closed by</div><div class="ig-val">${f.nama_closer || f.nik_closer || "-"}</div></div>`;
+        }
+        document.getElementById("drawerInfo").innerHTML = infoHtml;
+
+        // Daftar temuan
         document.getElementById("drawerTemuanList").innerHTML = temuan
           .map((t, i) => {
-            // Parse foto temuan (bisa string URL dipisah koma)
+            // Foto before
             const fotoUrls = t.foto_temuan
               ? t.foto_temuan
                   .split(",")
                   .map((u) => u.trim())
                   .filter(Boolean)
               : [];
-            const fotoHtml = fotoUrls.length
+            const fotoBeforeHtml = fotoUrls.length
               ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px">
-              ${fotoUrls
+            ${fotoUrls
+              .map(
+                (url) => `
+              <a href="${url}" target="_blank" style="flex-shrink:0">
+                <img src="${driveThumb(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--red-bd);cursor:pointer"
+                  onerror="this.style.display='none'">
+              </a>`,
+              )
+              .join("")}
+           </div>`
+              : `<div style="font-size:11px;color:var(--muted2);margin-top:6px;font-style:italic">📷 Belum ada foto</div>`;
+
+            // Bagian closed (tindakan + foto after)
+            let closedSection = "";
+            if (isClosedView) {
+              const fotoAfterRaw =
+                t.foto_close || t.foto_after || t.foto_close_url || "";
+              const fotoAfterUrls = fotoAfterRaw
+                ? fotoAfterRaw
+                    .split(",")
+                    .map((u) => u.trim())
+                    .filter(Boolean)
+                : [];
+              const fotoAfterHtml = fotoAfterUrls.length
+                ? `<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
+              ${fotoAfterUrls
                 .map(
                   (url) => `
                 <a href="${url}" target="_blank" style="flex-shrink:0">
-                  <img src="${driveThumb(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--red-bd);cursor:pointer"
+                  <img src="${driveThumb(url)}" style="width:72px;height:72px;object-fit:cover;border-radius:8px;border:2px solid var(--green);cursor:pointer"
                     onerror="this.style.display='none'">
                 </a>`,
                 )
                 .join("")}
              </div>`
-              : `<div style="font-size:11px;color:var(--muted2);margin-top:6px;font-style:italic">📷 Belum ada foto</div>`;
+                : `<div style="font-size:11px;color:var(--muted2);margin-top:4px;font-style:italic">📷 Tidak ada foto after</div>`;
+
+              closedSection = `
+          <div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border)">
+            <div style="font-size:10px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.3px;margin-bottom:4px">✅ Tindakan Perbaikan</div>
+            <div style="font-size:13px;line-height:1.45;color:var(--text)">${t.tindakan_close || t.tindakan || "-"}</div>
+            <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:10px">📷 Foto After</div>
+            ${fotoAfterHtml}
+          </div>`;
+            }
 
             return `<div class="temuan-item">
-          <div class="temuan-no">Temuan ${i + 1}</div>
-          <div class="temuan-q">${t.pertanyaan || "-"}</div>
-          ${t.remarks_inspector ? `<div class="temuan-rmk">📝 ${t.remarks_inspector}</div>` : ""}
-          <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:8px">📷 Foto Before</div>
-          ${fotoHtml}
-        </div>`;
+        <div class="temuan-no">Temuan ${i + 1}${isClosedView ? " · ✅ Closed" : ""}</div>
+        <div class="temuan-q">${t.pertanyaan || "-"}</div>
+        ${t.remarks_inspector ? `<div class="temuan-rmk">📝 ${t.remarks_inspector}</div>` : ""}
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:8px">📷 Foto Before</div>
+        ${fotoBeforeHtml}
+        ${closedSection}
+      </div>`;
           })
           .join("");
-        document.getElementById("tindakanInput").value = "";
-        document.getElementById("fotoRow").innerHTML = "";
-        document.getElementById("fotoZone").style.display = "flex";
+
+        // Show / hide form close
+        const formFoto = document
+          .getElementById("fotoZone")
+          ?.closest(".dfield");
+        const formTindakan = document
+          .getElementById("tindakanInput")
+          ?.closest(".dfield");
         const btn = document.getElementById("btnSubmitClose");
-        btn.disabled = false;
-        btn.innerHTML = "✅ Submit Close Temuan";
-        // Viewer tidak bisa close
-        if ((SESSION.role || "").toUpperCase() === "VIEWER")
-          btn.style.display = "none";
-        else btn.style.display = "flex";
+
+        if (isClosedView) {
+          if (formFoto) formFoto.style.display = "none";
+          if (formTindakan) formTindakan.style.display = "none";
+          if (btn) btn.style.display = "none";
+        } else {
+          if (formFoto) formFoto.style.display = "";
+          if (formTindakan) formTindakan.style.display = "";
+          document.getElementById("tindakanInput").value = "";
+          document.getElementById("fotoRow").innerHTML = "";
+          document.getElementById("fotoZone").style.display = "flex";
+          if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = "✅ Submit Close Temuan";
+            // Viewer tidak bisa close
+            if ((SESSION.role || "").toUpperCase() === "VIEWER")
+              btn.style.display = "none";
+            else btn.style.display = "flex";
+          }
+        }
+
         document.getElementById("drawer").classList.add("open");
         document.getElementById("drawerBg").classList.add("open");
       }
@@ -5928,7 +6006,14 @@
             );
             allTemuan = allTemuan.map((t) =>
               t.inspeksi_id === activeInsId
-                ? { ...t, status_temuan: "CLOSED" }
+                ? {
+                    ...t,
+                    status_temuan: "CLOSED",
+                    tgl_closed: new Date().toISOString().split("T")[0],
+                    tindakan_close: tindakan,
+                    nik_closer: SESSION.nik,
+                    nama_closer: SESSION.nama || SESSION.nik,
+                  }
                 : t,
             );
             renderStats();
@@ -6674,7 +6759,7 @@
             <div class="tc-foot">
               <div class="tc-due ${isOv ? "overdue" : f.due_date === today ? "urgent" : "ontime"}">${isOv ? "🚨 Overdue" : "📅 " + formatTgl(f.due_date, true)}</div>
               <div class="tc-ins">👤 ${f.nama_inspektor || "-"}</div>
-              <button class="btn-close-mini" onclick="event.stopPropagation();openDrawer('${insId}')">Close</button>
+              <button class="btn-close-mini" onclick="event.stopPropagation();openDrawer('${insId}')">${isCl ? "Lihat" : "Close"}</button>
             </div>
           </div>`;
           })
