@@ -2574,6 +2574,29 @@
             // ── ASET DITEMUKAN — auto-fill langsung ──
             const a = j.data.asset;
             fillAssetFields(a);
+                        const openN = Number(a.open_temuan_count || 0);
+            let openHtml = "";
+            if (openN > 0) {
+              const preview = (a.open_temuan_preview || [])
+                .map(
+                  (t) =>
+                    "• " +
+                    (t.pertanyaan || "Temuan") +
+                    (t.risiko ? " [" + t.risiko + "]" : ""),
+                )
+                .join("<br>");
+              openHtml =
+                '<br><span style="color:var(--red);font-weight:600">⚠️ ' +
+                openN +
+                " temuan belum close</span>" +
+                (preview
+                  ? '<br><span style="font-size:11px;color:var(--muted)">' +
+                    preview +
+                    (openN > 3 ? "<br>• +" + (openN - 3) + " lainnya" : "") +
+                    "</span>"
+                  : "");
+            }
+
             h.innerHTML =
               "✅ <strong>Aset ditemukan!</strong> Semua data terisi otomatis" +
               (a.tgl_inspeksi_terakhir
@@ -2583,13 +2606,15 @@
                 : "") +
               (a.status_aset_terakhir
                 ? ' · <span style="color:' +
-                  (a.status_aset_terakhir === "LAIK"
+                  (a.status_aset_terakhir === "LAYAK" ||
+                  a.status_aset_terakhir === "LAIK"
                     ? "var(--green)"
                     : "var(--red)") +
-                  '">' +
+                  ';font-weight:600">' +
                   a.status_aset_terakhir +
                   "</span>"
-                : "");
+                : "") +
+              openHtml;
             h.className = "hint found show";
             icon.textContent = "✅";
             unlockAssetFields();
