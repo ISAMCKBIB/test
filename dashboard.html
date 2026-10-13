@@ -3042,7 +3042,7 @@
               cursor: pointer;
             "
           >
-            <option value="">Semua Alat</option>
+            <option value="">Semua Kategori</option>
           </select>
           <select
             id="riwayatFilterArea"
@@ -6841,16 +6841,20 @@
                 areaSel.value = cur || "";
               }
 
-              // Isi filter jenis alat (nama_alat)
-              const alats = [
-                ...new Set(allInspeksi.map((d) => d.nama_alat).filter(Boolean)),
+              // Isi filter kategori alat
+              const kategoris = [
+                ...new Set(
+                  allInspeksi.map((d) => d.nama_kategori).filter(Boolean),
+                ),
               ].sort();
               const alatSel = document.getElementById("riwayatFilterAlat");
               if (alatSel) {
                 const curA = alatSel.value;
                 alatSel.innerHTML =
-                  '<option value="">Semua Alat</option>' +
-                  alats.map((a) => `<option value="${a}">${a}</option>`).join("");
+                  '<option value="">Semua Kategori</option>' +
+                  kategoris
+                    .map((a) => `<option value="${a}">${a}</option>`)
+                    .join("");
                 alatSel.value = curA || "";
               }
 
@@ -6892,7 +6896,7 @@
               }
 
               if (area) data = data.filter((d) => d.nama_subarea === area);
-              if (alat) data = data.filter((d) => d.nama_alat === alat);
+              if (alat) data = data.filter((d) => d.nama_kategori === alat);
               if (hasil) {
                 data = data.filter((d) => {
                   const s = (d.status_hasil || "").toUpperCase();
